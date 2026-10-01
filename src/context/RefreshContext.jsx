@@ -10,18 +10,7 @@ const RefreshContext = createContext(null);
 const ScopeContext = createContext(null);
 
 function logDataUpdated(data) {
-  const hasPayload = data != null && (typeof data !== 'object' || Object.keys(data).length > 0);
-  if (hasPayload) {
-    let formatted;
-    try {
-      formatted = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
-    } catch (_) {
-      formatted = String(data);
-    }
-    console.log(`[SOCKET] DATA UPDATED\n--------------------------------\n${formatted}\n--------------------------------`);
-  } else {
-    console.log(`[SOCKET] DATA UPDATED\n--------------------------------\nREC_DATA_UPDATED\n--------------------------------`);
-  }
+  console.log('[SOCKET] DATA UPDATED', data);
 }
 
 export function RefreshProvider({ children }) {

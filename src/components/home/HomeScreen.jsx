@@ -9,6 +9,7 @@ import HomeHeader from '@/components/home/HomeHeader';
 import MarketTicker from '@/components/home/MarketTicker';
 
 import IndicesSection from '@/components/home/IndicesSection';
+import FnoProfitMeter from '@/components/home/FnoProfitMeter';
 
 // Ticker data will eventually come from Socket.IO — pass empty array to hide the ticker for now.
 const tickerItems = [];
@@ -77,6 +78,7 @@ export default function HomeScreen() {
         )}
       >
         <IndicesSection />
+        <FnoProfitMeter />
       </ScrollView>
     </View>
   );

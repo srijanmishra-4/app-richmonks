@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, PanResponder, Platform } from 'react-native';
-import Svg, { Path, Circle, Line, G } from 'react-native-svg';
+import Svg, { Path, Circle, Line, G, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 
 const dismissListeners = new Set();
 export function dismissAllLineGraphTooltips() {
@@ -116,28 +116,33 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
   const [layout, setLayout] = useState({ width: 0, height });
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [tooltipSize, setTooltipSize] = useState({ width: 130, height: 44 });
+  const selectedIndexRef = useRef(-1);
+  const directionRef = useRef(null);
+  const touchRef = useRef(null);
+
+  const clearSelection = useCallback(() => {
+    selectedIndexRef.current = -1;
+    setSelectedIndex(-1);
+  }, []);
 
   useEffect(() => {
-    const listener = () => setSelectedIndex(-1);
-    dismissListeners.add(listener);
-    return () => dismissListeners.delete(listener);
-  }, []);
+    dismissListeners.add(clearSelection);
+    return () => dismissListeners.delete(clearSelection);
+  }, [clearSelection]);
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const handleWebOutside = () => {
-        if (Date.now() - lastLineGraphTouchTime > 150) {
-          setSelectedIndex(-1);
-        }
+        if (Date.now() - lastLineGraphTouchTime > 150) clearSelection();
       };
       window.addEventListener('pointerdown', handleWebOutside, true);
       return () => window.removeEventListener('pointerdown', handleWebOutside, true);
     }
-  }, []);
+  }, [clearSelection]);
 
   useEffect(() => {
-    setSelectedIndex(-1);
-  }, [data]);
+    clearSelection();
+  }, [data, clearSelection]);
 
   const onLayout = useCallback((e) => {
     const { width: w, height: h } = e.nativeEvent.layout;
@@ -157,6 +162,9 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
   const padBottom = 22;
   const pointGapLeft = 12;
   const pointGapRight = 8;
+  const xAxisGap = 12;
+  const axisBottomY = layout.height - padBottom + 2;
+  const plotFloorY = axisBottomY - xAxisGap;
 
   const points = useMemo(() => {
     if (!Array.isArray(data) || data.length === 0 || layout.width <= 0) return [];
@@ -175,16 +183,16 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
       min = 0;
       max = 0;
     }
-    const range = max === min ? 1 : max - min;
+    const range = max === min ? 0 : max - min;
     const startX = axisLeft + pointGapLeft;
     const endX = layout.width - axisRight - pointGapRight;
     const usableW = Math.max(1, endX - startX);
-    const usableH = Math.max(1, layout.height - padTop - padBottom);
+    const usableH = Math.max(1, plotFloorY - padTop);
     const n = valid.length;
 
     return valid.map((item, i) => {
       const x = n === 1 ? layout.width / 2 : startX + (i / (n - 1)) * usableW;
-      const y = n === 1 ? layout.height / 2 : padTop + usableH - ((item.price - min) / range) * usableH;
+      const y = n === 1 || range === 0 ? padTop + usableH / 2 : padTop + usableH - ((item.price - min) / range) * usableH;
       return {
         ...item,
         x,
@@ -192,7 +200,7 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
         color: getPointColor(item.raw),
       };
     });
-  }, [data, layout.width, layout.height, axisLeft, axisRight, padTop, padBottom, pointGapLeft, pointGapRight]);
+  }, [data, layout.width, layout.height, axisLeft, axisRight, padTop, plotFloorY, pointGapLeft, pointGapRight]);
 
   const pointsRef = useRef(points);
   pointsRef.current = points;
@@ -202,25 +210,82 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
     const pts = pointsRef.current;
     if (!pts || pts.length === 0) return;
     const idx = findNearestPointIndex(touchX, pts);
-    if (idx !== -1) {
+    if (idx !== -1 && idx !== selectedIndexRef.current) {
+      selectedIndexRef.current = idx;
       setSelectedIndex(idx);
       if (onPointSelect) onPointSelect(pts[idx].raw, idx);
     }
   }, [onPointSelect]);
 
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onStartShouldSetPanResponderCapture: () => false,
-    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 4,
-    onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 4,
-    onPanResponderGrant: (evt) => handleTouch(evt.nativeEvent.locationX),
-    onPanResponderMove: (evt, g) => {
-      if (Math.abs(g.dx) > Math.abs(g.dy)) handleTouch(evt.nativeEvent.locationX);
-    },
-    onPanResponderTerminationRequest: (_, g) => !g || Math.abs(g.dx) <= Math.abs(g.dy),
-    onPanResponderTerminate: () => {},
-    onPanResponderRelease: () => {},
-  }), [handleTouch]);
+  const panResponder = useMemo(() => {
+    let originX = 0;
+    const claimHorizontal = (g) => {
+      if (directionRef.current === 'v') return false;
+      if (directionRef.current === 'h') return true;
+      const ax = Math.abs(g.dx);
+      const ay = Math.abs(g.dy);
+      if (ax < 10 && ay < 10) return false;
+      if (ax > ay * 1.5) {
+        directionRef.current = 'h';
+        return true;
+      }
+      directionRef.current = 'v';
+      return false;
+    };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponder: (_, g) => claimHorizontal(g),
+      onMoveShouldSetPanResponderCapture: (_, g) => claimHorizontal(g),
+      onPanResponderGrant: (evt, g) => {
+        directionRef.current = 'h';
+        originX = (evt.nativeEvent.locationX || 0) - (g.dx || 0);
+        handleTouch(originX + (g.dx || 0));
+      },
+      onPanResponderMove: (_, g) => {
+        handleTouch(originX + g.dx);
+      },
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderTerminate: () => { directionRef.current = null; },
+      onPanResponderRelease: () => { directionRef.current = null; },
+    });
+  }, [handleTouch]);
+
+  const onGraphTouchStart = useCallback((e) => {
+    lastLineGraphTouchTime = Date.now();
+    directionRef.current = null;
+    touchRef.current = {
+      x: e.nativeEvent.pageX,
+      y: e.nativeEvent.pageY,
+      locX: e.nativeEvent.locationX,
+      dx: 0,
+      dy: 0,
+      cancelled: false,
+    };
+  }, []);
+
+  const onGraphTouchMove = useCallback((e) => {
+    const t = touchRef.current;
+    if (!t || t.cancelled) return;
+    t.dx = e.nativeEvent.pageX - t.x;
+    t.dy = e.nativeEvent.pageY - t.y;
+  }, []);
+
+  const onGraphTouchCancel = useCallback(() => {
+    if (touchRef.current) touchRef.current.cancelled = true;
+    touchRef.current = null;
+  }, []);
+
+  const onGraphTouchEnd = useCallback((e) => {
+    const t = touchRef.current;
+    touchRef.current = null;
+    if (!t || t.cancelled || directionRef.current) return;
+    const dx = e.nativeEvent.pageX - t.x;
+    const dy = e.nativeEvent.pageY - t.y;
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && Math.abs(t.dx) < 10 && Math.abs(t.dy) < 10) {
+      handleTouch(t.locX + dx);
+    }
+  }, [handleTouch]);
 
   const handlePointerMove = useCallback((e) => {
     if (Platform.OS === 'web' && e.nativeEvent) {
@@ -229,9 +294,13 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
     }
   }, [handleTouch]);
 
-  const linePaths = useMemo(() => {
-    if (!points || points.length < 2) return [];
+  const usablePlotH = Math.max(1, plotFloorY - padTop);
+  const gradHeight = Math.max(22, Math.round(usablePlotH * 0.25));
+
+  const { linePaths, areaFills } = useMemo(() => {
+    if (!points || points.length < 2) return { linePaths: [], areaFills: [] };
     const paths = [];
+    const fills = [];
     let currentPath = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
     let currentColor = points[1].color || '#94A3B8';
 
@@ -239,6 +308,12 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
       const p1 = points[i];
       const p2 = points[i + 1];
       const segColor = p2.color || '#94A3B8';
+
+      const gradId = segColor === '#10B981' ? 'grad-green' : segColor === '#EF4444' ? 'grad-red' : 'grad-neutral';
+      const y1B = Math.min(plotFloorY, p1.y + gradHeight);
+      const y2B = Math.min(plotFloorY, p2.y + gradHeight);
+      const areaD = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} L ${p2.x.toFixed(1)} ${p2.y.toFixed(1)} L ${p2.x.toFixed(1)} ${y2B.toFixed(1)} L ${p1.x.toFixed(1)} ${y1B.toFixed(1)} Z`;
+      fills.push({ d: areaD, gradId, key: `fill-${i}` });
 
       if (segColor === currentColor) {
         currentPath += ` L ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
@@ -248,11 +323,9 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
         currentColor = segColor;
       }
     }
-    if (currentPath) {
-      paths.push({ d: currentPath, stroke: currentColor, key: `path-last` });
-    }
-    return paths;
-  }, [points]);
+    paths.push({ d: currentPath, stroke: currentColor, key: `path-${points.length - 1}` });
+    return { linePaths: paths, areaFills: fills };
+  }, [points, plotFloorY, gradHeight]);
 
   const selectedPoint = selectedIndex >= 0 && selectedIndex < points.length ? points[selectedIndex] : null;
 
@@ -293,6 +366,10 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
       style={[styles.container, { height }, style]}
       onLayout={onLayout}
       {...panResponder.panHandlers}
+      onTouchStart={onGraphTouchStart}
+      onTouchMove={onGraphTouchMove}
+      onTouchEnd={onGraphTouchEnd}
+      onTouchCancel={onGraphTouchCancel}
       onPointerMove={handlePointerMove}
     >
       {layout.width > 0 && points.length > 0 && (
@@ -302,15 +379,15 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
             x1={axisLeft}
             y1={padTop - 4}
             x2={axisLeft}
-            y2={layout.height - padBottom + 2}
+            y2={axisBottomY}
             stroke="#E2E8F0"
             strokeWidth={1}
           />
           <Line
             x1={axisLeft}
-            y1={layout.height - padBottom + 2}
+            y1={axisBottomY}
             x2={layout.width - axisRight}
-            y2={layout.height - padBottom + 2}
+            y2={axisBottomY}
             stroke="#E2E8F0"
             strokeWidth={1}
           />
@@ -321,24 +398,40 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
               x1={selectedPoint.x}
               y1={padTop - 4}
               x2={selectedPoint.x}
-              y2={layout.height - padBottom + 2}
+              y2={axisBottomY}
               stroke="#CBD5E1"
               strokeWidth={1}
               strokeDasharray="3 3"
             />
           )}
 
+          {/* Gradient defs for area fills */}
+          <Defs>
+            <SvgGradient id="grad-green" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#10B981" stopOpacity="0.35" />
+              <Stop offset="0.55" stopColor="#10B981" stopOpacity="0.10" />
+              <Stop offset="1" stopColor="#10B981" stopOpacity="0" />
+            </SvgGradient>
+            <SvgGradient id="grad-red" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#EF4444" stopOpacity="0.35" />
+              <Stop offset="0.55" stopColor="#EF4444" stopOpacity="0.10" />
+              <Stop offset="1" stopColor="#EF4444" stopOpacity="0" />
+            </SvgGradient>
+            <SvgGradient id="grad-neutral" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#94A3B8" stopOpacity="0.22" />
+              <Stop offset="0.55" stopColor="#94A3B8" stopOpacity="0.06" />
+              <Stop offset="1" stopColor="#94A3B8" stopOpacity="0" />
+            </SvgGradient>
+          </Defs>
+
+          {/* Subtle area gradient fills */}
+          {areaFills.map((f) => (
+            <Path key={f.key} d={f.d} fill={`url(#${f.gradId})`} />
+          ))}
+
           {/* Transitioning colored connecting line segments */}
           {linePaths.map((p) => (
-            <Path
-              key={p.key}
-              d={p.d}
-              fill="none"
-              stroke={p.stroke}
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <Path key={p.key} d={p.d} fill="none" stroke={p.stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
           ))}
 
           {/* Dots */}

@@ -1,11 +1,13 @@
-// const config_prod = {
-//     api: 'https://api.richmonks.in',
-//     auth: 'https://api.richmonks.in/api/v2/auth',
-// };
-
 // export default {
 //     api: 'http://localhost:8084',
 //     auth: 'http://localhost:8084/api/v2/auth',
+// };
+
+// export default {
+//     api: 'https://api.richmonks.in',
+//     auth: 'https://api.richmonks.in/api/v2/auth',
+//     watchlist: 'https://api.richmonks.in/api/watchlist',
+//     portfolio: 'https://api.richmonks.in/api/portfolio',
 // };
 
 export default {

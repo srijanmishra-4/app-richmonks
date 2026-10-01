@@ -78,12 +78,7 @@ function logSocketResponse(event, data) {
   if (lastLoggedEvent === event && now - lastLoggedTime < 50) return;
   lastLoggedEvent = event;
   lastLoggedTime = now;
-  try {
-    const formatted = typeof data === 'object' && data !== null ? JSON.stringify(data, null, 2) : String(data);
-    console.log(`[SOCKET] ${event}\n--------------------------------\n${formatted}\n--------------------------------`);
-  } catch (_) {
-    console.log(`[SOCKET] ${event}\n--------------------------------\n`, data, `\n--------------------------------`);
-  }
+  console.log(`[SOCKET] ${event}`, data);
 }
 
 /**
