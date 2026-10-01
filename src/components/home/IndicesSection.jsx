@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginTop: 8,
+    marginTop: 4,
     gap: 10,
     flexWrap: 'wrap',
   },
@@ -493,13 +493,13 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     paddingHorizontal: 12,
     paddingVertical: 2,
-    marginTop: 14,
+    marginTop: 16,
   },
   tableRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 7.5,
+    paddingVertical: 7,
   },
   tableDivider: {
     height: StyleSheet.hairlineWidth,
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   },
   graphContainer: {
     height: 190,
-    marginTop: 8,
+    marginTop: 12,
     marginBottom: 4,
     justifyContent: 'center',
   },
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 0,
+    marginTop: 4,
   },
   rangeColLeft: {
     alignItems: 'flex-start',
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
   periodsRow: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 12,
+    marginTop: 16,
   },
   periodBtn: {
     flex: 1,
