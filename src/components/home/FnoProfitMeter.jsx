@@ -4,6 +4,7 @@ import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 import { socketRequest } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { useFnoStats } from '@/context/FnoStatsContext';
 import { TradeUpIcon, TradeDownIcon, ArrowUpIcon, ArrowDownIcon, ChartColumnIcon } from '@/components/icons/HomeIcons';
 
 // ─── Formatting ────────────────────────────────────────────────────────────────
@@ -42,11 +43,10 @@ const NEUTRAL = '#64748B';
 function FnoProfitMeter() {
   const [ppl, setPpl] = useState(null);
   const [advDec, setAdvDec] = useState(null);
-  const [fnoStats, setFnoStats] = useState(null);
+  const fnoStats = useFnoStats();
 
   const fetchPpl = useCallback(() => socketRequest('GET_ONE_DAY_PPL'), []);
   const fetchAdvDec = useCallback(() => socketRequest('GET_ADV_DEC_UNCHANGED'), []);
-  const fetchFnoStats = useCallback(() => socketRequest('GET_FNO_STATS'), []);
 
   // Listen for streaming updates
   useSocketEvent('REC_ONE_DAY_PPL', (res) => {
@@ -55,19 +55,14 @@ function FnoProfitMeter() {
   useSocketEvent('REC_ADV_DEC_UNCHANGED', (res) => {
     if (res) setAdvDec(res);
   });
-  useSocketEvent('REC_FNO_STATS', (res) => {
-    if (res) setFnoStats(res);
-  });
 
   // Initial fetch on mount
   useEffect(() => { fetchPpl().catch(() => {}); }, [fetchPpl]);
   useEffect(() => { fetchAdvDec().catch(() => {}); }, [fetchAdvDec]);
-  useEffect(() => { fetchFnoStats().catch(() => {}); }, [fetchFnoStats]);
 
   // Register for REC_DATA_UPDATED refresh
   useRegisterRefresh(fetchPpl);
   useRegisterRefresh(fetchAdvDec);
-  useRegisterRefresh(fetchFnoStats);
 
   // Derived values
   const pl1day = ppl?.pl1day ?? 0;
