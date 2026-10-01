@@ -14,6 +14,7 @@ import BullVsBearSection from '@/components/home/BullVsBearSection';
 import TrendingStocks from '@/components/home/TrendingStocks';
 import TrendingOptions from '@/components/home/TrendingOptions';
 import MarketSentimenter from '@/components/home/MarketSentimenter';
+import PremiumReports from '@/components/home/PremiumReports';
 import { FnoStatsProvider } from '@/context/FnoStatsContext';
 
 // Ticker data will eventually come from Socket.IO — pass empty array to hide the ticker for now.
@@ -82,14 +83,19 @@ export default function HomeScreen() {
           />
         )}
       >
-        <IndicesSection />
-        <FnoStatsProvider>
-          <FnoProfitMeter />
-          <BullVsBearSection />
-        </FnoStatsProvider>
-        <TrendingStocks />
-        <TrendingOptions />
-        <MarketSentimenter />
+        <View style={styles.sections}>
+          <IndicesSection />
+          <FnoStatsProvider>
+            <View style={styles.sections}>
+              <FnoProfitMeter />
+              <BullVsBearSection />
+            </View>
+          </FnoStatsProvider>
+          <TrendingStocks />
+          <TrendingOptions />
+          <MarketSentimenter />
+          <PremiumReports />
+        </View>
       </ScrollView>
     </View>
   );
@@ -105,5 +111,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+  },
+  sections: {
+    gap: 20,
   },
 });

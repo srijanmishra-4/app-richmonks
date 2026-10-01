@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
+  <defs>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Upper green gear -->
+  <path d="M 373.5,155.2 L 381.3,125.3 L 398.7,125.3 L 406.5,155.2 L 438.2,164.5 L 460.9,143.5 L 475.6,152.9 L 466.0,182.3 L 487.6,207.3 L 518.0,202.0 L 525.3,217.8 L 501.3,237.3 L 506.0,270.0 L 534.5,282.0 L 532.0,299.2 L 501.3,302.7 L 487.6,332.7 L 505.1,358.2 L 493.7,371.4 L 466.0,357.7 L 438.2,375.5 L 439.1,406.4 L 422.4,411.3 L 406.5,384.8 L 373.5,384.8 L 357.6,411.3 L 340.9,406.4 L 341.8,375.5 L 314.0,357.7 L 286.3,371.4 L 274.9,358.2 L 292.4,332.7 L 278.7,302.7 L 248.0,299.2 L 245.5,282.0 L 274.0,270.0 L 278.7,237.3 L 254.7,217.8 L 262.0,202.0 L 292.4,207.3 L 314.0,182.3 L 304.4,152.9 L 319.1,143.5 L 341.8,164.5 Z"
+        fill="none" stroke="#20C997" stroke-width="15"
+        stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="390" cy="270" r="49" fill="#D9F7EA" stroke="#20C997" stroke-width="11"/>
+
+  <!-- Lower orange gear -->
+  <path d="M 556.2,343.1 L 562.6,318.2 L 577.4,318.2 L 583.8,343.1 L 610.0,351.6 L 629.7,335.2 L 641.7,343.9 L 632.2,367.8 L 648.4,390.0 L 674.0,388.4 L 678.6,402.5 L 656.9,416.2 L 656.9,443.8 L 678.6,457.5 L 674.0,471.6 L 648.4,470.0 L 632.2,492.2 L 641.7,516.1 L 629.7,524.8 L 610.0,508.4 L 583.8,516.9 L 577.4,541.8 L 562.6,541.8 L 556.2,516.9 L 530.0,508.4 L 510.3,524.8 L 498.3,516.1 L 507.8,492.2 L 491.6,470.0 L 466.0,471.6 L 461.4,457.5 L 483.1,443.8 L 483.1,416.2 L 461.4,402.5 L 466.0,388.4 L 491.6,390.0 L 507.8,367.8 L 498.3,343.9 L 510.3,335.2 L 530.0,351.6 Z"
+        fill="none" stroke="#FF6238" stroke-width="15"
+        stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="570" cy="430" r="38" fill="#FFE2D8" stroke="#FF6238" stroke-width="10"/>
+
+  <!-- Green rotation arrow -->
+  <path d="M 500 145 C 585 145, 635 205, 625 278"
+        fill="none" stroke="#20C997" stroke-width="14"
+        stroke-linecap="round"/>
+  <path d="M 625 278 L 599 245 M 625 278 L 652 245"
+        fill="none" stroke="#20C997" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Orange rotation arrow -->
+  <path d="M 455 525 C 380 525, 335 475, 345 408"
+        fill="none" stroke="#FF6238" stroke-width="14"
+        stroke-linecap="round"/>
+  <path d="M 345 408 L 319 441 M 345 408 L 371 441"
+        fill="none" stroke="#FF6238" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Motion / transition marks -->
+  <path d="M 160 240 H 225 M 175 275 H 225"
+        stroke="#A8B7C7" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 675 430 H 740 M 675 465 H 725"
+        stroke="#F4B5A4" stroke-width="8" stroke-linecap="round"/>
+</svg>
