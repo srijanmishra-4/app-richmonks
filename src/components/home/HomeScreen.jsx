@@ -13,6 +13,7 @@ import FnoProfitMeter from '@/components/home/FnoProfitMeter';
 import BullVsBearSection from '@/components/home/BullVsBearSection';
 import TrendingStocks from '@/components/home/TrendingStocks';
 import TrendingOptions from '@/components/home/TrendingOptions';
+import MarketSentimenter from '@/components/home/MarketSentimenter';
 import { FnoStatsProvider } from '@/context/FnoStatsContext';
 
 // Ticker data will eventually come from Socket.IO — pass empty array to hide the ticker for now.
@@ -88,6 +89,7 @@ export default function HomeScreen() {
         </FnoStatsProvider>
         <TrendingStocks />
         <TrendingOptions />
+        <MarketSentimenter />
       </ScrollView>
     </View>
   );
