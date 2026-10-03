@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RefreshProvider, useActiveScreen } from '@/context/RefreshContext';
+import { CommonDataProvider } from '@/context/CommonDataContext';
 
 import {
   HomeContainIcon, HomeOutlineIcon,
@@ -70,17 +71,19 @@ export const unstable_settings = {
 
 export default function AppLayout() {
   return (
-    <RefreshProvider>
-      <Tabs
-        tabBar={(props) => <TabBar {...props} />}
-        screenOptions={{ headerShown: false }}
-      >
-        <Tabs.Screen name="index" options={{ href: null }} />
-        <Tabs.Screen name="home" />
-        <Tabs.Screen name="watchlist" />
-        <Tabs.Screen name="trades" />
-      </Tabs>
-    </RefreshProvider>
+    <CommonDataProvider>
+      <RefreshProvider>
+        <Tabs
+          tabBar={(props) => <TabBar {...props} />}
+          screenOptions={{ headerShown: false }}
+        >
+          <Tabs.Screen name="index" options={{ href: null }} />
+          <Tabs.Screen name="home" />
+          <Tabs.Screen name="watchlist" />
+          <Tabs.Screen name="trades" />
+        </Tabs>
+      </RefreshProvider>
+    </CommonDataProvider>
   );
 }
 
