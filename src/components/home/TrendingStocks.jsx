@@ -272,17 +272,8 @@ function TrendingStocks() {
 
   const handleViewMore = () => {
     router.push({
-      pathname: '/trending-stocks',
-      params: {
-        report: selectedReport,
-        result: JSON.stringify({
-          cdate: currentData?.cdate ?? '',
-          expiryState: currentData?.expiryState ?? '',
-          expiryDate: currentData?.expiryDate ?? '',
-          key: currentData?.key || '',
-          data: currentStocks,
-        }),
-      },
+      pathname: '/home/trending-stocks',
+      params: { report: selectedReport },
     });
   };
 

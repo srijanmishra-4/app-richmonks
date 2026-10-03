@@ -1,10 +1,12 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import { ChevronRightIcon } from '@/components/icons/HomeIcons';
+import { RMLoader } from '@/components/RMLoader/RMLoader';
+import { socketRequest } from '@/utils/socket';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -55,14 +57,23 @@ function paramString(value) {
   return value ?? '';
 }
 
-function parseResult(raw) {
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
+function normalizeStocks(payload) {
+  if (!payload || typeof payload !== 'object') return { key: '', data: [] };
+  let key = payload.key || payload.header || '';
+  let list = [];
+  if (Array.isArray(payload.data)) list = payload.data;
+  else if (Array.isArray(payload.result)) list = payload.result;
+  else if (Array.isArray(payload.stocks)) list = payload.stocks;
+  else if (Array.isArray(payload.list)) list = payload.list;
+  if (!key && list.length > 0 && list[0]?.key) key = list[0].key;
+  const data = list.map((item) => ({
+    symbol: item.symbol || item.name || item.stock_name || '—',
+    price: item.price ?? item.cmp ?? item.close ?? '—',
+    price_change: item.price_change ?? item.change_percent ?? item.percent_change ?? item.pChange ?? item.change ?? '',
+    key: item.key || key || '',
+    value: item.value ?? item.level ?? item.val ?? '—',
+  }));
+  return { key, data };
 }
 
 function groupDigits(intPart) {
@@ -128,11 +139,50 @@ const TrendingStocksRow = memo(function TrendingStocksRow({ data }) {
 function TrendingStocksScreen() {
   const params = useLocalSearchParams();
   const report = paramString(params.report);
-  const result = useMemo(() => parseResult(paramString(params.result)), [params.result]);
-  const rows = Array.isArray(result.data) ? result.data : [];
-  const rowKey = rows.length > 0 ? rows[0]?.key : '';
-  const middleLabel = rowKey || result.key || KEY_FALLBACK[report] || 'Value';
+  const [rows, setRows] = useState([]);
+  const [valueKey, setValueKey] = useState('');
+  const [loading, setLoading] = useState(true);
+  const queueRef = useRef(Promise.resolve());
+  const genRef = useRef(0);
+  const middleLabel = valueKey || KEY_FALLBACK[report] || 'Value';
   const title = REPORT_TITLES[report] || 'Trending Stocks';
+
+  useEffect(() => {
+    if (!report) {
+      setRows([]);
+      setValueKey('');
+      setLoading(false);
+      return undefined;
+    }
+    const gen = ++genRef.current;
+    setRows([]);
+    setValueKey('');
+    setLoading(true);
+    const task = queueRef.current.then(() => {
+      if (gen !== genRef.current) return null;
+      return socketRequest('GET_MARKET_INSIGHTS', { report })
+        .then((res) => {
+          if (gen !== genRef.current) return null;
+          const normalized = normalizeStocks(res);
+          setRows(normalized.data);
+          setValueKey(normalized.key);
+          setLoading(false);
+          return res;
+        })
+        .catch((err) => {
+          if (gen !== genRef.current) return null;
+          console.log('[TrendingStocks] Socket fetch error:', err?.message);
+          setRows([]);
+          setValueKey('');
+          setLoading(false);
+          return null;
+        });
+    });
+    queueRef.current = task.then(() => {}, () => {});
+    return () => {
+      genRef.current += 1;
+    };
+  }, [report]);
 
   const HeaderComponent = useCallback(({ sort, onSort }) => (
     <>
@@ -145,14 +195,18 @@ function TrendingStocksScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.backBtn, Platform.OS === 'web' ? styles.pointer : null]}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.backBtn, Platform.OS === 'web' ? styles.pointer : null]}>
           <View style={styles.backIcon}><ChevronRightIcon size={22} color="#0F172A" /></View>
         </Pressable>
         <Text style={styles.title} numberOfLines={2}>{title}</Text>
       </View>
-      <View style={styles.table}>
-        <CommonTable data={rows} HeaderComponent={HeaderComponent} RowComponent={TrendingStocksRow} emptyText="No stocks to show" />
-      </View>
+      {loading ? (
+        <View style={styles.loader}><RMLoader /></View>
+      ) : (
+        <View style={styles.table}>
+          <CommonTable data={rows} HeaderComponent={HeaderComponent} RowComponent={TrendingStocksRow} emptyText="No stocks to show" />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -166,6 +220,7 @@ const styles = StyleSheet.create({
   backIcon: { transform: [{ rotate: '180deg' }] },
   pointer: { cursor: 'pointer' },
   title: { flex: 1, fontSize: 16, lineHeight: 21, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   table: { flex: 1, minHeight: 0 },
   cell: { justifyContent: 'center', paddingRight: 4 },
   cellEnd: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: 4 },

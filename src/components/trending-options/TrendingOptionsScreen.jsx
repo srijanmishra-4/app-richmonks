@@ -1,10 +1,12 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import { ChevronRightIcon } from '@/components/icons/HomeIcons';
+import { RMLoader } from '@/components/RMLoader/RMLoader';
+import { socketRequest } from '@/utils/socket';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -48,16 +50,6 @@ const REPORT_TITLES = {
 function paramString(value) {
   if (Array.isArray(value)) return value[0] ?? '';
   return value ?? '';
-}
-
-function parseResult(raw) {
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
 }
 
 function groupDigits(intPart) {
@@ -157,11 +149,46 @@ const TrendingOptionsRow = memo(function TrendingOptionsRow({ data }) {
 function TrendingOptionsScreen() {
   const params = useLocalSearchParams();
   const report = paramString(params.report);
-  const result = useMemo(() => parseResult(paramString(params.result)), [params.result]);
-  const rows = Array.isArray(result.data) ? result.data : [];
+  const optionType = paramString(params.option_type) || 'CE';
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const queueRef = useRef(Promise.resolve());
+  const genRef = useRef(0);
   const title = REPORT_TITLES[report] || 'Trending Options';
   const type = useOptionsType();
   const colGap = useMemo(() => ({ marginLeft: type.gap, minWidth: 0 }), [type.gap]);
+
+  useEffect(() => {
+    if (!report) {
+      setRows([]);
+      setLoading(false);
+      return undefined;
+    }
+    const gen = ++genRef.current;
+    setRows([]);
+    setLoading(true);
+    const task = queueRef.current.then(() => {
+      if (gen !== genRef.current) return null;
+      return socketRequest('GET_TRENDING_OPTIONS', { report, option: optionType, option_type: optionType })
+        .then((res) => {
+          if (gen !== genRef.current) return null;
+          setRows(Array.isArray(res?.data) ? res.data : []);
+          setLoading(false);
+          return res;
+        })
+        .catch((err) => {
+          if (gen !== genRef.current) return null;
+          console.log('[TrendingOptions] Socket fetch error:', err?.message);
+          setRows([]);
+          setLoading(false);
+          return null;
+        });
+    });
+    queueRef.current = task.then(() => {}, () => {});
+    return () => {
+      genRef.current += 1;
+    };
+  }, [report, optionType]);
 
   const HeaderComponent = useCallback(({ sort, onSort }) => (
     <>
@@ -176,14 +203,18 @@ function TrendingOptionsScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.backBtn, Platform.OS === 'web' ? styles.pointer : null]}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.backBtn, Platform.OS === 'web' ? styles.pointer : null]}>
           <View style={styles.backIcon}><ChevronRightIcon size={22} color="#0F172A" /></View>
         </Pressable>
         <Text style={styles.title} numberOfLines={2}>{title}</Text>
       </View>
-      <View style={styles.table}>
-        <CommonTable data={rows} HeaderComponent={HeaderComponent} RowComponent={TrendingOptionsRow} keyExtractor={rowKey} emptyText="No options to show" />
-      </View>
+      {loading ? (
+        <View style={styles.loader}><RMLoader /></View>
+      ) : (
+        <View style={styles.table}>
+          <CommonTable data={rows} HeaderComponent={HeaderComponent} RowComponent={TrendingOptionsRow} keyExtractor={rowKey} emptyText="No options to show" />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -197,6 +228,7 @@ const styles = StyleSheet.create({
   backIcon: { transform: [{ rotate: '180deg' }] },
   pointer: { cursor: 'pointer' },
   title: { flex: 1, fontSize: 16, lineHeight: 21, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   table: { flex: 1, minHeight: 0 },
   cell: { justifyContent: 'center', minWidth: 0, overflow: 'hidden' },
   cellEnd: { alignItems: 'flex-end', paddingRight: 0 },

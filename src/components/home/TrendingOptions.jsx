@@ -77,7 +77,6 @@ function TrendingOptions() {
   const selectedRef = useRef(selectedReport);
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
-  const payloadRef = useRef(null);
   optionRef.current = optionType;
   selectedRef.current = selectedReport;
 
@@ -87,7 +86,6 @@ function TrendingOptions() {
   const fetchReport = useCallback((reportId) => {
     const option = optionRef.current;
     const gen = ++genRef.current;
-    payloadRef.current = null;
     setRows([]);
     setLoading(true);
     const task = queueRef.current.then(() => {
@@ -95,7 +93,6 @@ function TrendingOptions() {
       return socketRequest('GET_TRENDING_OPTIONS', { report: reportId, option })
         .then((res) => {
           if (gen !== genRef.current) return null;
-          payloadRef.current = res && typeof res === 'object' ? res : null;
           const list = Array.isArray(res?.data) ? res.data : [];
           setRows(list.map(mapOptionRow));
           setLoading(false);
@@ -104,7 +101,6 @@ function TrendingOptions() {
         .catch((err) => {
           if (gen !== genRef.current) return null;
           console.log('[TrendingOptions] Socket fetch error:', err?.message);
-          payloadRef.current = null;
           setRows([]);
           setLoading(false);
           return null;
@@ -138,18 +134,11 @@ function TrendingOptions() {
   const isCallSelected = optionType === 'CE';
 
   const handleViewMore = () => {
-    const res = payloadRef.current;
     router.push({
-      pathname: '/trending-options',
+      pathname: '/home/trending-options',
       params: {
         report: selectedRef.current,
-        option: optionRef.current,
-        result: JSON.stringify({
-          cdate: res?.cdate ?? '',
-          expiryState: res?.expiryState ?? '',
-          expiryDate: res?.expiryDate ?? '',
-          data: Array.isArray(res?.data) ? res.data : [],
-        }),
+        option_type: optionRef.current,
       },
     });
   };

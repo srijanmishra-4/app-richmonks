@@ -15,28 +15,38 @@ const INACTIVE_COLOR = 'rgba(255,255,255,0.55)';
 const TAB_BG = '#0071A9';
 
 const TAB_CONFIG = [
-  { name: 'index', label: 'Home', ActiveIcon: HomeContainIcon, InactiveIcon: HomeOutlineIcon },
+  { name: 'home', label: 'Home', ActiveIcon: HomeContainIcon, InactiveIcon: HomeOutlineIcon },
   { name: 'watchlist', label: 'Watchlist', ActiveIcon: WatchlistContainIcon, InactiveIcon: WatchlistOutlineIcon },
   { name: 'trades', label: 'My Trades', ActiveIcon: TradesContainIcon, InactiveIcon: TradesOutlineIcon },
 ];
 
+function nestedRouteName(route) {
+  const nested = route?.state;
+  if (!nested || typeof nested.index !== 'number') return null;
+  return nested.routes?.[nested.index]?.name ?? null;
+}
+
 function TabBar({ state, navigation }) {
   const insets = useSafeAreaInsets();
-  const routeName = state.routes[state.index]?.name;
+  const focusedRoute = state.routes[state.index];
+  const routeName = focusedRoute?.name;
+  const childName = routeName === 'home' ? nestedRouteName(focusedRoute) : null;
   const activeId = routeName === 'watchlist' ? 'watchlist' : routeName === 'trades' ? 'trades' : 'home';
   useActiveScreen(activeId);
 
+  if (childName && childName !== 'index') return null;
+
   return (
     <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
-      {TAB_CONFIG.map((tab, i) => {
-        const focused = state.index === i;
+      {TAB_CONFIG.map((tab) => {
+        const focused = routeName === tab.name || (tab.name === 'home' && routeName === 'index');
         const color = focused ? ACTIVE_COLOR : INACTIVE_COLOR;
         const Icon = focused ? tab.ActiveIcon : tab.InactiveIcon;
 
         return (
           <Pressable
             key={tab.name}
-            onPress={() => navigation.navigate(state.routes[i].name)}
+            onPress={() => navigation.navigate(tab.name)}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
             accessibilityLabel={tab.label}
@@ -54,6 +64,10 @@ function TabBar({ state, navigation }) {
   );
 }
 
+export const unstable_settings = {
+  initialRouteName: 'home',
+};
+
 export default function AppLayout() {
   return (
     <RefreshProvider>
@@ -61,7 +75,8 @@ export default function AppLayout() {
         tabBar={(props) => <TabBar {...props} />}
         screenOptions={{ headerShown: false }}
       >
-        <Tabs.Screen name="index" />
+        <Tabs.Screen name="index" options={{ href: null }} />
+        <Tabs.Screen name="home" />
         <Tabs.Screen name="watchlist" />
         <Tabs.Screen name="trades" />
       </Tabs>

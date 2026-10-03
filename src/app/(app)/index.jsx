@@ -1,10 +1,5 @@
-import { RefreshScope } from '@/context/RefreshContext';
-import HomeScreen from '@/components/home/HomeScreen';
+import { Redirect } from 'expo-router';
 
-export default function HomeRoute() {
-  return (
-    <RefreshScope id="home">
-      <HomeScreen />
-    </RefreshScope>
-  );
+export default function IndexRoute() {
+  return <Redirect href="/home" />;
 }
