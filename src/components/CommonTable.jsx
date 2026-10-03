@@ -1,9 +1,9 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 import { View, Text, Pressable, FlatList, ScrollView, Platform, StyleSheet } from 'react-native';
 
-const ACCENT = '#0071A9';
-const ROW_GAP = 8;
-const PAD_H = 12;
+const ROW_GAP = 4;
+const PAD_H = 8;
+const INSET = 8;
 
 // ─── Common Table ───────────────────────────────────────────────────────────────
 // Reusable table shell for every report (Stock Rank, Future, Shifting Gears, …).
@@ -109,20 +109,20 @@ const styles = StyleSheet.create({
   root: { flex: 1, minHeight: 0 },
   hContent: { flexGrow: 1, alignItems: 'stretch', minHeight: '100%' },
   table: { flex: 1, minHeight: 0 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: PAD_H, paddingVertical: 9, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderColor: '#E2E8F0', zIndex: 1 },
+  header: { flexDirection: 'row', alignItems: 'flex-end', marginHorizontal: INSET, paddingHorizontal: PAD_H, paddingTop: 4, paddingBottom: 6, zIndex: 1 },
   list: { flex: 1, minHeight: 0 },
-  listContent: { flexGrow: 1, paddingTop: ROW_GAP, paddingBottom: 16, gap: ROW_GAP },
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: PAD_H, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#EEF2F7', backgroundColor: '#F8FAFC' },
+  listContent: { flexGrow: 1, paddingTop: 2, paddingBottom: 12, gap: ROW_GAP },
+  row: { flexDirection: 'row', alignItems: 'center', marginHorizontal: INSET, paddingHorizontal: PAD_H, paddingVertical: 6, borderRadius: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E4E8EE', backgroundColor: '#FFFFFF' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
   hCell: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingRight: 4 },
   cellRight: { justifyContent: 'flex-end', paddingRight: 0, paddingLeft: 4 },
   cellCenter: { justifyContent: 'center' },
-  hLabel: { flexShrink: 1, fontSize: 11, lineHeight: 14, fontFamily: 'Inter_600SemiBold', color: '#64748B', letterSpacing: 0.3 },
-  hLabelActive: { color: ACCENT },
+  hLabel: { flexShrink: 1, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.4, textTransform: 'uppercase' },
+  hLabelActive: { color: '#64748B' },
   textRight: { textAlign: 'right' },
   textCenter: { textAlign: 'center' },
-  hArrow: { fontSize: 9, lineHeight: 14, color: '#CBD5E1' },
-  hArrowActive: { color: ACCENT },
+  hArrow: { fontSize: 8, lineHeight: 13, color: '#CBD5E1' },
+  hArrowActive: { color: '#64748B' },
   pointer: { cursor: 'pointer' },
 });

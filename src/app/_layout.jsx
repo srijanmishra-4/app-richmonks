@@ -56,6 +56,8 @@ function RootNavigator({ fontsReady }) {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={isAuthenticated}>
           <Stack.Screen name="(app)" />
+          <Stack.Screen name="trending-stocks" />
+          <Stack.Screen name="trending-options" />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />

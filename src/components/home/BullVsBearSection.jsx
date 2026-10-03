@@ -393,9 +393,11 @@ const styles = StyleSheet.create({
   },
   reportBtn: {
     marginTop: 14,
-    alignSelf: 'flex-end',
-    paddingVertical: 4,
-    paddingHorizontal: 2,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   reportBtnText: {
     fontSize: 14,

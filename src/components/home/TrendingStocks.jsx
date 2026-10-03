@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 
 import { socketRequest } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
@@ -142,7 +143,14 @@ function normalizeResponse(payload) {
     value: item.value ?? item.level ?? item.val ?? '—',
   }));
 
-  return { key, stocks, report: payload.report };
+  return {
+    key,
+    stocks,
+    report: payload.report,
+    cdate: payload.cdate ?? '',
+    expiryState: payload.expiryState ?? '',
+    expiryDate: payload.expiryDate ?? '',
+  };
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────────
@@ -262,6 +270,22 @@ function TrendingStocks() {
     return currentStocks[idx] || null;
   }, [reportsList, currentStocks]);
 
+  const handleViewMore = () => {
+    router.push({
+      pathname: '/trending-stocks',
+      params: {
+        report: selectedReport,
+        result: JSON.stringify({
+          cdate: currentData?.cdate ?? '',
+          expiryState: currentData?.expiryState ?? '',
+          expiryDate: currentData?.expiryDate ?? '',
+          key: currentData?.key || '',
+          data: currentStocks,
+        }),
+      },
+    });
+  };
+
   return (
     <View style={styles.container}>
       {/* ─── Header: Title & Toggle Buttons ─────────────────────────────────── */}
@@ -285,7 +309,7 @@ function TrendingStocks() {
       <TrendingTable columns={columns} reports={reportsList} selectedReport={selectedReport} onSelectReport={handleSelectReport} getRowData={getRowData} loading={loading} isOption={false} />
 
       {/* ─── View More Action (Matches FnoProfitMeter View Report) ──────────── */}
-      <Pressable style={[styles.viewMoreBtn, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityLabel="View More Trending Stocks">
+      <Pressable onPress={handleViewMore} style={[styles.viewMoreBtn, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityLabel="View More Trending Stocks">
         <Text style={styles.viewMoreBtnText}>View More →</Text>
       </Pressable>
     </View>
