@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -45,22 +45,33 @@ function RootNavigator({ fontsReady }) {
     }
   }, [ready]);
 
-  if (!ready) {
-    return <BrandSplash fontsReady={fontsReady} onReady={() => SplashScreen.hide()} />;
-  }
+  // The navigator has to be in the first render so a cold URL is not replaced with `/`.
+  // While the session is still loading, isAuthenticated is false; applying that guard now
+  // would drop the protected route to the anchor before we know a redirect is required.
+  const sessionReady = !isLoading;
 
   // Flipping a guard drops that group's history, so Back can never cross the auth boundary.
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={styles.root}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={isAuthenticated}>
+        <Stack.Protected guard={!sessionReady || isAuthenticated}>
           <Stack.Screen name="(app)" />
         </Stack.Protected>
-        <Stack.Protected guard={!isAuthenticated}>
+        <Stack.Protected guard={!sessionReady || !isAuthenticated}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>
+      {!ready && (
+        <View style={styles.splash}>
+          <BrandSplash fontsReady={fontsReady} onReady={() => SplashScreen.hide()} />
+        </View>
+      )}
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  splash: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+});
