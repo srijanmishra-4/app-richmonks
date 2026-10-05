@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 
 import { socketRequest } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
@@ -147,6 +148,7 @@ function FnoProfitMeter() {
 
       {/* View Report Button */}
       <Pressable
+        onPress={() => router.push('/home/fno-profit-per-lot')}
         style={[styles.reportBtn, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
         accessibilityRole="button"
         accessibilityLabel="View Report"
