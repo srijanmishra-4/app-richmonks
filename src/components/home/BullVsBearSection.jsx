@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 
 import { socketRequest } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
@@ -264,6 +265,7 @@ function BullVsBearSection() {
       </View>
 
       <Pressable
+        onPress={() => router.push('/home/bull-vs-bear')}
         style={[styles.reportBtn, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
         accessibilityRole="button"
         accessibilityLabel="View Report"
