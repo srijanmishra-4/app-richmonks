@@ -21,21 +21,12 @@ const TAB_CONFIG = [
   { name: 'trades', label: 'My Trades', ActiveIcon: TradesContainIcon, InactiveIcon: TradesOutlineIcon },
 ];
 
-function nestedRouteName(route) {
-  const nested = route?.state;
-  if (!nested || typeof nested.index !== 'number') return null;
-  return nested.routes?.[nested.index]?.name ?? null;
-}
-
 function TabBar({ state, navigation }) {
   const insets = useSafeAreaInsets();
   const focusedRoute = state.routes[state.index];
   const routeName = focusedRoute?.name;
-  const childName = routeName === 'home' ? nestedRouteName(focusedRoute) : null;
   const activeId = routeName === 'watchlist' ? 'watchlist' : routeName === 'trades' ? 'trades' : 'home';
   useActiveScreen(activeId);
-
-  if (childName && childName !== 'index') return null;
 
   return (
     <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 6) }]}>

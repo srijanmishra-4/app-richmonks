@@ -201,7 +201,7 @@ function TrendingOptionsScreen() {
   ), [colGap]);
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.backBtn, Platform.OS === 'web' ? styles.pointer : null]}>
           <View style={styles.backIcon}><ChevronRightIcon size={22} color="#0F172A" /></View>
