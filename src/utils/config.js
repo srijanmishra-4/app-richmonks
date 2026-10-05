@@ -5,7 +5,7 @@
 
 export default {
     api: 'https://api.richmonks.in',
-    auth: 'https://api.richmonks.in/api/v2/auth',
+    auth: 'https://api.richmonks.in/api/auth/v2',
     watchlist: 'https://api.richmonks.in/api/watchlist',
     portfolio: 'https://api.richmonks.in/api/portfolio',
 };

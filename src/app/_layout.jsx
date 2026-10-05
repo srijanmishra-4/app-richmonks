@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { useFonts } from 'expo-font';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import BrandSplash from '@/components/splash/SplashScreen';
@@ -20,7 +20,12 @@ LogBox.ignoreLogs(["Can't perform a React state update on a component that hasn'
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular: require('@/assets/fonts/Inter_400Regular.ttf'),
+    Inter_500Medium: require('@/assets/fonts/Inter_500Medium.ttf'),
+    Inter_600SemiBold: require('@/assets/fonts/Inter_600SemiBold.ttf'),
+    Inter_700Bold: require('@/assets/fonts/Inter_700Bold.ttf'),
+  });
 
   return (
     <AuthProvider>
