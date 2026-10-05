@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { View, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/context/AuthContext';
@@ -60,7 +61,7 @@ export default function HomeScreen() {
       onTouchStart={handleScreenTouch}
     >
       {/* Fixed Header */}
-      <HomeHeader user={user} />
+      <HomeHeader user={user} onAvatarPress={() => router.push('/profile')} />
 
       {/* Conditional Sticky Market Ticker */}
       <MarketTicker items={tickerItems} />

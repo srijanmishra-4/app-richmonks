@@ -25,12 +25,38 @@ export function isTokenExpired(token) {
   return exp == null || Math.floor(Date.now() / 1000) >= exp;
 }
 
+function firstText(...values) {
+  const found = values.find((value) => value != null && String(value).trim() !== '');
+  return found == null ? '' : String(found).trim();
+}
+
 export async function setAuthData(result) {
-  const { token, id, full_name, email, contact, dob, platform } = result ?? {};
+  const nested = result?.user && typeof result.user === 'object' ? result.user : {};
+  const claims = decodeJwt(result?.token) || {};
+  const token = result?.token;
   if (!token || isTokenExpired(token)) throw new Error('Invalid session received. Please try again.');
-  const data = { token, id, full_name, email, contact, dob, platform };
+  const data = {
+    token,
+    id: result?.id ?? nested.id ?? claims.id,
+    full_name: firstText(result?.full_name, result?.fullName, result?.name, nested.full_name, nested.fullName, nested.name, claims.full_name, claims.name),
+    email: firstText(result?.email, nested.email, claims.email),
+    contact: firstText(result?.contact, result?.mobile, result?.phone, nested.contact, nested.mobile, nested.phone, claims.contact, claims.mobile, claims.phone),
+    dob: firstText(result?.dob, result?.date_of_birth, nested.dob, nested.date_of_birth, claims.dob),
+    platform: result?.platform ?? nested.platform,
+  };
   await setItem(AUTH_KEY, JSON.stringify(data));
   return data;
+}
+
+const PROFILE_FIELDS = ['full_name', 'email', 'contact', 'dob'];
+
+export async function updateAuthFields(fields) {
+  const current = await getAuthData();
+  if (!current?.token) return null;
+  const next = { ...current };
+  PROFILE_FIELDS.forEach((key) => { if (fields?.[key]) next[key] = fields[key]; });
+  await setItem(AUTH_KEY, JSON.stringify(next));
+  return next;
 }
 
 export async function getAuthData() {

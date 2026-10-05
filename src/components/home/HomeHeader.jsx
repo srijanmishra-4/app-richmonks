@@ -5,14 +5,14 @@ import { SearchIcon } from '@/components/icons/NavIcons';
 
 const rmIcon = require('@/assets/icon.png');
 
-function getInitials(fullName) {
+export function getInitials(fullName) {
   if (!fullName) return '?';
   const parts = fullName.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return parts[0][0].toUpperCase();
 }
 
-function HomeHeader({ user }) {
+function HomeHeader({ user, onAvatarPress }) {
   const initials = getInitials(user?.full_name);
 
   return (
@@ -27,9 +27,9 @@ function HomeHeader({ user }) {
       </Pressable>
 
       {/* Profile Avatar */}
-      <View style={styles.avatar} accessibilityRole="image" accessibilityLabel={`Profile: ${user?.full_name || 'User'}`}>
+      <Pressable onPress={onAvatarPress} disabled={!onAvatarPress} style={styles.avatar} accessibilityRole="button" accessibilityLabel="Open profile" id="home-open-profile">
         <Text style={styles.avatarText}>{initials}</Text>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0071A9',
     alignItems: 'center',
     justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } : null),
   },
   avatarText: {
     fontSize: 14,

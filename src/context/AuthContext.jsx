@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { getAuthData, setAuthData, clearAuthData, onAuthCleared, getTokenExpiry, isTokenExpired } from '@/utils/auth';
+import { getAuthData, setAuthData, updateAuthFields, clearAuthData, onAuthCleared, getTokenExpiry, isTokenExpired } from '@/utils/auth';
 
 // setTimeout overflows above ~24.8 days, and the JWT lives ~30 days.
 const MAX_TIMEOUT = 2 ** 31 - 1;
@@ -31,12 +31,17 @@ export function AuthProvider({ children }) {
   }, [auth]);
 
   const signIn = useCallback(async (result) => setAuth(await setAuthData(result)), []);
+  const updateUser = useCallback(async (fields) => {
+    const next = await updateAuthFields(fields);
+    if (next) setAuth(next);
+    return next;
+  }, []);
   const signOut = useCallback(() => clearAuthData(), []);
 
   const value = useMemo(() => {
     const { token = null, ...user } = auth ?? {};
-    return { token, user: auth ? user : null, isAuthenticated: !!token && !isTokenExpired(token), isLoading, signIn, signOut };
-  }, [auth, isLoading, signIn, signOut]);
+    return { token, user: auth ? user : null, isAuthenticated: !!token && !isTokenExpired(token), isLoading, signIn, updateUser, signOut };
+  }, [auth, isLoading, signIn, updateUser, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -62,6 +62,7 @@ function RootNavigator({ fontsReady }) {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!sessionReady || isAuthenticated}>
           <Stack.Screen name="(app)" />
+          <Stack.Screen name="profile" />
         </Stack.Protected>
         <Stack.Protected guard={!sessionReady || !isAuthenticated}>
           <Stack.Screen name="(auth)" />

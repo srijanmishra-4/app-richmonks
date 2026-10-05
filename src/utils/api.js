@@ -32,6 +32,11 @@ export const authApi = {
   resendOtp: (mobile) => request(`${config.auth}/otp/resend`, { body: { mobile } }),
 };
 
+export const profileApi = {
+  get: () => request(`${config.auth}/profile`, { method: 'GET', auth: true }),
+  update: (body) => request(`${config.auth}/profile`, { method: 'POST', auth: true, body }),
+};
+
 // Authenticated calls to the main API: attaches the stored JWT and logs out on 401.
 export const apiRequest = (path, options) => request(`${config.api}${path}`, { method: 'GET', auth: true, ...options });
 
