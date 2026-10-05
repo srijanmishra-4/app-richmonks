@@ -34,3 +34,11 @@ export const authApi = {
 
 // Authenticated calls to the main API: attaches the stored JWT and logs out on 401.
 export const apiRequest = (path, options) => request(`${config.api}${path}`, { method: 'GET', auth: true, ...options });
+
+export const watchlistApi = {
+  futures: () => request(`${config.watchlist}/futures/`, { method: 'GET', auth: true }),
+  options: () => request(`${config.watchlist}/options/`, { method: 'GET', auth: true }),
+  industry: () => request(`${config.watchlist}/industry/`, { method: 'GET', auth: true }),
+  add: (body) => request(`${config.watchlist}/`, { method: 'POST', auth: true, body }),
+  remove: (id) => request(`${config.watchlist}/${id}/`, { method: 'DELETE', auth: true }),
+};

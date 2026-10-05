@@ -38,7 +38,14 @@ function TabBar({ state, navigation }) {
         return (
           <Pressable
             key={tab.name}
-            onPress={() => navigation.navigate(tab.name)}
+            onPress={() => {
+              const currentRoute = state.routes[state.index];
+              const currentName = currentRoute?.name === 'index' ? 'home' : currentRoute?.name;
+              if (currentName !== tab.name && currentRoute?.state?.index > 0) {
+                navigation.navigate(currentName, { screen: 'index' });
+              }
+              navigation.navigate(tab.name, { screen: 'index' });
+            }}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
             accessibilityLabel={tab.label}
@@ -66,6 +73,7 @@ export default function AppLayout() {
       <RefreshProvider>
         <Tabs
           tabBar={(props) => <TabBar {...props} />}
+          backBehavior="history"
           screenOptions={{ headerShown: false }}
         >
           <Tabs.Screen name="index" options={{ href: null }} />
