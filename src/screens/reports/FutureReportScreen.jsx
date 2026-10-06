@@ -9,6 +9,11 @@ import { FUTURE_TABLE_COLUMNS, FutureHeader, FutureRow } from '@/components/repo
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
 
+const TABS = [
+  { id: 'bullish', label: 'Feeling Bullish' },
+  { id: 'bearish', label: 'Feeling Bearish' },
+];
+
 const TAB_TONE = {
   bullish: {
     wrap: { backgroundColor: '#F3FAF5' },
@@ -24,32 +29,12 @@ const TAB_TONE = {
   },
 };
 
-// Add a report here to reuse this screen at /home/reports/<slug>.
-export const REPORTS = {
-  future: {
-    title: 'Future',
-    event: 'GET_MARKET_DASHBOARD',
-    tabs: [
-      { id: 'bullish', label: 'Feeling Bullish' },
-      { id: 'bearish', label: 'Feeling Bearish' },
-    ],
-    defaultTab: 'bullish',
-    payload: (tab) => ({ reportType: tab === 'bearish' ? 'bearish' : 'bullish' }),
-    HeaderComponent: FutureHeader,
-    RowComponent: FutureRow,
-    columns: FUTURE_TABLE_COLUMNS,
-    rowStyle: { paddingVertical: 8 },
-    emptyText: 'No futures to show',
-  },
-};
-
-function ReportTabs({ tabs, active, onChange }) {
-  if (!tabs?.length) return null;
+function ReportTabs({ active, onChange }) {
   const wrapTone = TAB_TONE[active];
   return (
     <View style={styles.tabsWrap}>
       <View style={[styles.tabs, wrapTone?.wrap]}>
-        {tabs.map((item) => {
+        {TABS.map((item) => {
           const selected = item.id === active;
           const tone = TAB_TONE[item.id];
           return (
@@ -64,11 +49,10 @@ function ReportTabs({ tabs, active, onChange }) {
   );
 }
 
-function ReportScreen({ slug }) {
-  const config = REPORTS[slug];
-  const [tab, setTab] = useState(config?.defaultTab ?? null);
+function FutureReportScreen() {
+  const [tab, setTab] = useState('bullish');
   const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(!!config);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
@@ -76,7 +60,6 @@ function ReportScreen({ slug }) {
   tabRef.current = tab;
 
   const fetchReport = useCallback((reportType, { silent = false } = {}) => {
-    if (!config?.event) return Promise.resolve();
     const gen = ++genRef.current;
     if (!silent) {
       setLoading(true);
@@ -84,7 +67,7 @@ function ReportScreen({ slug }) {
     }
     const task = queueRef.current.then(() => {
       if (gen !== genRef.current) return null;
-      return socketRequest(config.event, config.payload(reportType))
+      return socketRequest('GET_MARKET_DASHBOARD', { reportType: reportType === 'bearish' ? 'bearish' : 'bullish' })
         .then((res) => {
           if (gen !== genRef.current) return null;
           setResult(res ?? null);
@@ -94,7 +77,7 @@ function ReportScreen({ slug }) {
         })
         .catch((err) => {
           if (gen !== genRef.current) return null;
-          console.log(`[${config.title || 'Report'}] Socket fetch error:`, err?.message);
+          console.log('[Future] Socket fetch error:', err?.message);
           if (!silent) {
             setError(true);
             setLoading(false);
@@ -104,16 +87,12 @@ function ReportScreen({ slug }) {
     });
     queueRef.current = task.then(() => {}, () => {});
     return task;
-  }, [config]);
+  }, []);
 
   useEffect(() => {
-    if (!config || !tab) {
-      setLoading(false);
-      return undefined;
-    }
     fetchReport(tab);
     return () => { genRef.current += 1; };
-  }, [config, tab, fetchReport]);
+  }, [tab, fetchReport]);
 
   useRegisterRefresh(useCallback(() => fetchReport(tabRef.current, { silent: true }), [fetchReport]));
 
@@ -125,24 +104,17 @@ function ReportScreen({ slug }) {
   const rows = Array.isArray(result?.data) ? result.data : [];
   const expiryDate = result?.expiry_date ?? '';
   const cdate = result?.cdate ?? '';
-  const title = config?.title || 'Report';
-  const pulse = usePulse(loading && !!config);
+  const pulse = usePulse(loading);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label={title} />
-
-      <ReportTabs tabs={config?.tabs} active={tab} onChange={handleTab} />
-
-      {!config ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>This report is not available yet.</Text>
-        </View>
-      ) : loading ? (
+      <ScreenHeader label="Future" />
+      <ReportTabs active={tab} onChange={handleTab} />
+      {loading ? (
         <View style={styles.content}>
           <SkeletonMetaRow pulse={pulse} />
           <View style={styles.table}>
-            <CommonTable data={[]} loading columns={config.columns} HeaderComponent={config.HeaderComponent} rowStyle={config.rowStyle} />
+            <CommonTable data={[]} loading columns={FUTURE_TABLE_COLUMNS} HeaderComponent={FutureHeader} rowStyle={styles.row} />
           </View>
         </View>
       ) : error || !result ? (
@@ -159,7 +131,7 @@ function ReportScreen({ slug }) {
             {cdate ? <Text style={styles.metaDate}>{cdate}</Text> : null}
           </View>
           <View style={styles.table}>
-            <CommonTable data={rows} columns={config.columns} HeaderComponent={config.HeaderComponent} RowComponent={config.RowComponent} emptyText={config.emptyText || 'No data to show'} rowStyle={config.rowStyle} />
+            <CommonTable data={rows} columns={FUTURE_TABLE_COLUMNS} HeaderComponent={FutureHeader} RowComponent={FutureRow} emptyText="No futures to show" rowStyle={styles.row} />
           </View>
         </View>
       )}
@@ -167,7 +139,7 @@ function ReportScreen({ slug }) {
   );
 }
 
-export default memo(ReportScreen);
+export default memo(FutureReportScreen);
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
@@ -188,4 +160,5 @@ const styles = StyleSheet.create({
   metaValue: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#0F172A' },
   metaDate: { fontSize: 11, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
   table: { flex: 1, minHeight: 0 },
+  row: { paddingVertical: 8 },
 });

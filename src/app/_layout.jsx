@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LogBox, StyleSheet, View } from 'react-native';
+import { LogBox, Platform, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -55,19 +55,25 @@ function RootNavigator({ fontsReady }) {
   // would drop the protected route to the anchor before we know a redirect is required.
   const sessionReady = !isLoading;
 
+  // Native text measured before a runtime font registers keeps the fallback font's width,
+  // so later glyphs get clipped. Web re-measures on font load and needs the early navigator.
+  const mountNavigator = fontsReady || Platform.OS === 'web';
+
   // Flipping a guard drops that group's history, so Back can never cross the auth boundary.
   return (
     <SafeAreaProvider style={styles.root}>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!sessionReady || isAuthenticated}>
-          <Stack.Screen name="(app)" />
-          <Stack.Screen name="profile" />
-        </Stack.Protected>
-        <Stack.Protected guard={!sessionReady || !isAuthenticated}>
-          <Stack.Screen name="(auth)" />
-        </Stack.Protected>
-      </Stack>
+      {mountNavigator && (
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Protected guard={!sessionReady || isAuthenticated}>
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="profile" />
+          </Stack.Protected>
+          <Stack.Protected guard={!sessionReady || !isAuthenticated}>
+            <Stack.Screen name="(auth)" />
+          </Stack.Protected>
+        </Stack>
+      )}
       {!ready && (
         <View style={styles.splash}>
           <BrandSplash fontsReady={fontsReady} onReady={() => SplashScreen.hide()} />
