@@ -9,11 +9,7 @@ import { useSocketEvent } from '@/hooks/useSocket';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────────
 
-const GREEN = '#16A34A';
-const GREEN_BG = '#F0FDF4';
 const GREEN_TEXT = '#15803D';
-const RED = '#DC2626';
-const RED_BG = '#FEF2F2';
 const RED_TEXT = '#B91C1C';
 const ACCENT = '#0071A9';
 
@@ -55,11 +51,11 @@ function colorName(color) {
   return String(color ?? '').replace(/^bg-/, '');
 }
 
-function resolveCellColors(color) {
+function resolveCellTextColor(color) {
   const name = colorName(color);
-  if (name === 'green') return { bg: GREEN_BG, text: GREEN_TEXT };
-  if (name === 'red') return { bg: RED_BG, text: RED_TEXT };
-  return { bg: 'transparent', text: '#0F172A' };
+  if (name === 'green') return GREEN_TEXT;
+  if (name === 'red') return RED_TEXT;
+  return '#0F172A';
 }
 
 function reportRows(result) {
@@ -185,17 +181,17 @@ const TableRow = memo(function TableRow({ row, index }) {
         const cellData = row[field];
         const value = cellData?.value;
         const color = cellData?.color;
-        const { bg, text } = resolveCellColors(color);
+        const textColor = resolveCellTextColor(color);
         const isColored = colorName(color) === 'green' || colorName(color) === 'red';
         const isProfitMeter = field === 'pl1D';
 
         return (
           <View key={field} style={[styles.tdCell, { flex: COL_FLEX[i + 1] }]}>
-            <View style={[styles.valueChip, isColored ? { backgroundColor: bg } : null]}>
+            <View style={styles.valueChip}>
               <Text
                 style={[
                   styles.tdValueText,
-                  isColored ? { color: text } : null,
+                  isColored ? { color: textColor } : null,
                   isProfitMeter ? styles.tdProfitText : null,
                 ]}
                 numberOfLines={1}
