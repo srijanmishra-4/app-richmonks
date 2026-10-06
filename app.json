@@ -25,7 +25,19 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "android": {
+            "fonts": [
+              "./src/assets/fonts/Inter_400Regular.ttf",
+              "./src/assets/fonts/Inter_500Medium.ttf",
+              "./src/assets/fonts/Inter_600SemiBold.ttf",
+              "./src/assets/fonts/Inter_700Bold.ttf"
+            ]
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {
