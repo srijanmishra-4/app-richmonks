@@ -6,22 +6,24 @@ import Svg, { Path, Rect, Circle, G, Defs, Mask, ClipPath, LinearGradient, Stop 
 // once the viewport is narrower than ~367px (12vw).
 const ICON_HEIGHT = 'clamp(36px, 12vw, 44px)';
 
-function IconFrame({ ratio = 1, children }) {
+function IconFrame({ size, ratio = 1, children }) {
   const { width } = useWindowDimensions();
-  const style = Platform.OS === 'web'
-    ? { height: ICON_HEIGHT, width: ratio === 1 ? ICON_HEIGHT : `calc(${ratio} * ${ICON_HEIGHT})`, flexShrink: 0 }
-    : (() => {
-        const height = Math.min(44, Math.max(36, width * 0.12));
-        return { height, width: height * ratio, flexShrink: 0 };
-      })();
+  const style = size != null
+    ? { height: size, width: size * ratio, flexShrink: 0 }
+    : Platform.OS === 'web'
+      ? { height: ICON_HEIGHT, width: ratio === 1 ? ICON_HEIGHT : `calc(${ratio} * ${ICON_HEIGHT})`, flexShrink: 0 }
+      : (() => {
+          const height = Math.min(44, Math.max(36, width * 0.12));
+          return { height, width: height * ratio, flexShrink: 0 };
+        })();
 
   return <View style={style}>{children}</View>;
 }
 
 /** Future report icon from assets/icons/home/reports/Future.svg */
-export const FutureReportIcon = memo(function FutureReportIcon() {
+export const FutureReportIcon = memo(function FutureReportIcon({ size }) {
   return (
-    <IconFrame>
+    <IconFrame size={size}>
     <Svg width="100%" height="100%" viewBox="0 0 29 36" fill="none">
       <Path d="M23.0467 14.1184C22.939 14.1812 22.7576 14.327 22.6433 14.4421C22.5295 14.5572 22.3733 14.7913 22.2966 14.9619C22.2198 15.1332 22.1217 15.4124 22.0785 15.5831C22.0044 15.8767 22 16.3978 22 25.0151V34.1365C22.1561 34.7309 22.2857 35.0284 22.4143 35.2363C22.553 35.4599 22.7358 35.6633 22.915 35.794L23.1976 36H27.8224C28.1945 35.7417 28.3973 35.5358 28.5137 35.3756C28.6419 35.199 28.7784 34.9185 28.8626 34.6596L29 34.2346V15.793C28.7754 15.1005 28.6398 14.8266 28.4906 14.6186C28.3519 14.4257 28.1535 14.2316 28.0065 14.1446C27.7592 13.9988 27.7404 13.9975 25.5 14.0007C23.458 14.0034 23.2247 14.0145 23.0467 14.1184Z" fill="#2F83EF" />
       <Path d="M25.9244 0C27.623 0 29 1.36112 29 3.04003C29 4.71895 27.623 6.08007 25.9244 6.08007C25.2835 6.08007 24.6886 5.88588 24.1959 5.55433L17.0813 12.5871L10.882 9.04941L0.815418 19L0 18.194L10.6925 7.62499L16.8915 11.1624L23.3805 4.74833C23.0452 4.26143 22.8489 3.67343 22.8489 3.04003C22.8489 1.36112 24.2259 0 25.9244 0Z" fill="#13B469" />
@@ -36,9 +38,9 @@ const OI_ARC_TOP = 'M31.4918 3.19931C28.9661 1.37639 25.9861 0.286265 22.8803 0.
 const OI_ARC_BOTTOM = 'M11.693 30.631C14.2187 32.4539 17.1987 33.5441 20.3045 33.7812C23.4103 34.0184 26.5212 33.3934 29.2944 31.9751C32.0676 30.5568 34.3954 28.4003 36.021 25.7434C37.6467 23.0864 38.5071 20.0322 38.5075 16.9173L37.1506 16.9172C37.1503 19.7821 36.3588 22.5914 34.8636 25.0352C33.3683 27.479 31.2273 29.4625 28.6766 30.767C26.1258 32.0715 23.2644 32.6464 20.4078 32.4283C17.5511 32.2101 14.8102 31.2075 12.4871 29.5308L11.693 30.631Z';
 
 /** OI Changes report icon from assets/icons/home/reports/Oi-Changes.svg */
-export const OiChangesReportIcon = memo(function OiChangesReportIcon() {
+export const OiChangesReportIcon = memo(function OiChangesReportIcon({ size }) {
   return (
-    <IconFrame ratio={1.25}>
+    <IconFrame size={size} ratio={1.25}>
     <Svg width="100%" height="100%" viewBox="0 0 44 34" fill="none">
       <Defs>
         <Mask id="oiArcTopMask" fill="white">
@@ -69,9 +71,9 @@ export const OiChangesReportIcon = memo(function OiChangesReportIcon() {
 });
 
 /** Market Internals report icon from assets/icons/home/reports/Market-Internals.svg */
-export const MarketInternalsReportIcon = memo(function MarketInternalsReportIcon() {
+export const MarketInternalsReportIcon = memo(function MarketInternalsReportIcon({ size }) {
   return (
-    <IconFrame ratio={1.15}>
+    <IconFrame size={size} ratio={1.15}>
     <Svg width="100%" height="100%" viewBox="0 0 49 45" fill="none">
       <Defs>
         <LinearGradient id="marketInternalsGrad" x1="0" y1="23.5" x2="49" y2="23.5" gradientUnits="userSpaceOnUse">
@@ -90,9 +92,9 @@ export const MarketInternalsReportIcon = memo(function MarketInternalsReportIcon
 });
 
 /** Heat Map report icon from assets/icons/home/reports/Heat-Map.svg */
-export const HeatMapReportIcon = memo(function HeatMapReportIcon() {
+export const HeatMapReportIcon = memo(function HeatMapReportIcon({ size }) {
   return (
-    <IconFrame>
+    <IconFrame size={size}>
     <Svg width="100%" height="100%" viewBox="0 0 36 36" fill="none">
       <Rect width="10.1207" height="10.1207" rx="2" fill="#09BA62" />
       <Rect y="12.8809" width="10.1207" height="10.1207" rx="2" fill="#F68D91" />
@@ -109,9 +111,9 @@ export const HeatMapReportIcon = memo(function HeatMapReportIcon() {
 });
 
 /** Stock Rank report icon from assets/icons/home/reports/Stock-Ranks.svg */
-export const StockRankReportIcon = memo(function StockRankReportIcon() {
+export const StockRankReportIcon = memo(function StockRankReportIcon({ size }) {
   return (
-    <IconFrame>
+    <IconFrame size={size}>
     <Svg width="100%" height="100%" viewBox="0 0 35 36" fill="none">
       <Defs>
         <ClipPath id="stockRankClip">
@@ -130,9 +132,9 @@ export const StockRankReportIcon = memo(function StockRankReportIcon() {
 });
 
 /** Shifting Gears report icon from assets/icons/home/reports/Shifting-Gears.svg (viewBox cropped to the artwork) */
-export const ShiftingGearsReportIcon = memo(function ShiftingGearsReportIcon() {
+export const ShiftingGearsReportIcon = memo(function ShiftingGearsReportIcon({ size }) {
   return (
-    <IconFrame ratio={1.4}>
+    <IconFrame size={size} ratio={1.4}>
     <Svg width="100%" height="100%" viewBox="150 112 600 442" fill="none">
       <Path d="M 373.5,155.2 L 381.3,125.3 L 398.7,125.3 L 406.5,155.2 L 438.2,164.5 L 460.9,143.5 L 475.6,152.9 L 466.0,182.3 L 487.6,207.3 L 518.0,202.0 L 525.3,217.8 L 501.3,237.3 L 506.0,270.0 L 534.5,282.0 L 532.0,299.2 L 501.3,302.7 L 487.6,332.7 L 505.1,358.2 L 493.7,371.4 L 466.0,357.7 L 438.2,375.5 L 439.1,406.4 L 422.4,411.3 L 406.5,384.8 L 373.5,384.8 L 357.6,411.3 L 340.9,406.4 L 341.8,375.5 L 314.0,357.7 L 286.3,371.4 L 274.9,358.2 L 292.4,332.7 L 278.7,302.7 L 248.0,299.2 L 245.5,282.0 L 274.0,270.0 L 278.7,237.3 L 254.7,217.8 L 262.0,202.0 L 292.4,207.3 L 314.0,182.3 L 304.4,152.9 L 319.1,143.5 L 341.8,164.5 Z" stroke="#20C997" strokeWidth="22" strokeLinejoin="round" strokeLinecap="round" />
       <Circle cx="390" cy="270" r="49" fill="#D9F7EA" stroke="#20C997" strokeWidth="15" />
@@ -150,9 +152,9 @@ export const ShiftingGearsReportIcon = memo(function ShiftingGearsReportIcon() {
 });
 
 /** Indices Option report icon from assets/icons/home/reports/Indices-Option.svg */
-export const IndicesOptionReportIcon = memo(function IndicesOptionReportIcon() {
+export const IndicesOptionReportIcon = memo(function IndicesOptionReportIcon({ size }) {
   return (
-    <IconFrame ratio={1.25}>
+    <IconFrame size={size} ratio={1.25}>
     <Svg width="100%" height="100%" viewBox="0 0 44 34" fill="none">
       <Path d="M5 5.75H17.7703" stroke="#09BA62" strokeWidth="2" strokeLinecap="round" />
       <Path d="M6.6554 13.25L16.1149 13.25" stroke="#09BA62" strokeWidth="2" strokeLinecap="round" />
@@ -171,9 +173,9 @@ export const IndicesOptionReportIcon = memo(function IndicesOptionReportIcon() {
 });
 
 /** Most Active Options report icon from assets/icons/home/reports/Most-Active-Options.svg */
-export const MostActiveOptionsReportIcon = memo(function MostActiveOptionsReportIcon() {
+export const MostActiveOptionsReportIcon = memo(function MostActiveOptionsReportIcon({ size }) {
   return (
-    <IconFrame>
+    <IconFrame size={size}>
     <Svg width="100%" height="100%" viewBox="0 0 37 38" fill="none">
       <Path d="M34.9973 0.447668C34.9684 0.173042 34.7223 -0.0261561 34.4477 0.00274622L29.9724 0.473737C29.6978 0.50264 29.4986 0.748698 29.5275 1.02332C29.5564 1.29795 29.8024 1.49715 30.077 1.46825L34.0551 1.04959L34.4737 5.02762C34.5026 5.30224 34.7487 5.50144 35.0233 5.47254C35.298 5.44364 35.4971 5.19758 35.4682 4.92295L34.9973 0.447668ZM0.5 23.5L0.645805 23.9783C8.34355 21.6315 14.1368 19.2723 19.396 15.7729C24.6554 12.2734 29.3537 7.65162 34.8886 0.814607L34.5 0.5L34.1114 0.185393C28.6108 6.97996 23.9856 11.5179 18.8421 14.9404C13.6984 18.3629 8.0095 20.6879 0.354195 23.0217L0.5 23.5Z" fill="#8F92B4" />
       <Rect x="30" y="12" width="7" height="26" rx="1" fill="#2F83EF" />
@@ -186,9 +188,9 @@ export const MostActiveOptionsReportIcon = memo(function MostActiveOptionsReport
 });
 
 /** Call/Put value report icon from assets/icons/home/reports/Call-Put-Value.svg */
-export const CallPutValueReportIcon = memo(function CallPutValueReportIcon() {
+export const CallPutValueReportIcon = memo(function CallPutValueReportIcon({ size }) {
   return (
-    <IconFrame ratio={1.3}>
+    <IconFrame size={size} ratio={1.3}>
     <Svg width="100%" height="100%" viewBox="0 0 49 36" fill="none">
       <Defs>
         <LinearGradient id="callPinGrad" x1="8.99442" y1="0.75" x2="8.99442" y2="19.299" gradientUnits="userSpaceOnUse">

@@ -33,6 +33,7 @@ const ROWS = [
 function PremiumReports() {
   const { width } = useWindowDimensions();
   const compact = width < 360;
+  const iconSize = compact ? 32 : 36;
 
   return (
     <View style={styles.container}>
@@ -43,7 +44,7 @@ function PremiumReports() {
             const itemStyle = [styles.item, ci === 1 && styles.itemCenter, href && Platform.OS === 'web' ? styles.pointer : null];
             const body = (
               <>
-                <Icon />
+                <Icon size={iconSize} />
                 <Text style={[styles.label, compact && styles.labelCompact]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{label}</Text>
               </>
             );
@@ -67,8 +68,8 @@ export default memo(PremiumReports);
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 16, backgroundColor: '#FFFFFF' },
   title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#0F172A', marginBottom: 12 },
-  row: { flexDirection: 'row', paddingVertical: 26 },
-  rowCompact: { paddingVertical: 22 },
+  row: { flexDirection: 'row', paddingVertical: 36 },
+  rowCompact: { paddingVertical: 30 },
   rowDivider: { borderTopWidth: 1, borderColor: '#E2E8F0' },
   item: { flex: 1, alignItems: 'center', gap: 12, paddingHorizontal: 2 },
   itemCenter: { flex: 1.25 },
