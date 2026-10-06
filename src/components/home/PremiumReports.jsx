@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, Platform, StyleSheet, useWindowDimensions } from 'react-native';
+import { router } from 'expo-router';
 
 import {
   FutureReportIcon, OiChangesReportIcon, MarketInternalsReportIcon,
@@ -11,7 +12,7 @@ import {
 
 const ROWS = [
   [
-    { label: 'Future', Icon: FutureReportIcon },
+    { label: 'Future', Icon: FutureReportIcon, href: '/home/reports/future' },
     { label: 'OI Changes', Icon: OiChangesReportIcon },
     { label: 'Market Internals', Icon: MarketInternalsReportIcon },
   ],
@@ -39,12 +40,21 @@ function PremiumReports() {
       <Text style={styles.title}>Richmonks Premium Reports</Text>
       {ROWS.map((row, ri) => (
         <View key={ri} style={[styles.row, compact && styles.rowCompact, ri > 0 && styles.rowDivider]}>
-          {row.map(({ label, Icon }, ci) => (
-            <View key={label} style={[styles.item, ci === 1 && styles.itemCenter]}>
-              <Icon size={iconSize} />
-              <Text style={[styles.label, compact && styles.labelCompact]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{label}</Text>
-            </View>
-          ))}
+          {row.map(({ label, Icon, href }, ci) => {
+            const itemStyle = [styles.item, ci === 1 && styles.itemCenter, href && Platform.OS === 'web' ? styles.pointer : null];
+            const body = (
+              <>
+                <Icon size={iconSize} />
+                <Text style={[styles.label, compact && styles.labelCompact]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{label}</Text>
+              </>
+            );
+            if (!href) return <View key={label} style={itemStyle}>{body}</View>;
+            return (
+              <Pressable key={label} onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={label} style={itemStyle}>
+                {body}
+              </Pressable>
+            );
+          })}
         </View>
       ))}
     </View>
@@ -65,4 +75,5 @@ const styles = StyleSheet.create({
   itemCenter: { flex: 1.25 },
   label: { fontSize: 12.5, lineHeight: 17, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'center' },
   labelCompact: { fontSize: 11.5, lineHeight: 15 },
+  pointer: { cursor: 'pointer' },
 });

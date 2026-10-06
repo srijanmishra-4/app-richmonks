@@ -43,7 +43,7 @@ function sortRows(data, sort) {
   });
 }
 
-function CommonTable({ data, HeaderComponent, RowComponent, keyExtractor = defaultKeyExtractor, initialSort = null, minWidth, emptyText = 'No data to show', style }) {
+function CommonTable({ data, HeaderComponent, RowComponent, keyExtractor = defaultKeyExtractor, initialSort = null, minWidth, emptyText = 'No data to show', style, rowStyle }) {
   const [sort, setSort] = useState(initialSort);
 
   const handleSort = useCallback((column) => {
@@ -56,8 +56,8 @@ function CommonTable({ data, HeaderComponent, RowComponent, keyExtractor = defau
   const rows = useMemo(() => sortRows(data, sort), [data, sort]);
 
   const renderItem = useCallback(({ item, index }) => (
-    <View style={styles.row}><RowComponent data={item} index={index} /></View>
-  ), [RowComponent]);
+    <View style={[styles.row, rowStyle]}><RowComponent data={item} index={index} /></View>
+  ), [RowComponent, rowStyle]);
 
   const table = (
     <View style={[styles.table, minWidth ? { minWidth } : null]}>
