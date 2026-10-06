@@ -21,6 +21,17 @@ const OPTIONS_REPORTS = [
   { id: 'abv_high_3_days', label: 'Above 3 Days High' },
 ];
 
+// abv_wap and blw_wap do not send key/value. Every other report does.
+const REPORT_DEFAULT_KEY = {
+  abv_wap: 'WAP',
+  blw_wap: 'WAP',
+  vol_buster: 'Volume Buster',
+  crossing_yes_low: "Yesterday's Low",
+  breaching_yes_high: "Yesterday's High",
+  crossing_yes_high: "Yesterday's High",
+  abv_high_3_days: 'High 3day',
+};
+
 // ─── Formatters ─────────────────────────────────────────────────────────────────
 
 function formatIndianNumber(val) {
@@ -59,10 +70,12 @@ function formatPriceChange(val) {
 // ─── Component ──────────────────────────────────────────────────────────────────
 
 function mapOptionRow(item) {
+  const hasValue = item.value != null && item.value !== '';
   return {
     symbol: item.symbol || '—',
     strike_pr: item.strike_pr,
-    wap: item.wap,
+    key: item.key || '',
+    value: hasValue ? item.value : item.wap,
     option_price: item.option_price,
     option_price_change: item.option_price_change,
   };
@@ -132,6 +145,7 @@ function TrendingOptions() {
   };
 
   const isCallSelected = optionType === 'CE';
+  const dynamicKey = rows.find((row) => row?.key)?.key || REPORT_DEFAULT_KEY[selectedReport] || 'WAP';
 
   const handleViewMore = () => {
     router.push({
@@ -143,7 +157,7 @@ function TrendingOptions() {
     });
   };
 
-  // Columns: Report | Symbol | WAP | CMP
+  // Columns: Report | Symbol | key (level) | CMP
   const columns = [
     { key: 'report', header: 'Report', flex: 1.3, align: 'left' },
     {
@@ -158,9 +172,9 @@ function TrendingOptions() {
       }
     },
     {
-      key: 'dynamic', header: 'WAP', flex: 0.82, align: 'right', render: (row) => {
+      key: 'dynamic', header: dynamicKey, flex: 0.82, align: 'right', render: (row) => {
         if (!row) return null;
-        return <Text style={styles.wapText} numberOfLines={1}>{formatIndianNumber(row.wap)}</Text>;
+        return <Text style={styles.wapText} numberOfLines={1}>{formatIndianNumber(row.value)}</Text>;
       }
     },
     {

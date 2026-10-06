@@ -48,6 +48,21 @@ const REPORT_TITLES = {
   abv_high_3_days: 'Above 3 Days High',
 };
 
+const KEY_FALLBACK = {
+  abv_wap: 'WAP',
+  blw_wap: 'WAP',
+  vol_buster: 'Volume Buster',
+  crossing_yes_low: "Yesterday's Low",
+  breaching_yes_high: "Yesterday's High",
+  crossing_yes_high: "Yesterday's High",
+  abv_high_3_days: 'High 3day',
+};
+
+function levelValue(data) {
+  if (data?.value != null && data?.value !== '') return data.value;
+  return data?.wap;
+}
+
 function paramString(value) {
   if (Array.isArray(value)) return value[0] ?? '';
   return value ?? '';
@@ -135,7 +150,7 @@ const TrendingOptionsRow = memo(function TrendingOptionsRow({ data }) {
         <Text style={type.value} numberOfLines={1}>{formatMoney(data?.tp)}</Text>
       </View>
       <View style={[end, { flex: COL.wap }]}>
-        <Text style={type.value} numberOfLines={1}>{formatMoney(data?.wap)}</Text>
+        <Text style={type.value} numberOfLines={1}>{formatMoney(levelValue(data))}</Text>
       </View>
       <View style={[end, { flex: COL.option }]}>
         <PriceStack price={data?.option_price} change={data?.option_price_change} type={type} />
@@ -152,28 +167,34 @@ function TrendingOptionsScreen() {
   const report = paramString(params.report);
   const optionType = paramString(params.option_type) || 'CE';
   const [rows, setRows] = useState([]);
+  const [valueKey, setValueKey] = useState('');
   const [loading, setLoading] = useState(true);
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
   const title = REPORT_TITLES[report] || 'Trending Options';
+  const levelLabel = valueKey || KEY_FALLBACK[report] || 'WAP';
   const type = useOptionsType();
   const colGap = useMemo(() => ({ marginLeft: type.gap, minWidth: 0 }), [type.gap]);
 
   useEffect(() => {
     if (!report) {
       setRows([]);
+      setValueKey('');
       setLoading(false);
       return undefined;
     }
     const gen = ++genRef.current;
     setRows([]);
+    setValueKey('');
     setLoading(true);
     const task = queueRef.current.then(() => {
       if (gen !== genRef.current) return null;
       return socketRequest('GET_TRENDING_OPTIONS', { report, option: optionType, option_type: optionType })
         .then((res) => {
           if (gen !== genRef.current) return null;
-          setRows(Array.isArray(res?.data) ? res.data : []);
+          const list = Array.isArray(res?.data) ? res.data : [];
+          setRows(list);
+          setValueKey(list.find((item) => item?.key)?.key || '');
           setLoading(false);
           return res;
         })
@@ -181,6 +202,7 @@ function TrendingOptionsScreen() {
           if (gen !== genRef.current) return null;
           console.log('[TrendingOptions] Socket fetch error:', err?.message);
           setRows([]);
+          setValueKey('');
           setLoading(false);
           return null;
         });
@@ -195,11 +217,11 @@ function TrendingOptionsScreen() {
     <>
       <TableHeaderCell label="Symbol" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} style={styles.shrink} />
       <TableHeaderCell label="TP" flex={COL.tp} align="right" sortKey="tp" getValue={(row) => sortNumber(row?.tp)} sort={sort} onSort={onSort} style={colGap} />
-      <TableHeaderCell label="WAP" flex={COL.wap} align="right" sortKey="wap" getValue={(row) => sortNumber(row?.wap)} sort={sort} onSort={onSort} style={colGap} />
+      <TableHeaderCell label={levelLabel} flex={COL.wap} align="right" sortKey="value" getValue={(row) => sortNumber(levelValue(row))} sort={sort} onSort={onSort} style={colGap} />
       <TableHeaderCell label="Option" flex={COL.option} align="right" sortKey="option_price" getValue={(row) => sortNumber(row?.option_price)} sort={sort} onSort={onSort} style={colGap} />
       <TableHeaderCell label="Future" flex={COL.future} align="right" sortKey="future_price" getValue={(row) => sortNumber(row?.future_price)} sort={sort} onSort={onSort} style={colGap} />
     </>
-  ), [colGap]);
+  ), [colGap, levelLabel]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
