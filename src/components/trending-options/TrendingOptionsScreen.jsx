@@ -1,10 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, Platform, StyleSheet, useWindowDimensions } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
-import { ChevronRightIcon } from '@/components/icons/HomeIcons';
+import ScreenHeader from '@/components/ScreenHeader';
 import { RMLoader } from '@/components/RMLoader/RMLoader';
 import { socketRequest } from '@/utils/socket';
 
@@ -202,12 +202,7 @@ function TrendingOptionsScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <View style={styles.header}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.backBtn, Platform.OS === 'web' ? styles.pointer : null]}>
-          <View style={styles.backIcon}><ChevronRightIcon size={22} color="#0F172A" /></View>
-        </Pressable>
-        <Text style={styles.title} numberOfLines={2}>{title}</Text>
-      </View>
+      <ScreenHeader label={title} />
       {loading ? (
         <View style={styles.loader}><RMLoader /></View>
       ) : (
@@ -223,11 +218,6 @@ export default memo(TrendingOptionsScreen);
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingLeft: 8, paddingRight: 16, paddingTop: 16, paddingBottom: 14 },
-  backBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  backIcon: { transform: [{ rotate: '180deg' }] },
-  pointer: { cursor: 'pointer' },
-  title: { flex: 1, fontSize: 16, lineHeight: 21, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   table: { flex: 1, minHeight: 0 },
   cell: { justifyContent: 'center', minWidth: 0, overflow: 'hidden' },

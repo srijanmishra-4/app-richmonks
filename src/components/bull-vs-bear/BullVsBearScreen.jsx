@@ -1,9 +1,8 @@
 import { memo, useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, Platform, ScrollView, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ChevronRightIcon } from '@/components/icons/HomeIcons';
+import ScreenHeader from '@/components/ScreenHeader';
 import { RMLoader } from '@/components/RMLoader/RMLoader';
 import { connectSocket } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
@@ -113,21 +112,7 @@ function BullVsBearScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={[styles.backBtn, Platform.OS === 'web' ? styles.pointer : null]}
-        >
-          <View style={styles.backIcon}>
-            <ChevronRightIcon size={18} color="#64748B" />
-          </View>
-        </Pressable>
-        <Text style={styles.title}>Bulls Vs Bears</Text>
-      </View>
+      <ScreenHeader label="Bulls Vs Bears" />
 
       {loading ? (
         <View style={styles.loader}><RMLoader /></View>
@@ -233,37 +218,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: 12,
-    paddingRight: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F1F5F9',
-  },
-  backBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  backIcon: {
-    transform: [{ rotate: '180deg' }],
-  },
-  pointer: {
-    cursor: 'pointer',
-  },
-  title: {
-    flex: 1,
-    fontSize: 17,
-    lineHeight: 22,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#0F172A',
-    letterSpacing: -0.2,
   },
   loader: {
     flex: 1,

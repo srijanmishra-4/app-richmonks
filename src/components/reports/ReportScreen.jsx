@@ -1,10 +1,9 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
-import { ChevronRightIcon } from '@/components/icons/HomeIcons';
+import ScreenHeader from '@/components/ScreenHeader';
 import { RMLoader } from '@/components/RMLoader/RMLoader';
 import { FutureHeader, FutureRow } from '@/components/reports/futureTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
@@ -129,12 +128,7 @@ function ReportScreen({ slug }) {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <View style={styles.header}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.backBtn, Platform.OS === 'web' ? styles.pointer : null]}>
-          <View style={styles.backIcon}><ChevronRightIcon size={18} color="#0F172A" /></View>
-        </Pressable>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-      </View>
+      <ScreenHeader label={title} />
 
       <ReportTabs tabs={config?.tabs} active={tab} onChange={handleTab} />
 
@@ -170,11 +164,7 @@ export default memo(ReportScreen);
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingLeft: 8, paddingRight: 16, paddingTop: 10, paddingBottom: 6 },
-  backBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-  backIcon: { transform: [{ rotate: '180deg' }] },
   pointer: { cursor: 'pointer' },
-  title: { flex: 1, fontSize: 17, lineHeight: 22, fontFamily: 'Inter_600SemiBold', color: '#0F172A', letterSpacing: -0.2 },
   tabsWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 10 },
   tabs: { flexDirection: 'row', borderRadius: 10, overflow: 'hidden', backgroundColor: '#EEF2F6', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingTop: 8 },

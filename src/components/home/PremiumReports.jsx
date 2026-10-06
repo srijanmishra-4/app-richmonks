@@ -33,7 +33,6 @@ const ROWS = [
 function PremiumReports() {
   const { width } = useWindowDimensions();
   const compact = width < 360;
-  const iconSize = compact ? 36 : 44;
 
   return (
     <View style={styles.container}>
@@ -44,7 +43,7 @@ function PremiumReports() {
             const itemStyle = [styles.item, ci === 1 && styles.itemCenter, href && Platform.OS === 'web' ? styles.pointer : null];
             const body = (
               <>
-                <Icon size={iconSize} />
+                <Icon />
                 <Text style={[styles.label, compact && styles.labelCompact]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{label}</Text>
               </>
             );
