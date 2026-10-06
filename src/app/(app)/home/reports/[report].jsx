@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import ReportScreen from '@/components/reports/ReportScreen';
+import ReportScreen from '@/screens/reports/ReportScreen';
 import { RefreshScope } from '@/context/RefreshContext';
 
 function paramString(value) {

@@ -1,5 +1,5 @@
 import { RefreshScope } from '@/context/RefreshContext';
-import TradesScreen from '@/components/trades/TradesScreen';
+import TradesScreen from '@/screens/trades/TradesScreen';
 
 export default function TradesRoute() {
   return (

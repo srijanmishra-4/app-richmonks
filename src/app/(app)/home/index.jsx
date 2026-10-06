@@ -1,5 +1,5 @@
 import { RefreshScope } from '@/context/RefreshContext';
-import HomeScreen from '@/components/home/HomeScreen';
+import HomeScreen from '@/screens/home/HomeScreen';
 
 export default function HomeRoute() {
   return (

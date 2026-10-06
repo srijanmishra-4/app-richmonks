@@ -7,7 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import BrandSplash from '@/components/splash/SplashScreen';
+import BrandSplash from '@/screens/splash/SplashScreen';
 import '../global.css';
 
 const SPLASH_MIN_MS = 1800;

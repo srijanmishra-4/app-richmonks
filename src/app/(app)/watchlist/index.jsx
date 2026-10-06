@@ -1,5 +1,5 @@
 import { RefreshScope } from '@/context/RefreshContext';
-import WatchlistScreen from '@/components/watchlist/WatchlistScreen';
+import WatchlistScreen from '@/screens/watchlist/WatchlistScreen';
 
 export default function WatchlistRoute() {
   return (
