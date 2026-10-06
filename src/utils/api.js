@@ -26,15 +26,15 @@ async function request(url, { method = 'POST', body, auth = false } = {}) {
 }
 
 export const authApi = {
-  login: (mobile) => request(`${config.auth}/login`, { body: { mobile } }),
-  signup: (payload) => request(`${config.auth}/signup`, { body: payload }),
-  verifyOtp: (mobile, otp) => request(`${config.auth}/otp/verify`, { body: { mobile, otp } }),
-  resendOtp: (mobile) => request(`${config.auth}/otp/resend`, { body: { mobile } }),
+  login: (mobile) => request(`${config.auth}/v2/login`, { body: { mobile } }),
+  signup: (payload) => request(`${config.auth}/v2/signup`, { body: payload }),
+  verifyOtp: (mobile, otp) => request(`${config.auth}/v2/otp/verify`, { body: { mobile, otp } }),
+  resendOtp: (mobile) => request(`${config.auth}/v2/otp/resend`, { body: { mobile } }),
 };
 
 export const profileApi = {
-  get: () => request(`${config.auth}/profile`, { method: 'GET', auth: true }),
-  update: (body) => request(`${config.auth}/profile`, { method: 'POST', auth: true, body }),
+  get: () => request(`${config.api}/api/profile`, { method: 'GET', auth: true }),
+  update: (body) => request(`${config.api}/api/profile`, { method: 'POST', auth: true, body }),
 };
 
 // Authenticated calls to the main API: attaches the stored JWT and logs out on 401.
