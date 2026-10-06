@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
-import { RMLoader } from '@/components/RMLoader/RMLoader';
 import { socketRequest } from '@/utils/socket';
 
 const GREEN = '#16A34A';
@@ -13,6 +12,8 @@ const RED = '#DC2626';
 const NEUTRAL = '#64748B';
 
 const COL = { symbol: 1.32, value: 1.18, cmp: 0.86 };
+
+const TABLE_COLUMNS = [{ flex: COL.symbol, align: 'left', lines: 1 }, { flex: COL.value, align: 'right', lines: 1 }, { flex: COL.cmp, align: 'right', lines: 2 }];
 
 const REPORT_TITLES = {
   abv_wap: 'Above WAP',
@@ -195,13 +196,9 @@ function TrendingStocksScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader label={title} />
-      {loading ? (
-        <View style={styles.loader}><RMLoader /></View>
-      ) : (
-        <View style={styles.table}>
-          <CommonTable data={rows} HeaderComponent={HeaderComponent} RowComponent={TrendingStocksRow} emptyText="No stocks to show" />
-        </View>
-      )}
+      <View style={styles.table}>
+        <CommonTable data={rows} columns={TABLE_COLUMNS} loading={loading} HeaderComponent={HeaderComponent} RowComponent={TrendingStocksRow} emptyText="No stocks to show" />
+      </View>
     </SafeAreaView>
   );
 }
@@ -210,7 +207,6 @@ export default memo(TrendingStocksScreen);
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
-  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   table: { flex: 1, minHeight: 0 },
   cell: { justifyContent: 'center', paddingRight: 4 },
   cellEnd: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: 4 },

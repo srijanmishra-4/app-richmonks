@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
-import { RMLoader } from '@/components/RMLoader/RMLoader';
-import { FutureHeader, FutureRow } from '@/components/reports/futureTable';
+import { SkeletonMetaRow, usePulse } from '@/components/skeleton/SkeletonBars';
+import { FUTURE_TABLE_COLUMNS, FutureHeader, FutureRow } from '@/components/reports/futureTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
 
@@ -37,6 +37,7 @@ export const REPORTS = {
     payload: (tab) => ({ reportType: tab === 'bearish' ? 'bearish' : 'bullish' }),
     HeaderComponent: FutureHeader,
     RowComponent: FutureRow,
+    columns: FUTURE_TABLE_COLUMNS,
     rowStyle: { paddingVertical: 8 },
     emptyText: 'No futures to show',
   },
@@ -125,6 +126,7 @@ function ReportScreen({ slug }) {
   const expiryDate = result?.expiry_date ?? '';
   const cdate = result?.cdate ?? '';
   const title = config?.title || 'Report';
+  const pulse = usePulse(loading && !!config);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -137,7 +139,12 @@ function ReportScreen({ slug }) {
           <Text style={styles.emptyText}>This report is not available yet.</Text>
         </View>
       ) : loading ? (
-        <View style={styles.loader}><RMLoader /></View>
+        <View style={styles.content}>
+          <SkeletonMetaRow pulse={pulse} />
+          <View style={styles.table}>
+            <CommonTable data={[]} loading columns={config.columns} HeaderComponent={config.HeaderComponent} rowStyle={config.rowStyle} />
+          </View>
+        </View>
       ) : error || !result ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>{error ? 'Failed to load report. Please try again.' : 'No data available.'}</Text>
@@ -152,7 +159,7 @@ function ReportScreen({ slug }) {
             {cdate ? <Text style={styles.metaDate}>{cdate}</Text> : null}
           </View>
           <View style={styles.table}>
-            <CommonTable data={rows} HeaderComponent={config.HeaderComponent} RowComponent={config.RowComponent} emptyText={config.emptyText || 'No data to show'} rowStyle={config.rowStyle} />
+            <CommonTable data={rows} columns={config.columns} HeaderComponent={config.HeaderComponent} RowComponent={config.RowComponent} emptyText={config.emptyText || 'No data to show'} rowStyle={config.rowStyle} />
           </View>
         </View>
       )}
@@ -172,7 +179,6 @@ const styles = StyleSheet.create({
   tabLabelActive: { fontFamily: 'Inter_600SemiBold' },
   tabLabelIdle: { color: '#94A3B8' },
   tabLine: { marginTop: 7, height: 2, alignSelf: 'stretch', backgroundColor: 'transparent' },
-  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   content: { flex: 1, minHeight: 0 },

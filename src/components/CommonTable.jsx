@@ -1,29 +1,18 @@
-import { memo, useCallback, useMemo, useState } from 'react';
-import { View, Text, Pressable, FlatList, ScrollView, Platform, StyleSheet } from 'react-native';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, FlatList, ScrollView, Platform, StyleSheet, Animated } from 'react-native';
 
 const ROW_GAP = 4;
 const PAD_H = 8;
 const INSET = 8;
 
 // ─── Common Table ───────────────────────────────────────────────────────────────
-// Reusable table shell for every report (Stock Rank, Future, Shifting Gears, …).
-//
-//   <CommonTable data={rows} HeaderComponent={FutureHeader} RowComponent={FutureRow} />
-//
-// CommonTable owns the structure only: sticky header, scrolling rows, sorting of the
-// raw data and filling the parent's available height. It knows nothing about columns.
-//
-// HeaderComponent({ sort, onSort }) and RowComponent({ data, index }) each return the
-// cells for one row (a fragment). Both are mounted inside a row container with the same
-// horizontal padding, so matching `flex` values line the columns up.
-//
-// Sortable header cells call onSort({ key, getValue }) — see TableHeaderCell below.
+//   <CommonTable data={rows} columns={cols} HeaderComponent={H} RowComponent={R} loading={loading} />
+// `columns`: [{ flex, align?, lines?, bars? }] — drives loading skeleton row layout.
 
 function defaultKeyExtractor(item, index) {
   return String(item?.id ?? item?.symbol ?? index);
 }
 
-// Empty values stay last in both directions; numbers compare numerically, text naturally.
 function compareValues(a, b) {
   if (a == null || a === '') return b == null || b === '' ? 0 : 1;
   if (b == null || b === '') return -1;
@@ -43,8 +32,60 @@ function sortRows(data, sort) {
   });
 }
 
-function CommonTable({ data, HeaderComponent, RowComponent, keyExtractor = defaultKeyExtractor, initialSort = null, minWidth, emptyText = 'No data to show', style, rowStyle }) {
+const SKELETON_PLACEHOLDERS = Array.from({ length: 10 }, (_, index) => ({ __skeleton: true, id: index }));
+
+function useSkeletonPulse(active) {
+  const opacity = useRef(new Animated.Value(0.45)).current;
+  useEffect(() => {
+    if (!active) return undefined;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(opacity, { toValue: 1, duration: 650, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(opacity, { toValue: 0.45, duration: 650, useNativeDriver: Platform.OS !== 'web' }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [active, opacity]);
+  return opacity;
+}
+
+function skeletonBarsForColumn(column) {
+  if (Array.isArray(column?.bars) && column.bars.length) return column.bars;
+  const lines = column?.lines ?? (column?.align === 'right' ? 2 : 1);
+  if (column?.align === 'right') return lines <= 1 ? [48] : [52, 36];
+  if (column?.align === 'center') return lines <= 1 ? [44] : [44, 32];
+  return lines <= 1 ? ['62%'] : ['68%', 52];
+}
+
+function TableSkeletonBar({ pulse, width, height = 10 }) {
+  return <Animated.View style={[skeletonStyles.bar, { height, opacity: pulse }, typeof width === 'number' ? { width } : { width }]} />;
+}
+
+function TableSkeletonRow({ pulse, columns }) {
+  if (!columns?.length) return null;
+  return (
+    <>
+      {columns.map((column, index) => {
+        const align = column.align ?? 'left';
+        const alignStyle = align === 'right' ? skeletonStyles.cellRight : align === 'center' ? skeletonStyles.cellCenter : null;
+        const bars = skeletonBarsForColumn(column);
+        return (
+          <View key={index} style={[skeletonStyles.cell, { flex: column.flex ?? 1 }, alignStyle]}>
+            {bars.map((bar, barIndex) => {
+              const w = typeof bar === 'object' ? bar.width : bar;
+              const h = typeof bar === 'object' ? (bar.height ?? (barIndex > 0 ? 8 : 10)) : (barIndex > 0 ? 8 : 10);
+              return <TableSkeletonBar key={barIndex} pulse={pulse} width={w} height={h} />;
+            })}
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
+function CommonTable({ data, columns, HeaderComponent, RowComponent, loading = false, skeletonRowCount = 10, keyExtractor = defaultKeyExtractor, initialSort = null, minWidth, emptyText = 'No data to show', style, rowStyle }) {
   const [sort, setSort] = useState(initialSort);
+  const pulse = useSkeletonPulse(loading);
+  const showSkeleton = loading && columns?.length > 0;
 
   const handleSort = useCallback((column) => {
     if (!column?.key) return;
@@ -54,28 +95,35 @@ function CommonTable({ data, HeaderComponent, RowComponent, keyExtractor = defau
   }, []);
 
   const rows = useMemo(() => sortRows(data, sort), [data, sort]);
+  const listData = showSkeleton ? SKELETON_PLACEHOLDERS.slice(0, skeletonRowCount) : rows;
 
   const renderItem = useCallback(({ item, index }) => (
-    <View style={[styles.row, rowStyle]}><RowComponent data={item} index={index} /></View>
-  ), [RowComponent, rowStyle]);
+    showSkeleton ? (
+      <View style={[styles.row, rowStyle]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <TableSkeletonRow pulse={pulse} columns={columns} />
+      </View>
+    ) : (
+      <View style={[styles.row, rowStyle]}><RowComponent data={item} index={index} /></View>
+    )
+  ), [RowComponent, showSkeleton, pulse, columns, rowStyle]);
 
   const table = (
     <View style={[styles.table, minWidth ? { minWidth } : null]}>
       <View style={styles.header}>{HeaderComponent ? <HeaderComponent sort={sort} onSort={handleSort} /> : null}</View>
       <FlatList
-        data={rows}
+        data={listData}
         renderItem={renderItem}
-        keyExtractor={keyExtractor}
+        keyExtractor={showSkeleton ? (_, index) => `skeleton-${index}` : keyExtractor}
         style={styles.list}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={<View style={styles.empty}><Text style={styles.emptyText}>{emptyText}</Text></View>}
+        ListEmptyComponent={showSkeleton ? null : <View style={styles.empty}><Text style={styles.emptyText}>{emptyText}</Text></View>}
         showsVerticalScrollIndicator={false}
+        accessibilityState={{ busy: loading }}
       />
     </View>
   );
 
   if (!minWidth) return <View style={[styles.root, style]}>{table}</View>;
-
   return (
     <View style={[styles.root, style]}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hContent}>{table}</ScrollView>
@@ -84,11 +132,6 @@ function CommonTable({ data, HeaderComponent, RowComponent, keyExtractor = defau
 }
 
 export default memo(CommonTable);
-
-// ─── Header Cell ────────────────────────────────────────────────────────────────
-// Optional helper so reports get consistent labels, alignment and sort indicators.
-// `getValue` picks the raw field to sort by, which is what lets a cell showing both
-// High and Low sort on whichever of the two the header cares about.
 
 export function TableHeaderCell({ label, flex = 1, align = 'left', sortKey, getValue, sort, onSort, style }) {
   const sortable = !!sortKey && typeof getValue === 'function' && typeof onSort === 'function';
@@ -103,7 +146,12 @@ export function TableHeaderCell({ label, flex = 1, align = 'left', sortKey, getV
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────────────────
+const skeletonStyles = StyleSheet.create({
+  cell: { minWidth: 0, justifyContent: 'center', paddingRight: 4, gap: 4 },
+  cellRight: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: 4 },
+  cellCenter: { alignItems: 'center' },
+  bar: { borderRadius: 4, backgroundColor: '#E2E8F0' },
+});
 
 const styles = StyleSheet.create({
   root: { flex: 1, minHeight: 0 },

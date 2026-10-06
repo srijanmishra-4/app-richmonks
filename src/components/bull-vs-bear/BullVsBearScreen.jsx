@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ScreenHeader from '@/components/ScreenHeader';
-import { RMLoader } from '@/components/RMLoader/RMLoader';
+import { SkeletonBar, SkeletonMetaRow, usePulse } from '@/components/skeleton/SkeletonBars';
 import { connectSocket } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
 
@@ -105,13 +105,35 @@ function BullVsBearScreen() {
   const cdate = report?.cdate ?? '';
   const expiryDate = report?.expiry_date ?? '';
   const hasMeta = Boolean(cdate || expiryDate);
+  const pulse = usePulse(loading);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader label="Bulls Vs Bears" />
 
       {loading ? (
-        <View style={styles.loader}><RMLoader /></View>
+        <View style={styles.content}>
+          <SkeletonMetaRow pulse={pulse} />
+          <View style={styles.tableHeader}>
+            {COLUMNS.map((col, i) => (
+              <View key={col.key} style={[styles.thCell, { flex: COL_FLEX[i] }]}>
+                <Text style={styles.thText}>{col.label}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.headerSep} />
+          <ScrollView style={styles.tableScroll} contentContainerStyle={styles.tableScrollContent} showsVerticalScrollIndicator={false}>
+            {Array.from({ length: 12 }, (_, index) => (
+              <View key={index} style={[styles.tableRow, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
+                {COL_FLEX.map((flex, cellIndex) => (
+                  <View key={cellIndex} style={[styles.tdCell, { flex }]}>
+                    <SkeletonBar pulse={pulse} width={cellIndex === 0 ? 36 : 44} height={10} />
+                  </View>
+                ))}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
       ) : error || data.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
@@ -214,11 +236,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  loader: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   emptyContainer: {
     flex: 1,

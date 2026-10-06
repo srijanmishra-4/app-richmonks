@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SearchIcon } from '@/components/icons/NavIcons';
-import { RMLoader } from '@/components/RMLoader/RMLoader';
+import { SkeletonBar, SkeletonListRows, usePulse } from '@/components/skeleton/SkeletonBars';
 import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { watchlistApi } from '@/utils/api';
@@ -130,6 +130,25 @@ function WatchlistTabs({ active, onChange }) {
   );
 }
 
+function WatchlistRowSkeleton({ pulse }) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.symbolCol}>
+        <SkeletonBar pulse={pulse} width="72%" height={12} />
+        <SkeletonBar pulse={pulse} width={48} height={9} style={{ marginTop: 4 }} />
+      </View>
+      <SkeletonBar pulse={pulse} width={88} height={28} />
+      <View style={styles.priceCol}>
+        <SkeletonBar pulse={pulse} width={72} height={12} />
+        <SkeletonBar pulse={pulse} width={56} height={9} style={{ marginTop: 4 }} />
+      </View>
+      <View style={styles.moreBtn}>
+        <SkeletonBar pulse={pulse} width={12} height={12} />
+      </View>
+    </View>
+  );
+}
+
 const WatchlistRow = memo(function WatchlistRow({ item, onMore }) {
   const change = formatChange(item);
   const changeNum = parseSigned(item?.price_change_value) ?? parseSigned(item?.price_change);
@@ -167,6 +186,7 @@ export default function WatchlistScreen() {
   const listsRef = useRef(lists);
   const genRef = useRef(0);
   listsRef.current = lists;
+  const pulse = usePulse(loading);
 
   const load = useCallback(async (type, { silent = false } = {}) => {
     const spec = TABS.find((item) => item.key === type) ?? TABS[0];
@@ -235,7 +255,9 @@ export default function WatchlistScreen() {
       {cdates[tab] ? <Text style={styles.cdate}>{cdates[tab]}</Text> : null}
 
       {loading ? (
-        <View style={styles.center}><RMLoader /></View>
+        <View style={styles.list} accessibilityState={{ busy: true }}>
+          <SkeletonListRows count={10} pulse={pulse} RowComponent={WatchlistRowSkeleton} />
+        </View>
       ) : error ? (
         <View style={styles.center}><Text style={styles.emptyText}>Failed to load watchlist. Please try again.</Text></View>
       ) : (

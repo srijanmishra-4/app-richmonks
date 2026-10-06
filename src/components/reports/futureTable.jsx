@@ -9,6 +9,8 @@ const NEUTRAL = '#64748B';
 
 export const COL = { symbol: 1.35, cmp: 1.1, wap: 1.05, hl: 1.5 };
 
+export const FUTURE_TABLE_COLUMNS = [{ flex: COL.symbol, align: 'left', lines: 1 }, { flex: COL.cmp, align: 'right', lines: 2 }, { flex: COL.wap, align: 'right', lines: 1 }, { flex: COL.hl, align: 'left', lines: 2 }];
+
 function groupDigits(intPart) {
   if (intPart.length <= 3) return intPart;
   const lastThree = intPart.slice(-3);
@@ -108,7 +110,7 @@ const styles = StyleSheet.create({
   cellEnd: { alignItems: 'flex-end', paddingRight: 10, paddingLeft: 4 },
   cellWap: { alignItems: 'flex-end', paddingRight: 10, paddingLeft: 6 },
   symbol: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  cmp: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'right' },
+  cmp: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
   change: { marginTop: 2, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', textAlign: 'right' },
   wap: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
   cmpHeader: { paddingRight: 10 },

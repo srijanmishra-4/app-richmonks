@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
-import { RMLoader } from '@/components/RMLoader/RMLoader';
+import { SkeletonMetaRow, SkeletonSummaryCard, usePulse } from '@/components/skeleton/SkeletonBars';
 import { socketRequest } from '@/utils/socket';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────────
@@ -16,6 +16,8 @@ const NEUTRAL = '#64748B';
 // ─── Column Flex Weights ────────────────────────────────────────────────────────
 
 const COL = { symbol: 1.1, cmp: 1, today: 1, fiveDays: 1 };
+
+const TABLE_COLUMNS = [{ flex: COL.symbol, align: 'left', lines: 2 }, { flex: COL.cmp, align: 'right', lines: 2 }, { flex: COL.today, align: 'right', lines: 1 }, { flex: COL.fiveDays, align: 'right', lines: 1 }];
 
 // ─── Formatting Utilities (project conventions — Indian comma grouping) ─────────
 
@@ -175,13 +177,20 @@ function FnoProfitPerLotScreen() {
   const fiveDayPctColor = valueColor(parseFloat(pl5daypercent));
 
   const HeaderComponent = useCallback(({ sort, onSort }) => <PPLHeader sort={sort} onSort={onSort} />, []);
+  const pulse = usePulse(loading);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader label="FNO Profit Per Lot" />
 
       {loading ? (
-        <View style={styles.loader}><RMLoader /></View>
+        <View style={styles.content}>
+          <SkeletonMetaRow pulse={pulse} />
+          <SkeletonSummaryCard pulse={pulse} />
+          <View style={styles.table}>
+            <CommonTable data={[]} columns={TABLE_COLUMNS} loading HeaderComponent={HeaderComponent} emptyText="No stocks to show" />
+          </View>
+        </View>
       ) : error || !data ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>{error ? 'Failed to load report. Please try again.' : 'No data available.'}</Text>
@@ -215,7 +224,7 @@ function FnoProfitPerLotScreen() {
 
           {/* Table */}
           <View style={styles.table}>
-            <CommonTable data={rows} HeaderComponent={HeaderComponent} RowComponent={PPLRow} emptyText="No stocks to show" />
+            <CommonTable data={rows} columns={TABLE_COLUMNS} HeaderComponent={HeaderComponent} RowComponent={PPLRow} emptyText="No stocks to show" />
           </View>
         </View>
       )}
@@ -230,8 +239,6 @@ export default memo(FnoProfitPerLotScreen);
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
 
-  // Loading / Empty
-  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
 

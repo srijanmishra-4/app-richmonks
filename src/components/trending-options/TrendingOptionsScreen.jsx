@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
-import { RMLoader } from '@/components/RMLoader/RMLoader';
 import { socketRequest } from '@/utils/socket';
 
 const GREEN = '#16A34A';
@@ -13,6 +12,8 @@ const RED = '#DC2626';
 const NEUTRAL = '#64748B';
 
 const COL = { symbol: 1.35, tp: 1, wap: 1.05, option: 1.15, future: 1.15 };
+
+const TABLE_COLUMNS = [{ flex: COL.symbol, align: 'left', lines: 2 }, { flex: COL.tp, align: 'right', lines: 1 }, { flex: COL.wap, align: 'right', lines: 1 }, { flex: COL.option, align: 'right', lines: 2 }, { flex: COL.future, align: 'right', lines: 2 }];
 
 const NARROW_PHONE = 360;
 const WIDE_PHONE = 440;
@@ -203,13 +204,9 @@ function TrendingOptionsScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader label={title} />
-      {loading ? (
-        <View style={styles.loader}><RMLoader /></View>
-      ) : (
-        <View style={styles.table}>
-          <CommonTable data={rows} HeaderComponent={HeaderComponent} RowComponent={TrendingOptionsRow} keyExtractor={rowKey} emptyText="No options to show" />
-        </View>
-      )}
+      <View style={styles.table}>
+        <CommonTable data={rows} columns={TABLE_COLUMNS} loading={loading} HeaderComponent={HeaderComponent} RowComponent={TrendingOptionsRow} keyExtractor={rowKey} emptyText="No options to show" />
+      </View>
     </SafeAreaView>
   );
 }
@@ -218,7 +215,6 @@ export default memo(TrendingOptionsScreen);
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
-  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   table: { flex: 1, minHeight: 0 },
   cell: { justifyContent: 'center', minWidth: 0, overflow: 'hidden' },
   cellEnd: { alignItems: 'flex-end', paddingRight: 0 },

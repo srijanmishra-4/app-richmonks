@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChevronRightIcon } from '@/components/icons/HomeIcons';
 import { SearchIcon } from '@/components/icons/NavIcons';
-import { RMLoader } from '@/components/RMLoader/RMLoader';
+import { SkeletonBar, SkeletonListRows, usePulse } from '@/components/skeleton/SkeletonBars';
 import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { useCommonData } from '@/context/CommonDataContext';
 import { watchlistApi } from '@/utils/api';
@@ -14,6 +14,15 @@ const ACCENT = '#0071A9';
 
 function param(value) {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
+}
+
+function AddWatchlistRowSkeleton({ pulse }) {
+  return (
+    <View style={styles.row}>
+      <SkeletonBar pulse={pulse} width="58%" height={13} />
+      <SkeletonBar pulse={pulse} width={28} height={11} />
+    </View>
+  );
 }
 
 function itemLabel(item) {
@@ -28,6 +37,7 @@ function AddWatchlistScreen() {
   const { symbols, industries, nearExpiry, loading } = useCommonData();
   const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
+  const pulse = usePulse(loading);
 
   const source = type === 'industry' ? industries : symbols;
   const rows = useMemo(() => {
@@ -69,7 +79,9 @@ function AddWatchlistScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.center}><RMLoader /></View>
+        <View style={styles.listContent} accessibilityState={{ busy: true }}>
+          <SkeletonListRows count={12} pulse={pulse} RowComponent={AddWatchlistRowSkeleton} />
+        </View>
       ) : (
         <FlatList
           data={rows}
