@@ -1,5 +1,10 @@
 import OiChangesReportScreen from '@/screens/reports/OiChangesReportScreen';
+import { RefreshScope } from '@/context/RefreshContext';
 
 export default function OiChangesReportRoute() {
-  return <OiChangesReportScreen />;
+  return (
+    <RefreshScope id="home">
+      <OiChangesReportScreen />
+    </RefreshScope>
+  );
 }

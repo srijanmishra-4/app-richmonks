@@ -141,7 +141,7 @@ export function TableHeaderCell({ label, flex = 1, align = 'left', sortKey, getV
   return (
     <Pressable disabled={!sortable} onPress={() => onSort({ key: sortKey, getValue })} style={[styles.hCell, { flex }, alignStyle, sortable && Platform.OS === 'web' ? styles.pointer : null, style]} accessibilityRole={sortable ? 'button' : 'header'} accessibilityLabel={label}>
       <Text style={[styles.hLabel, align === 'right' ? styles.textRight : align === 'center' ? styles.textCenter : null, active ? styles.hLabelActive : null]} numberOfLines={2}>{label}</Text>
-      {sortable ? <Text style={[styles.hArrow, active ? styles.hArrowActive : null]}>{active && sort.dir === 'desc' ? '▾' : '▴'}</Text> : null}
+      {active ? <Text style={[styles.hArrow, styles.hArrowActive]}>{sort.dir === 'desc' ? '▾' : '▴'}</Text> : null}
     </Pressable>
   );
 }
