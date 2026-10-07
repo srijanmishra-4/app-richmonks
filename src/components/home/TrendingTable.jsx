@@ -17,8 +17,8 @@ function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRo
       {/* Column Headers */}
       <View style={styles.tableHeaderRow}>
         {columns.map((col, ci) => (
-          <View key={col.key} style={[colFlex(col.flex), ci === 0 ? [styles.colReportHeader, { flex: reportFlex }] : col.align === 'right' ? styles.cellRight : styles.cellLeft]}>
-            <Text style={[styles.thText, col.align === 'right' ? styles.textRight : styles.textLeft]} numberOfLines={2}>{col.header}</Text>
+          <View key={col.key} style={colStyle(col, ci, reportFlex)}>
+            <Text style={[styles.thText, ci === 0 ? styles.reportHeaderText : null, textAlignStyle(col, ci)]} numberOfLines={2}>{col.header}</Text>
           </View>
         ))}
       </View>
@@ -29,27 +29,20 @@ function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRo
         const row = getRowData(report.id);
         return (
           <View key={report.id} style={styles.tableRow}>
-            {columns.map((col, ci) => {
-              if (ci === 0) {
-                return (
-                  <View key={col.key} style={[styles.colReport, { flex: reportFlex }]}>
-                    <Pressable onPress={() => onSelectReport(report.id)} style={[styles.reportPill, isSelected ? styles.reportPillSelected : styles.reportPillUnselected, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityLabel={report.label}>
-                      {isSelected ? <View style={styles.reportAccent} /> : null}
-                      <Text style={[styles.reportLabel, isSelected ? styles.reportLabelSelected : styles.reportLabelUnselected]} numberOfLines={3}>{report.label}</Text>
-                    </Pressable>
-                  </View>
-                );
-              }
-              return (
-                <View key={col.key} style={[colFlex(col.flex), col.align === 'right' ? styles.cellRight : styles.cellLeft]}>
-                  {loading ? (
-                    <CellSkeleton pulse={pulse} align={col.align} lines={ci === 2 ? 1 : 2} />
-                  ) : (
-                    col.render ? col.render(row, report) : null
-                  )}
-                </View>
-              );
-            })}
+            {columns.map((col, ci) => (
+              <View key={col.key} style={colStyle(col, ci, reportFlex)}>
+                {ci === 0 ? (
+                  <Pressable onPress={() => onSelectReport(report.id)} style={[styles.reportPill, isSelected ? styles.reportPillSelected : styles.reportPillUnselected, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityLabel={report.label}>
+                    {isSelected ? <View style={styles.reportAccent} /> : null}
+                    <Text style={[styles.reportLabel, isSelected ? styles.reportLabelSelected : styles.reportLabelUnselected]} numberOfLines={3}>{report.label}</Text>
+                  </Pressable>
+                ) : loading ? (
+                  <CellSkeleton pulse={pulse} align={col.align} lines={ci === 2 ? 1 : 2} />
+                ) : (
+                  col.render ? col.render(row, report) : null
+                )}
+              </View>
+            ))}
           </View>
         );
       })}
@@ -57,8 +50,20 @@ function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRo
   );
 }
 
-function colFlex(flex) {
-  return { flex, height: '100%', justifyContent: 'center' };
+// Header and body must share this exact flex box. minWidth 0 stops long
+// labels from stretching a row wider than the header.
+function colStyle(col, index, reportFlex) {
+  const isReport = index === 0;
+  return [
+    styles.col,
+    { flexGrow: isReport ? reportFlex : (col.flex ?? 1), flexShrink: 1, flexBasis: 0 },
+    isReport ? styles.colReport : col.align === 'right' ? styles.colRight : styles.colLeft,
+  ];
+}
+
+function textAlignStyle(col, index) {
+  if (index === 0 || col.align !== 'right') return styles.textLeft;
+  return styles.textRight;
 }
 
 function usePulse(active) {
@@ -94,23 +99,24 @@ export default memo(TrendingTable);
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  table: { borderTopWidth: 0 },
-  tableHeaderRow: { flexDirection: 'row', alignItems: 'center', height: 42, borderBottomWidth: 1, borderColor: '#E2E8F0' },
-  thText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#0F172A', lineHeight: 15 },
+  table: { borderTopWidth: 0, width: '100%' },
+  tableHeaderRow: { flexDirection: 'row', alignItems: 'stretch', width: '100%', minHeight: 42, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  thText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_700Bold', color: '#0F172A', lineHeight: 15 },
+  reportHeaderText: { paddingLeft: 8, paddingRight: 4 },
   textLeft: { textAlign: 'left' },
   textRight: { textAlign: 'right' },
-  tableRow: { flexDirection: 'row', alignItems: 'center', height: 64, borderBottomWidth: 1, borderColor: '#F1F5F9' },
-  colReportHeader: { flex: 1.2, height: '100%', justifyContent: 'center', paddingRight: 5, borderRightWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
-  colReport: { flex: 1.2, alignSelf: 'stretch', justifyContent: 'center', paddingRight: 4, borderRightWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
-  reportPill: { flexDirection: 'row', alignItems: 'center', borderRadius: 8, overflow: 'hidden' },
-  reportPillSelected: { backgroundColor: BLUE_BG, paddingVertical: 6, paddingRight: 4 },
+  tableRow: { flexDirection: 'row', alignItems: 'stretch', width: '100%', minHeight: 64, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  col: { minWidth: 0, alignSelf: 'stretch', justifyContent: 'center', overflow: 'hidden' },
+  colReport: { paddingRight: 4, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: '#E2E8F0' },
+  colLeft: { paddingLeft: 8, paddingRight: 4 },
+  colRight: { paddingLeft: 4, paddingRight: 6 },
+  reportPill: { width: '100%', flexDirection: 'row', alignItems: 'center', borderRadius: 8, overflow: 'hidden', paddingLeft: 8, paddingRight: 4 },
+  reportPillSelected: { backgroundColor: BLUE_BG, paddingVertical: 6 },
   reportPillUnselected: { backgroundColor: 'transparent', paddingVertical: 4 },
-  reportAccent: { width: 2, alignSelf: 'stretch', backgroundColor: BLUE_ACCENT, marginRight: 6 },
-  reportLabel: { flex: 1, fontSize: 10.5, lineHeight: 15 },
+  reportAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, backgroundColor: BLUE_ACCENT },
+  reportLabel: { flex: 1, minWidth: 0, fontSize: 10.5, lineHeight: 14 },
   reportLabelSelected: { fontFamily: 'Inter_600SemiBold', color: BLUE_ACCENT },
   reportLabelUnselected: { fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  cellLeft: { paddingLeft: 8, paddingRight: 4 },
-  cellRight: { paddingLeft: 2, paddingRight: 6, alignItems: 'flex-end' },
   skeletonCell: { width: '100%', gap: 6 },
   skeletonCellRight: { alignItems: 'flex-end' },
   skeletonBar: { height: 10, borderRadius: 4, backgroundColor: '#E2E8F0' },
