@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RefreshProvider, useActiveScreen } from '@/context/RefreshContext';
 import { CommonDataProvider } from '@/context/CommonDataContext';
+import { useFs } from '@/utils/responsive';
 
 import {
   HomeContainIcon, HomeOutlineIcon,
@@ -23,6 +24,7 @@ const TAB_CONFIG = [
 
 function TabBar({ state, navigation }) {
   const insets = useSafeAreaInsets();
+  const fs = useFs();
   const focusedRoute = state.routes[state.index];
   const routeName = focusedRoute?.name;
   const activeId = routeName === 'watchlist' ? 'watchlist' : routeName === 'trades' ? 'trades' : 'home';
@@ -53,7 +55,7 @@ function TabBar({ state, navigation }) {
             style={[styles.tabItem, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
           >
             <Icon size={22} color={color} />
-            <Text style={[styles.tabLabel, { color, fontFamily: focused ? 'Inter_600SemiBold' : 'Inter_400Regular' }]}>
+            <Text style={[styles.tabLabel, { fontSize: fs(11), color, fontFamily: focused ? 'Inter_600SemiBold' : 'Inter_400Regular' }]} numberOfLines={1} maxFontSizeMultiplier={1.1}>
               {tab.label}
             </Text>
           </Pressable>
@@ -90,18 +92,17 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: TAB_BG,
-    paddingTop: 8,
+    paddingTop: 6,
     borderTopWidth: 0,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   tabLabel: {
-    fontSize: 11,
-    marginTop: 3,
+    marginTop: 2,
     letterSpacing: 0.1,
   },
 });
