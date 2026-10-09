@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, Modal, Dimensions, Platform, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Modal, Dimensions, Platform, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ScreenHeader from '@/components/ScreenHeader';
@@ -119,9 +119,8 @@ function sizedText(base, size, color) {
 }
 
 function buildHeatTiles(list, metrics) {
-  const padded = formatGridData(list, NUM_COLUMNS);
   const seen = new Map();
-  return padded.map((item, index) => {
+  return (list || []).map((item, index) => {
     if (item._empty) return item;
     const price = formatPrice(item.price);
     const { pct } = formatChange(item.price_change_value, item.price_change_percent);
@@ -291,7 +290,7 @@ function HeatMapReportScreen() {
   const [sort_state, setSortState] = useState('NONE');
   const [is_filter_active, setIsFilterActive] = useState(false);
   const [original, setOriginal] = useState([]);
-  const [working, setWorking] = useState([]);
+  const [is_flipped, setIsFlipped] = useState(false);
   const [timestamp, setTimestamp] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -354,23 +353,8 @@ function HeatMapReportScreen() {
 
   useRegisterRefresh(useCallback(() => fetchHeatMap(stateRef.current.expiry, stateRef.current.report, { silent: true }), [fetchHeatMap]));
 
-  const filtered = useMemo(() => {
-    const q = search_query.trim().toLowerCase();
-    if (!q) return original;
-    return original.filter((item) => String(item?.symbol ?? '').toLowerCase().startsWith(q));
-  }, [original, search_query]);
-
-  useEffect(() => {
-    if (sort_state === 'ASC') {
-      setWorking([...filtered].sort((a, b) => String(a?.symbol ?? '').localeCompare(String(b?.symbol ?? ''))));
-    } else if (sort_state === 'DESC') {
-      setWorking([...filtered].sort((a, b) => String(b?.symbol ?? '').localeCompare(String(a?.symbol ?? ''))));
-    } else {
-      setWorking([...filtered]);
-    }
-  }, [filtered, sort_state]);
-
   const handleSort = useCallback(() => {
+    setIsFlipped(false);
     setSortState((prev) => {
       if (prev === 'NONE') return 'ASC';
       if (prev === 'ASC') return 'DESC';
@@ -379,33 +363,55 @@ function HeatMapReportScreen() {
   }, []);
 
   const handleFlip = useCallback(() => {
-    setWorking((prev) => [...prev].reverse());
+    setIsFlipped((prev) => !prev);
   }, []);
 
   const handleReportTab = useCallback((nextReport) => {
     if (nextReport === stateRef.current.report) return;
+    setIsFlipped(false);
     setSelectedReport(nextReport);
   }, []);
 
   const handleExpiryChange = useCallback((nextExpiryState) => {
     if (nextExpiryState === stateRef.current.expiry) return;
+    setIsFlipped(false);
     setSelectedExpiry(nextExpiryState);
   }, []);
 
   const scale = useFs();
   const t = useScaledStyles(textStyles);
 
-  const gridData = useMemo(() => {
+  const allTiles = useMemo(() => {
     const width = Dimensions.get('window').width;
     const raw = textStyles(scale);
     const textWidth = Math.max(40, (width - 2 * (GRID_H_PAD - TILE_GAP / 2)) / NUM_COLUMNS - TILE_GAP - 8);
-    return buildHeatTiles(working, {
+    return buildHeatTiles(original, {
       textWidth,
       symbol: raw.tileSymbol.fontSize,
       price: raw.tilePrice.fontSize,
       change: raw.tileChange.fontSize,
     });
-  }, [working, scale]);
+  }, [original, scale]);
+
+  const filtered = useMemo(() => {
+    const q = search_query.trim().toLowerCase();
+    if (!q) return allTiles;
+    return allTiles.filter((item) => String(item?.symbol ?? '').toLowerCase().startsWith(q));
+  }, [allTiles, search_query]);
+
+  const working = useMemo(() => {
+    let list = filtered;
+    if (sort_state === 'ASC') {
+      list = [...filtered].sort((a, b) => String(a?.symbol ?? '').localeCompare(String(b?.symbol ?? '')));
+    } else if (sort_state === 'DESC') {
+      list = [...filtered].sort((a, b) => String(b?.symbol ?? '').localeCompare(String(a?.symbol ?? '')));
+    }
+    return is_flipped ? [...list].reverse() : list;
+  }, [filtered, sort_state, is_flipped]);
+
+  const gridData = useMemo(() => formatGridData(working, NUM_COLUMNS), [working]);
+
+
 
   const tabLabelSizes = useMemo(() => {
     const width = Dimensions.get('window').width;
@@ -435,11 +441,6 @@ function HeatMapReportScreen() {
     return buildTileDetail(live, expiryChoices.find((item) => item.value === selected_expiry)?.label);
   }, [selected_tile, original, expiryChoices, selected_expiry]);
 
-  const renderTile = useCallback(({ item }) => <HeatMapTile item={item} text={t} onSelect={handleTileSelect} />, [t, handleTileSelect]);
-
-  const keyExtractor = useCallback((_, index) => String(index), []);
-
-  const getRowLayout = useCallback((_, index) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * index, index }), []);
 
   const queryActive = search_query.trim().length > 0;
   const emptyList = useMemo(() => (
@@ -495,24 +496,20 @@ function HeatMapReportScreen() {
           <Text style={t.emptyText} maxFontSizeMultiplier={1.1}>Failed to load heat map. Please try again.</Text>
         </View>
       ) : (
-        <FlatList
-          data={gridData}
-          keyExtractor={keyExtractor}
-          renderItem={renderTile}
-          getItemLayout={getRowLayout}
-          numColumns={NUM_COLUMNS}
+        gridData.length === 0 ? emptyList : (
+        <ScrollView
           style={styles.grid}
-          columnWrapperStyle={styles.rowWrapper}
           contentContainerStyle={styles.gridContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          removeClippedSubviews={false}
-          initialNumToRender={8}
-          maxToRenderPerBatch={8}
-          updateCellsBatchingPeriod={8}
-          windowSize={3}
-          ListEmptyComponent={emptyList}
-        />
+        >
+          <View style={styles.gridWrap}>
+            {gridData.map((item) => (
+              <HeatMapTile key={item.key ?? item._key} item={item} text={t} onSelect={handleTileSelect} />
+            ))}
+          </View>
+        </ScrollView>
+        )
       )}
       <BottomSlideOn
         visible={sheet_open && !!tileDetail}
@@ -566,8 +563,8 @@ const styles = StyleSheet.create({
   ctrlBtnActive: { backgroundColor: '#E0F2FE', borderColor: PRIMARY },
   grid: { flex: 1 },
   gridContent: { paddingHorizontal: GRID_H_PAD - TILE_GAP / 2, paddingBottom: 16 },
-  rowWrapper: { marginHorizontal: 0 },
-  tileOuter: { flex: 1, padding: TILE_GAP / 2 },
+  gridWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+  tileOuter: { width: '25%', padding: TILE_GAP / 2 },
   tile: { alignSelf: 'stretch', height: TILE_HEIGHT, borderRadius: 4, paddingVertical: 6, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', gap: 4 },
   tilePressed: { opacity: 0.8 },
   tileEmpty: { backgroundColor: 'transparent' },
