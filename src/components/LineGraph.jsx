@@ -112,7 +112,7 @@ function findNearestPointIndex(touchX, points) {
   return closestIdx;
 }
 
-export default function LineGraph({ data = [], height = 190, style, onPointSelect }) {
+export default function LineGraph({ data = [], height = 190, style, onPointSelect, captureOnStart = false }) {
   const [layout, setLayout] = useState({ width: 0, height });
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [tooltipSize, setTooltipSize] = useState({ width: 130, height: 44 });
@@ -233,7 +233,7 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
       return false;
     };
     return PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponder: () => captureOnStart,
       onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_, g) => claimHorizontal(g),
       onMoveShouldSetPanResponderCapture: (_, g) => claimHorizontal(g),
@@ -249,7 +249,7 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
       onPanResponderTerminate: () => { directionRef.current = null; },
       onPanResponderRelease: () => { directionRef.current = null; },
     });
-  }, [handleTouch]);
+  }, [handleTouch, captureOnStart]);
 
   const onGraphTouchStart = useCallback((e) => {
     lastLineGraphTouchTime = Date.now();

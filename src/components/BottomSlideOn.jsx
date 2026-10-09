@@ -32,6 +32,7 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, p
   const [sliding, setSliding] = useState(false);
   const [pressed, setPressed] = useState(false);
   const translateY = useRef(new Animated.Value(height)).current;
+  const scrimAnim = useRef(new Animated.Value(0)).current;
   const sheetHeight = useRef(height);
   const slidingRef = useRef(false);
   const visibleRef = useRef(visible);
@@ -60,10 +61,10 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, p
 
   useEffect(() => {
     if (!sliding || !visible) return undefined;
-    const anim = Animated.timing(translateY, { toValue: 0, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: USE_NATIVE });
+    const anim = Animated.parallel([Animated.timing(translateY, { toValue: 0, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: USE_NATIVE }), Animated.timing(scrimAnim, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: USE_NATIVE })]);
     anim.start();
     return () => anim.stop();
-  }, [sliding, visible, translateY]);
+  }, [sliding, visible, translateY, scrimAnim]);
 
   useEffect(() => {
     if (visible) {
@@ -74,7 +75,7 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, p
       return;
     }
     if (!mounted) return;
-    const anim = Animated.timing(translateY, { toValue: sheetHeight.current || height, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: USE_NATIVE });
+    const anim = Animated.parallel([Animated.timing(translateY, { toValue: sheetHeight.current || height, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: USE_NATIVE }), Animated.timing(scrimAnim, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: USE_NATIVE })]);
     anim.start(({ finished }) => {
       if (!finished) return;
       slidingRef.current = false;
@@ -103,14 +104,14 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, p
   const changeText = [change, changePct].filter(Boolean).join('  ');
   const pointer = Platform.OS === 'web' ? styles.pointer : null;
 
+  const scrimBg = scrimAnim.interpolate({ inputRange: [0, 1], outputRange: ['rgba(15, 23, 42, 0)', 'rgba(15, 23, 42, 0.18)'] });
+
   return (
     <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <View style={styles.root}>
-        <Pressable
-          style={[styles.backdrop, { width, height }]}
-          onPress={() => closeRef.current?.()}
-          android_ripple={null}
-        />
+        <Animated.View style={[styles.backdrop, { width, height, backgroundColor: scrimBg }]} pointerEvents="box-none">
+          <Pressable style={{ width, height }} onPress={() => closeRef.current?.()} android_ripple={null} />
+        </Animated.View>
         <Animated.View
           onLayout={onSheetLayout}
           pointerEvents={sliding ? 'auto' : 'none'}
@@ -160,7 +161,7 @@ export default memo(BottomSlideOn);
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15, 23, 42, 0.18)' },
+  backdrop: { ...StyleSheet.absoluteFill },
   sheet: { flexGrow: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', shadowColor: '#0F172A', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12 },
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 14 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#CBD5E1' },

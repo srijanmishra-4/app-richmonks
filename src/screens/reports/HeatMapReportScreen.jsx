@@ -523,7 +523,7 @@ function HeatMapReportScreen() {
         changePct={tileDetail?.changePct}
         positive={tileDetail?.positive}
         metrics={tileDetail?.metrics}
-        graph={tileDetail?.graph.length > 1 ? <LineGraph data={tileDetail.graph} height={170} /> : null}
+        graph={tileDetail?.graph.length > 1 ? <LineGraph data={tileDetail.graph} height={170} captureOnStart /> : null}
         actionLabel="View Profile"
         onAction={noop}
       />
