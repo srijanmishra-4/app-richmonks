@@ -8,6 +8,7 @@ export default {
     auth: 'https://api.richmonks.in/api/auth',
     watchlist: 'https://api.richmonks.in/api/watchlist',
     portfolio: 'https://api.richmonks.in/api/portfolio',
+    cdn: 'https://assets.richmonks.in',
 };
 
 // export default {

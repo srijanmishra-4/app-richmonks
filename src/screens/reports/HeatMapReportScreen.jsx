@@ -3,6 +3,9 @@ import { View, Text, TextInput, Pressable, FlatList, Modal, Dimensions, Platform
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ScreenHeader from '@/components/ScreenHeader';
+import BottomSlideOn from '@/components/BottomSlideOn';
+import LineGraph from '@/components/LineGraph';
+import { cdnApi } from '@/utils/api';
 import { SortAscIcon, SortDescIcon, SortNoneIcon, FilterIcon, FlipIcon, SearchIcon, ClockIcon } from '@/components/ReportIconComponent';
 import { ChevronRightIcon } from '@/components/icons/HomeIcons';
 import { useCommonData } from '@/context/CommonDataContext';
@@ -130,6 +133,7 @@ function buildHeatTiles(list, metrics) {
     const lineWidth = Math.max(28, metrics.textWidth - 2);
     return {
       key: count === 0 ? String(base) : `${base}#${count}`,
+      data: item,
       symbol: item.symbol,
       price,
       changeText,
@@ -175,20 +179,57 @@ const ControlButton = memo(function ControlButton({ onPress, label, active, flas
   );
 });
 
-const HeatMapTile = memo(function HeatMapTile({ item, text }) {
+const HeatMapTile = memo(function HeatMapTile({ item, text, onSelect }) {
   if (item._empty) {
     return <View style={styles.tileOuter}><View style={[styles.tile, styles.tileEmpty]} /></View>;
   }
   return (
-    <View style={styles.tileOuter}>
-      <View accessible accessibilityLabel={item.label} style={[styles.tile, { backgroundColor: item.bg }]}>
+    <Pressable onPress={() => onSelect(item.data)} accessibilityRole="button" accessibilityLabel={item.label} style={[styles.tileOuter, Platform.OS === 'web' ? styles.pointer : null]}>
+      <View style={[styles.tile, { backgroundColor: item.bg }]}>
         <Text style={sizedText(text.tileSymbol, item.symbolSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.symbol}</Text>
         <Text style={sizedText(text.tilePrice, item.priceSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.price}</Text>
         <Text style={sizedText(text.tileChange, item.changeSize, item.changeColor)} numberOfLines={1} allowFontScaling={false}>( {item.changeText} )</Text>
       </View>
-    </View>
+    </Pressable>
   );
 });
+
+const hasValue = (val) => val != null && val !== '';
+
+function rangeText(low, high) {
+  return hasValue(low) && hasValue(high) ? `${formatPrice(low)} - ${formatPrice(high)}` : null;
+}
+
+// Maps a GET_HEAT_MAP row to the generic BottomSlideOn props; metrics missing from the row are skipped.
+function buildTileDetail(item, expiry) {
+  const { amount, pct } = formatChange(item.price_change_value, item.price_change_percent);
+  const stock = item.stock_data || {};
+  const metrics = [
+    { label: 'WAP', value: hasValue(stock.wap) ? formatPrice(stock.wap) : null },
+    { label: 'Vol (in Lacs)', value: hasValue(stock.volume) ? `${stock.volume}L` : null },
+    { label: "Today's Range", value: rangeText(stock.low_today, stock.high_today) },
+    { label: '5 Days Range', value: rangeText(stock.low_5_day, stock.high_5_day) },
+  ].filter((row) => hasValue(row.value)).map((row) => ({ label: row.label, value: String(row.value) }));
+  // LineGraph reads price_change for point colours and cdate/time for its tooltip.
+  const graph = (Array.isArray(item.graph_data) ? item.graph_data : []).map((pt) => {
+    const [cdate, time] = String(pt?.cdate ?? '').split(' ');
+    return { price: pt?.price, price_change: pt?.price_chg, cdate, time };
+  });
+  return {
+    logo: item.symbol ? cdnApi(item.symbol) : null,
+    title: item.symbol,
+    subtitle: expiry,
+    price: formatPrice(item.price),
+    change: amount,
+    changePct: pct,
+    positive: amount || pct ? !`${amount}${pct}`.includes('-') : null,
+    metrics,
+    graph,
+  };
+}
+
+// Profile page not built yet.
+const noop = () => {};
 
 const Dropdown = memo(function Dropdown({ label, value, options, onSelect }) {
   const anchorRef = useRef(null);
@@ -223,7 +264,7 @@ const Dropdown = memo(function Dropdown({ label, value, options, onSelect }) {
       </View>
       <Modal visible={open} transparent animationType="none" statusBarTranslucent onRequestClose={() => setOpen(false)}>
         <View style={styles.menuRoot}>
-          <Pressable style={styles.menuBackdrop} onPress={() => setOpen(false)} />
+          <View collapsable={false} onTouchEnd={() => setOpen(false)} style={[styles.menuBackdrop, { width: Dimensions.get('window').width, height: Dimensions.get('window').height }]} />
           {anchor ? (
             <View style={[styles.menu, { left: anchor.left, top: anchor.top, width: anchor.width }]}>
               {options.map((item, index) => {
@@ -254,6 +295,8 @@ function HeatMapReportScreen() {
   const [timestamp, setTimestamp] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [selected_tile, setSelectedTile] = useState(null);
+  const [sheet_open, setSheetOpen] = useState(false);
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
   const stateRef = useRef({ report: selected_report, expiry: selected_expiry });
@@ -378,7 +421,21 @@ function HeatMapReportScreen() {
     return sizes;
   }, [scale]);
 
-  const renderTile = useCallback(({ item }) => <HeatMapTile item={item} text={t} />, [t]);
+  const handleTileSelect = useCallback((item) => {
+    setSelectedTile(item);
+    setSheetOpen(true);
+  }, []);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  const clearSelectedTile = useCallback(() => setSelectedTile(null), []);
+
+  // Follow the latest socket row for the open symbol so silent refreshes stay in sync.
+  const tileDetail = useMemo(() => {
+    if (!selected_tile) return null;
+    const live = original.find((item) => item?.symbol === selected_tile.symbol) || selected_tile;
+    return buildTileDetail(live, expiryChoices.find((item) => item.value === selected_expiry)?.label);
+  }, [selected_tile, original, expiryChoices, selected_expiry]);
+
+  const renderTile = useCallback(({ item }) => <HeatMapTile item={item} text={t} onSelect={handleTileSelect} />, [t, handleTileSelect]);
 
   const keyExtractor = useCallback((_, index) => String(index), []);
 
@@ -457,6 +514,22 @@ function HeatMapReportScreen() {
           ListEmptyComponent={emptyList}
         />
       )}
+      <BottomSlideOn
+        visible={sheet_open && !!tileDetail}
+        onClose={closeSheet}
+        onDismissed={clearSelectedTile}
+        logo={tileDetail?.logo}
+        title={tileDetail?.title}
+        subtitle={tileDetail?.subtitle}
+        price={tileDetail?.price}
+        change={tileDetail?.change}
+        changePct={tileDetail?.changePct}
+        positive={tileDetail?.positive}
+        metrics={tileDetail?.metrics}
+        graph={tileDetail?.graph.length > 1 ? <LineGraph data={tileDetail.graph} height={170} /> : null}
+        actionLabel="View Profile"
+        onAction={noop}
+      />
     </SafeAreaView>
   );
 }

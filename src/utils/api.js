@@ -47,3 +47,6 @@ export const watchlistApi = {
   add: (body) => request(`${config.watchlist}/`, { method: 'POST', auth: true, body }),
   remove: (id) => request(`${config.watchlist}/${id}/`, { method: 'DELETE', auth: true }),
 };
+
+// Returns the logo URL for <Image>; a JSON request cannot read a PNG.
+export const cdnApi = (symbol) => `${config.cdn}/logos/${symbol}.png`;
