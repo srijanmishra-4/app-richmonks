@@ -15,7 +15,8 @@
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./src/assets/icon.png"
-      }
+      },
+      "package": "com.richmonks.richmonksapp"
     },
     "web": {
       "bundler": "metro",
@@ -48,6 +49,12 @@
         }
       ],
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "95f396c3-9ab2-4d52-90f7-7093d306a807"
+      }
+    }
   }
 }
