@@ -1,14 +1,14 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, Dimensions, Platform, StyleSheet, ActivityIndicator } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, TextInput, Pressable, ScrollView, Dimensions, Platform, StyleSheet, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ScreenHeader from '@/components/ScreenHeader';
 import BottomSlideOn from '@/components/BottomSlideOn';
+import ExpiryDropdownComponent, { useExpiryOptions } from '@/components/ExpiryDropdownComponent';
 import HeatmapFilterSlideOnComponent from '@/components/reports/HeatmapFilterSlideOnComponent';
 import LineGraph from '@/components/LineGraph';
 import { cdnApi } from '@/utils/api';
 import { FilterIcon, FlipIcon, SearchIcon, ClockIcon } from '@/components/ReportIconComponent';
-import { ChevronRightIcon } from '@/components/icons/HomeIcons';
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
@@ -44,19 +44,6 @@ const TILE_HEIGHT = 74;
 const ROW_HEIGHT = TILE_HEIGHT + TILE_GAP;
 const TAB_H_PAD = 8;
 const TAB_GAP = 8;
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function formatExpiryDate(value) {
-  if (!value) return '';
-  const str = String(value).trim();
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
-  if (match) {
-    const month = MONTHS[Number(match[2]) - 1];
-    return month ? `${Number(match[3])} ${month}` : str;
-  }
-  return str;
-}
 
 function groupDigits(intPart) {
   if (intPart.length <= 3) return intPart;
@@ -240,62 +227,8 @@ function buildTileDetail(item, expiry) {
 // Profile page not built yet.
 const noop = () => {};
 
-const Dropdown = memo(function Dropdown({ label, value, options, onSelect }) {
-  const anchorRef = useRef(null);
-  const [open, setOpen] = useState(false);
-  const [anchor, setAnchor] = useState(null);
-  const t = useScaledStyles(textStyles);
-  const current = options.find((item) => item.value === value);
-
-  const toggle = useCallback(() => {
-    if (open) {
-      setOpen(false);
-      return;
-    }
-    if (!options.length) return;
-    anchorRef.current?.measureInWindow((x, y, width, height) => {
-      const menuWidth = Math.max(width, 92);
-      const screenWidth = Dimensions.get('window').width;
-      const left = Math.max(8, Math.min(x, screenWidth - menuWidth - 8));
-      setAnchor({ left, top: y + height + 3, width: menuWidth });
-      setOpen(true);
-    });
-  }, [open, options.length]);
-
-  return (
-    <View style={styles.expiryWrap}>
-      {label ? <Text style={t.metaLabel} maxFontSizeMultiplier={1.1}>{label}</Text> : null}
-      <View ref={anchorRef} collapsable={false}>
-        <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={label || 'Expiry'} accessibilityState={{ expanded: open }} style={[styles.expiryBtn, open ? styles.expiryBtnOpen : null, Platform.OS === 'web' ? styles.pointer : null]}>
-          <Text style={t.expiryValue} numberOfLines={1} maxFontSizeMultiplier={1.1}>{current?.label ?? '—'}</Text>
-          <View style={open ? styles.chevronUp : styles.chevronDown}><ChevronRightIcon size={12} color={MUTED} /></View>
-        </Pressable>
-      </View>
-      <Modal visible={open} transparent animationType="none" statusBarTranslucent onRequestClose={() => setOpen(false)}>
-        <View style={styles.menuRoot}>
-          <View collapsable={false} onTouchEnd={() => setOpen(false)} style={[styles.menuBackdrop, { width: Dimensions.get('window').width, height: Dimensions.get('window').height }]} />
-          {anchor ? (
-            <View style={[styles.menu, { left: anchor.left, top: anchor.top, width: anchor.width }]}>
-              {options.map((item, index) => {
-                const active = item.value === value;
-                return (
-                  <Pressable key={`${item.value}-${index}`} onPress={() => { setOpen(false); onSelect(item.value); }} accessibilityRole="button" accessibilityState={{ selected: active }} style={[styles.menuItem, active ? styles.menuItemActive : null, Platform.OS === 'web' ? styles.pointer : null]}>
-                    <Text style={[t.menuText, active ? styles.menuTextActive : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{item.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
-        </View>
-      </Modal>
-    </View>
-  );
-});
-
-
-
 function HeatMapReportScreen() {
-  const { allExpiryDates, nearExpiry, nextExpiry, industries } = useCommonData();
+  const { industries } = useCommonData();
   const [selected_report, setSelectedReport] = useState('topGainersLosers');
   const [selected_expiry, setSelectedExpiry] = useState('near');
   const [search_query, setSearchQuery] = useState('');
@@ -314,18 +247,7 @@ function HeatMapReportScreen() {
   const stateRef = useRef({ report: selected_report, expiry: selected_expiry });
   stateRef.current = { report: selected_report, expiry: selected_expiry };
 
-  const expiryChoices = useMemo(() => {
-    const list = (Array.isArray(allExpiryDates) ? allExpiryDates : []).filter((item) => item?.expiry_state === 'near' || item?.expiry_state === 'next');
-    if (list.length > 0) {
-      list.sort((a, b) => String(a?.expiry_date ?? '').localeCompare(String(b?.expiry_date ?? '')));
-      return list.map((item) => ({ value: item.expiry_state, label: formatExpiryDate(item.expiry_date) || item.expiry_date }));
-    }
-    const choices = [];
-    if (nearExpiry) choices.push({ value: 'near', label: formatExpiryDate(nearExpiry) || nearExpiry });
-    if (nextExpiry) choices.push({ value: 'next', label: formatExpiryDate(nextExpiry) || nextExpiry });
-    if (!choices.length) choices.push({ value: 'near', label: 'Near' }, { value: 'next', label: 'Next' });
-    return choices;
-  }, [allExpiryDates, nearExpiry, nextExpiry]);
+  const expiryChoices = useExpiryOptions();
 
   const fetchHeatMap = useCallback((expiry_state, report, { silent = false } = {}) => {
     const gen = ++genRef.current;
@@ -496,10 +418,7 @@ function HeatMapReportScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader label="Heat Map Report" />
       <View style={styles.metaRow}>
-        <View style={styles.metaLeft}>
-          <Text style={t.metaLabel} maxFontSizeMultiplier={1.1}>Expiry Date</Text>
-          <Dropdown value={selected_expiry} options={expiryChoices} onSelect={handleExpiryChange} />
-        </View>
+        <ExpiryDropdownComponent value={selected_expiry} onSelect={handleExpiryChange} />
         {timestamp ? <View style={styles.timeWrap}><Text style={t.timestamp} numberOfLines={1} maxFontSizeMultiplier={1.1}>{timestamp}</Text><ClockIcon size={12} color={MUTED} /></View> : null}
       </View>
       <View style={styles.controlsRow}>
@@ -594,19 +513,7 @@ const styles = StyleSheet.create({
   tabLabelActive: { fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
   tabLabelIdle: { color: MUTED },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, gap: 8 },
-  metaLeft: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   timeWrap: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  expiryWrap: { flexDirection: 'row', alignItems: 'center' },
-  expiryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 30, minWidth: 80, paddingHorizontal: 10, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF', gap: 6 },
-  expiryBtnOpen: { borderColor: PRIMARY },
-  chevronDown: { transform: [{ rotate: '90deg' }] },
-  chevronUp: { transform: [{ rotate: '-90deg' }] },
-  menuRoot: { flex: 1 },
-  menuBackdrop: { ...StyleSheet.absoluteFillObject },
-  menu: { position: 'absolute', backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, paddingVertical: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
-  menuItem: { paddingHorizontal: 12, paddingVertical: 9 },
-  menuItemActive: { backgroundColor: '#F8FAFC' },
-  menuTextActive: { color: PRIMARY },
   controlsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 10, gap: 8 },
   searchBox: { flex: 1, flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', height: 40, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, borderRadius: 8, paddingHorizontal: 10, gap: 8 },
   ctrlBtn: { width: 40, height: 40, flexShrink: 0, flexGrow: 0, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
@@ -624,10 +531,7 @@ const styles = StyleSheet.create({
 
 const textStyles = (fs) => ({
   tabLabel: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(9, 10, 11), lineHeight: fs(12, 13, 14), fontFamily: 'Inter_500Medium', includeFontPadding: false },
-  metaLabel: { fontSize: fs(12), lineHeight: fs(16), fontFamily: 'Inter_500Medium', color: MUTED },
   timestamp: { flexShrink: 1, fontSize: fs(11), lineHeight: fs(15), fontFamily: 'Inter_500Medium', color: MUTED },
-  expiryValue: { fontSize: fs(13), lineHeight: fs(17), fontFamily: 'Inter_600SemiBold', color: TEXT },
-  menuText: { fontSize: fs(12), lineHeight: fs(16), fontFamily: 'Inter_500Medium', color: TEXT },
   searchInput: { flex: 1, minWidth: 0, padding: 0, fontSize: fs(13), fontFamily: 'Inter_400Regular', color: TEXT },
   tileSymbol: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(11, 10, 12), lineHeight: fs(15, 13, 17), fontFamily: 'Inter_500Medium', includeFontPadding: false },
   tilePrice: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(10, 9, 11), lineHeight: fs(12, 11, 14), fontFamily: 'Inter_500Medium', includeFontPadding: false, fontVariant: ['tabular-nums'] },

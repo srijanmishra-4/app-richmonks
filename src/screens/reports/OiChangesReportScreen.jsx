@@ -4,8 +4,8 @@ import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
+import ExpiryDropdownComponent from '@/components/ExpiryDropdownComponent';
 import ScreenHeader from '@/components/ScreenHeader';
-import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
 
@@ -14,8 +14,6 @@ const RED = '#DC2626';
 const NEUTRAL = '#64748B';
 
 const COL = { symbol: 1.1, price: 0.92, period: 1.12, oi: 1.05 };
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const OPTION_TYPES = [
   { value: 'future', label: 'Futures' },
@@ -52,14 +50,6 @@ function resolveParam(params, key, options, fallback) {
 function periodFields(period) {
   const prefix = period === 'day5' ? 'day5' : period === 'mom' ? 'mom' : 'day';
   return { price: `${prefix}_price`, price_change: `${prefix}_price_change`, oi: `${prefix}_oi` };
-}
-
-function formatExpiryDate(value) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value ?? '').trim());
-  if (!match) return '—';
-  const month = MONTHS[Number(match[2]) - 1];
-  if (!month) return '—';
-  return `${Number(match[3])} ${month}`;
 }
 
 function groupDigits(intPart) {
@@ -133,7 +123,7 @@ function oiPayload(filters) {
   return payload;
 }
 
-const Dropdown = memo(function Dropdown({ label, value, options, onSelect, compact = false }) {
+const Dropdown = memo(function Dropdown({ label, value, options, onSelect }) {
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
@@ -155,11 +145,11 @@ const Dropdown = memo(function Dropdown({ label, value, options, onSelect, compa
   }, [open, options.length]);
 
   return (
-    <View style={compact ? styles.expiryWrap : styles.selectWrap}>
+    <View style={styles.selectWrap}>
       {label ? <Text style={styles.selectLabel}>{label}</Text> : null}
       <View ref={anchorRef} collapsable={false}>
-        <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={label || 'Expiry'} accessibilityState={{ expanded: open }} style={[compact ? styles.expiryBtn : styles.selectBtn, open ? styles.selectOpen : null, Platform.OS === 'web' ? styles.pointer : null]}>
-          <Text style={compact ? styles.expiryValue : styles.selectValue} numberOfLines={1}>{current?.label ?? '—'}</Text>
+        <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open }} style={[styles.selectBtn, open ? styles.selectOpen : null, Platform.OS === 'web' ? styles.pointer : null]}>
+          <Text style={styles.selectValue} numberOfLines={1}>{current?.label ?? '—'}</Text>
           <Text style={styles.caret}>{open ? '▴' : '▾'}</Text>
         </Pressable>
       </View>
@@ -256,7 +246,6 @@ function OiChangesReportScreen() {
   const expiryParam = paramString(params.expiry_state).trim();
   const [filters, setFilters] = useState(() => initialFilters(params));
   const { option_type, oi_type, period, expiry_state } = filters;
-  const { allExpiryDates } = useCommonData();
   const [remark, setRemark] = useState(null);
   const deferredRemark = useDeferredValue(remark);
   const remarkPending = remark !== deferredRemark;
@@ -332,12 +321,6 @@ function OiChangesReportScreen() {
   const periodLabel = PERIODS.find((item) => item.value === period)?.label ?? '1 Day';
   const showStrike = option_type !== 'future';
   const oiOptions = option_type === 'future' ? OI_QUANTITY_ONLY : OI_TYPES;
-  const expiryChoices = useMemo(() => {
-    const list = (Array.isArray(allExpiryDates) ? allExpiryDates : []).filter((item) => item?.expiry_state === 'near' || item?.expiry_state === 'next');
-    list.sort((a, b) => String(a?.expiry_date ?? '').localeCompare(String(b?.expiry_date ?? '')));
-    return list.map((item) => ({ value: item.expiry_state, label: formatExpiryDate(item.expiry_date) }));
-  }, [allExpiryDates]);
-
   const visibleRows = useMemo(() => {
     const rows = Array.isArray(result?.data) ? result.data : [];
     if (option_type === 'future' || (deferredRemark !== 'Strong' && deferredRemark !== 'Weak')) return rows;
@@ -394,8 +377,7 @@ function OiChangesReportScreen() {
       </View>
       <View style={styles.metaRow}>
         <View style={styles.metaLeft}>
-          <Text style={styles.metaLabel}>Expiry</Text>
-          <Dropdown value={expiry_state} options={expiryChoices} onSelect={onExpiry} compact />
+          <ExpiryDropdownComponent value={expiry_state} onSelect={onExpiry} />
           <Text style={styles.metaSep}>|</Text>
           <Text style={styles.timestamp} numberOfLines={1}>{timestamp}</Text>
         </View>
@@ -429,9 +411,6 @@ const styles = StyleSheet.create({
   selectOpen: { borderColor: '#0071A9' },
   selectValue: { flex: 1, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
   caret: { fontSize: 9, lineHeight: 12, fontFamily: 'Inter_500Medium', color: '#64748B' },
-  expiryWrap: { flexShrink: 0 },
-  expiryBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
-  expiryValue: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
   menuRoot: { flex: 1 },
   menuBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
   menu: { position: 'absolute', zIndex: 2, backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: 4 },
@@ -441,7 +420,6 @@ const styles = StyleSheet.create({
   menuTextActive: { color: '#0071A9' },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, gap: 8 },
   metaLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, gap: 6 },
-  metaLabel: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
   metaSep: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#CBD5E1' },
   timestamp: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#64748B' },
   chips: { flexDirection: 'row', alignItems: 'center', gap: 6 },
