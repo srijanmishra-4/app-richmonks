@@ -1,12 +1,13 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Modal, Dimensions, Platform, StyleSheet, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ScreenHeader from '@/components/ScreenHeader';
 import BottomSlideOn from '@/components/BottomSlideOn';
+import HeatmapFilterSlideOnComponent from '@/components/reports/HeatmapFilterSlideOnComponent';
 import LineGraph from '@/components/LineGraph';
 import { cdnApi } from '@/utils/api';
-import { SortAscIcon, SortDescIcon, SortNoneIcon, FilterIcon, FlipIcon, SearchIcon, ClockIcon } from '@/components/ReportIconComponent';
+import { FilterIcon, FlipIcon, SearchIcon, ClockIcon } from '@/components/ReportIconComponent';
 import { ChevronRightIcon } from '@/components/icons/HomeIcons';
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
@@ -25,6 +26,15 @@ const REPORT_TABS = [
   { id: 'topGainersLosers', label: 'Top Gainers Losers' },
   { id: 'weeklyRolling', label: 'Weekly Rolling' },
   { id: 'sinceExpiry', label: 'Since Expiry' },
+];
+
+const SORT_OPTIONS = [
+  { key: 'NONE', label: 'None' },
+  { key: 'symbol', label: 'Symbol' },
+  { key: 'chg_in_oi_1d', label: 'OI change 1 Day' },
+  { key: 'chg_in_oi_5d', label: 'OI Change 5 Days' },
+  { key: 'chg_in_oi_10d', label: 'OI Change 10 Days' },
+  { key: 'chg_in_oi_expiry', label: 'OI Change Since Expiry' },
 ];
 
 const NUM_COLUMNS = 4;
@@ -282,13 +292,15 @@ const Dropdown = memo(function Dropdown({ label, value, options, onSelect }) {
   );
 });
 
+
+
 function HeatMapReportScreen() {
-  const { allExpiryDates, nearExpiry, nextExpiry } = useCommonData();
+  const { allExpiryDates, nearExpiry, nextExpiry, industries } = useCommonData();
   const [selected_report, setSelectedReport] = useState('topGainersLosers');
   const [selected_expiry, setSelectedExpiry] = useState('near');
   const [search_query, setSearchQuery] = useState('');
-  const [sort_state, setSortState] = useState('NONE');
-  const [is_filter_active, setIsFilterActive] = useState(false);
+  const [sort_key, setSortKey] = useState('NONE');
+  const [industry_id, setIndustryId] = useState(null);
   const [original, setOriginal] = useState([]);
   const [is_flipped, setIsFlipped] = useState(false);
   const [timestamp, setTimestamp] = useState('');
@@ -296,6 +308,7 @@ function HeatMapReportScreen() {
   const [error, setError] = useState(false);
   const [selected_tile, setSelectedTile] = useState(null);
   const [sheet_open, setSheetOpen] = useState(false);
+  const [filter_sheet_open, setFilterSheetOpen] = useState(false);
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
   const stateRef = useRef({ report: selected_report, expiry: selected_expiry });
@@ -353,15 +366,6 @@ function HeatMapReportScreen() {
 
   useRegisterRefresh(useCallback(() => fetchHeatMap(stateRef.current.expiry, stateRef.current.report, { silent: true }), [fetchHeatMap]));
 
-  const handleSort = useCallback(() => {
-    setIsFlipped(false);
-    setSortState((prev) => {
-      if (prev === 'NONE') return 'ASC';
-      if (prev === 'ASC') return 'DESC';
-      return 'NONE';
-    });
-  }, []);
-
   const handleFlip = useCallback(() => {
     setIsFlipped((prev) => !prev);
   }, []);
@@ -377,6 +381,14 @@ function HeatMapReportScreen() {
     setIsFlipped(false);
     setSelectedExpiry(nextExpiryState);
   }, []);
+
+  // Industry symbol Set for filtering
+  const industrySet = useMemo(() => {
+    if (industry_id == null || !Array.isArray(industries)) return null;
+    const ind = industries.find((i) => i.id === industry_id);
+    if (!ind || !Array.isArray(ind.symbols)) return null;
+    return new Set(ind.symbols);
+  }, [industry_id, industries]);
 
   const scale = useFs();
   const t = useScaledStyles(textStyles);
@@ -395,19 +407,25 @@ function HeatMapReportScreen() {
 
   const filtered = useMemo(() => {
     const q = search_query.trim().toLowerCase();
-    if (!q) return allTiles;
-    return allTiles.filter((item) => String(item?.symbol ?? '').toLowerCase().startsWith(q));
-  }, [allTiles, search_query]);
+    let list = allTiles;
+    if (q) list = list.filter((item) => String(item?.symbol ?? '').toLowerCase().startsWith(q));
+    if (industrySet) list = list.filter((item) => !item._empty && industrySet.has(item.symbol));
+    return list;
+  }, [allTiles, search_query, industrySet]);
 
   const working = useMemo(() => {
     let list = filtered;
-    if (sort_state === 'ASC') {
+    if (sort_key === 'symbol') {
       list = [...filtered].sort((a, b) => String(a?.symbol ?? '').localeCompare(String(b?.symbol ?? '')));
-    } else if (sort_state === 'DESC') {
-      list = [...filtered].sort((a, b) => String(b?.symbol ?? '').localeCompare(String(a?.symbol ?? '')));
+    } else if (sort_key !== 'NONE') {
+      list = [...filtered].sort((a, b) => {
+        const va = Number(a?.data?.[sort_key] ?? a?.[sort_key]) || 0;
+        const vb = Number(b?.data?.[sort_key] ?? b?.[sort_key]) || 0;
+        return vb - va;
+      });
     }
     return is_flipped ? [...list].reverse() : list;
-  }, [filtered, sort_state, is_flipped]);
+  }, [filtered, sort_key, is_flipped]);
 
   const gridData = useMemo(() => formatGridData(working, NUM_COLUMNS), [working]);
 
@@ -434,6 +452,30 @@ function HeatMapReportScreen() {
   const closeSheet = useCallback(() => setSheetOpen(false), []);
   const clearSelectedTile = useCallback(() => setSelectedTile(null), []);
 
+  const openFilterSheet = useCallback(() => setFilterSheetOpen(true), []);
+  const closeFilterSheet = useCallback(() => setFilterSheetOpen(false), []);
+  const handleApplyFilterSort = useCallback(({ sort, industry, type }) => {
+    if (type === 'sort') {
+      setSortKey(sort);
+    } else if (type === 'filter') {
+      setIndustryId(industry);
+    } else {
+      if (sort !== undefined) setSortKey(sort);
+      if (industry !== undefined) setIndustryId(industry);
+    }
+    setFilterSheetOpen(false);
+  }, []);
+  const handleResetFilterSort = useCallback((type) => {
+    if (type === 'sort') {
+      setSortKey('NONE');
+    } else if (type === 'filter') {
+      setIndustryId(null);
+    } else {
+      setSortKey('NONE');
+      setIndustryId(null);
+    }
+  }, []);
+
   // Follow the latest socket row for the open symbol so silent refreshes stay in sync.
   const tileDetail = useMemo(() => {
     if (!selected_tile) return null;
@@ -442,6 +484,7 @@ function HeatMapReportScreen() {
   }, [selected_tile, original, expiryChoices, selected_expiry]);
 
 
+  const filterActive = sort_key !== 'NONE' || industry_id != null;
   const queryActive = search_query.trim().length > 0;
   const emptyList = useMemo(() => (
     <View style={styles.emptyContainer}>
@@ -464,11 +507,8 @@ function HeatMapReportScreen() {
           <SearchIcon size={16} color={SUBTLE} />
           <TextInput style={[t.searchInput, Platform.OS === 'web' ? styles.noOutline : null]} maxFontSizeMultiplier={1.1} placeholder="Search symbol" placeholderTextColor={SUBTLE} value={search_query} onChangeText={setSearchQuery} autoCapitalize="characters" autoCorrect={false} />
         </View>
-        <ControlButton onPress={() => setIsFilterActive((prev) => !prev)} label="Filter" active={is_filter_active}>
-          <FilterIcon size={18} color={is_filter_active ? PRIMARY : MUTED} />
-        </ControlButton>
-        <ControlButton onPress={handleSort} label="Sort" active={sort_state !== 'NONE'}>
-          {sort_state === 'ASC' ? <SortAscIcon size={18} color={PRIMARY} /> : sort_state === 'DESC' ? <SortDescIcon size={18} color={PRIMARY} /> : <SortNoneIcon size={18} color={MUTED} />}
+        <ControlButton onPress={openFilterSheet} label="Filter" active={filterActive}>
+          <FilterIcon size={18} color={filterActive ? PRIMARY : MUTED} />
         </ControlButton>
         <ControlButton onPress={handleFlip} label="Flip" flash>
           <FlipIcon size={18} color={MUTED} />
@@ -523,9 +563,19 @@ function HeatMapReportScreen() {
         changePct={tileDetail?.changePct}
         positive={tileDetail?.positive}
         metrics={tileDetail?.metrics}
-        graph={tileDetail?.graph.length > 1 ? <LineGraph data={tileDetail.graph} height={170} captureOnStart /> : null}
+        graph={tileDetail?.graph.length > 1 ? <LineGraph data={tileDetail.graph} height={125} captureOnStart /> : null}
         actionLabel="View Profile"
         onAction={noop}
+      />
+      <HeatmapFilterSlideOnComponent
+        visible={filter_sheet_open}
+        onClose={closeFilterSheet}
+        appliedSort={sort_key}
+        appliedIndustry={industry_id}
+        industries={industries}
+        sortOptions={SORT_OPTIONS}
+        onApply={handleApplyFilterSort}
+        onReset={handleResetFilterSort}
       />
     </SafeAreaView>
   );

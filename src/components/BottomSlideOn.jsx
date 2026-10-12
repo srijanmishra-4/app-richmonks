@@ -3,6 +3,7 @@ import { View, Text, Image, Modal, Pressable, ScrollView, Animated, Easing, PanR
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { clamp, useScaledStyles } from '@/utils/responsive';
+import { CloseIcon } from '@/components/icons/NavIcons';
 
 const PRIMARY = '#0071A9';
 const TEXT = '#0F172A';
@@ -118,7 +119,21 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, p
           style={[styles.sheet, { width: sheetWidth, maxHeight: height * 0.92, opacity: sliding ? 1 : 0, transform: [{ translateY }] }]}
         >
           <View {...pan.panHandlers} style={{ paddingHorizontal: padX }}>
-            <View style={styles.handleWrap}><View style={styles.handle} /></View>
+            <View style={styles.handleWrap}>
+              <View style={styles.handleSide} />
+              <View style={styles.handleCenter}>
+                <View style={styles.handle} />
+              </View>
+              <Pressable
+                onPress={() => closeRef.current?.()}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                style={({ pressed }) => [styles.closeBtn, pressed ? styles.closeBtnPressed : null, pointer]}
+              >
+                <CloseIcon size={22} color={MUTED} />
+              </Pressable>
+            </View>
             <View style={styles.header}>
               <View style={styles.identity}>
                 <Logo uri={logo} title={title} size={logoSize} t={t} />
@@ -144,7 +159,7 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, p
                 ))}
               </View>
             ) : null}
-            {graph ? <View style={[styles.graph, { marginHorizontal: -(padX - 4) }]}>{graph}</View> : null}
+            {graph ? <View style={styles.graph}>{graph}</View> : null}
           </ScrollView>
           {actionLabel ? (
             <View collapsable={false} accessibilityRole="button" accessibilityLabel={actionLabel} onTouchStart={() => setPressed(true)} onTouchCancel={() => setPressed(false)} onTouchEnd={() => { setPressed(false); onAction?.(); }} style={[styles.action, { marginHorizontal: padX, marginBottom: insets.bottom + 18 }, pressed ? styles.actionPressed : null, pointer]}>
@@ -163,7 +178,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   backdrop: { ...StyleSheet.absoluteFill },
   sheet: { flexGrow: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', shadowColor: '#0F172A', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12 },
-  handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 14 },
+  handleWrap: { flexDirection: 'row', alignItems: 'center', paddingTop: 10, paddingBottom: 14 },
+  handleSide: { width: 24 },
+  handleCenter: { flex: 1, alignItems: 'center' },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#CBD5E1' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 14 },
   identity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -177,6 +194,9 @@ const styles = StyleSheet.create({
   action: { marginTop: 8, height: 48, borderRadius: 10, backgroundColor: PRIMARY, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   actionPressed: { opacity: 0.85 },
   pointer: { cursor: 'pointer' },
+  // Negative margin keeps the handle row at its original 28px height while the 20px button stays inside its bounds for Android hit-testing.
+  closeBtn: { width: 20, height: 20, marginTop: -4, marginBottom: -12, marginRight: 4, alignItems: 'center', justifyContent: 'center' },
+  closeBtnPressed: { opacity: 0.6 },
 });
 
 const textStyles = (fs) => ({

@@ -71,3 +71,15 @@ export const SearchIcon = memo(function SearchIcon({ size = 24, color = '#565656
     </Svg>
   );
 });
+
+export const CloseIcon = memo(function CloseIcon({ size = 24, color = '#64748B' }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M18 6L6 18" stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M6 6L18 18" stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+});
+
+export const CrossIcon = CloseIcon;
+
