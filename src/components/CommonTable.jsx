@@ -138,10 +138,13 @@ export function TableHeaderCell({ label, flex = 1, align = 'left', sortKey, getV
   const active = sortable && sort?.key === sortKey;
   const alignStyle = align === 'right' ? styles.cellRight : align === 'center' ? styles.cellCenter : null;
 
+  const arrow = active ? <Text style={[styles.hArrow, styles.hArrowActive]}>{sort.dir === 'desc' ? '▾' : '▴'}</Text> : null;
+
   return (
     <Pressable disabled={!sortable} onPress={() => onSort({ key: sortKey, getValue })} style={[styles.hCell, { flex }, alignStyle, sortable && Platform.OS === 'web' ? styles.pointer : null, style]} accessibilityRole={sortable ? 'button' : 'header'} accessibilityLabel={label}>
-      <Text style={[styles.hLabel, align === 'right' ? styles.textRight : align === 'center' ? styles.textCenter : null, active ? styles.hLabelActive : null]} numberOfLines={2}>{label}</Text>
-      {active ? <Text style={[styles.hArrow, styles.hArrowActive]}>{sort.dir === 'desc' ? '▾' : '▴'}</Text> : null}
+      {align === 'right' ? arrow : null}
+      <Text style={[styles.hLabel, align === 'right' ? styles.hLabelRight : align === 'center' ? styles.textCenter : null, active ? styles.hLabelActive : null]} numberOfLines={2}>{label}</Text>
+      {align === 'right' ? null : arrow}
     </Pressable>
   );
 }
@@ -157,7 +160,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, minHeight: 0 },
   hContent: { flexGrow: 1, alignItems: 'stretch', minHeight: '100%' },
   table: { flex: 1, minHeight: 0 },
-  header: { flexDirection: 'row', alignItems: 'flex-end', marginHorizontal: INSET, paddingHorizontal: PAD_H, paddingTop: 4, paddingBottom: 6, zIndex: 1 },
+  header: { flexDirection: 'row', alignItems: 'flex-end', marginHorizontal: INSET, paddingHorizontal: PAD_H, paddingTop: 4, paddingBottom: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: 'transparent', zIndex: 1 },
   list: { flex: 1, minHeight: 0 },
   listContent: { flexGrow: 1, paddingTop: 2, paddingBottom: 12, gap: ROW_GAP },
   row: { flexDirection: 'row', alignItems: 'center', marginHorizontal: INSET, paddingHorizontal: PAD_H, paddingVertical: 6, borderRadius: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E4E8EE', backgroundColor: '#FFFFFF' },
@@ -168,7 +171,7 @@ const styles = StyleSheet.create({
   cellCenter: { justifyContent: 'center' },
   hLabel: { flexShrink: 1, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.4, textTransform: 'uppercase' },
   hLabelActive: { color: '#64748B' },
-  textRight: { textAlign: 'right' },
+  hLabelRight: { flex: 1, textAlign: 'right', letterSpacing: 0 },
   textCenter: { textAlign: 'center' },
   hArrow: { fontSize: 8, lineHeight: 13, color: '#CBD5E1' },
   hArrowActive: { color: '#64748B' },
