@@ -1,9 +1,10 @@
-import { memo, useCallback, useDeferredValue, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 
 const STRONG = 'Strong';
 const WEAK = 'Weak';
 const EMPTY_ROWS = [];
+const INITIAL_ROWS = 10;
 
 function isStrongRemark(remark) {
   const value = String(remark ?? '').trim().toLowerCase();
@@ -29,24 +30,42 @@ function partitionRows(rows) {
 
 /**
  * Strong/Weak list filter. Rows are split once when the source changes, so a
- * tap only swaps to a ready list. The button updates immediately; the table
- * follows on the deferred value so a large list does not block the press.
+ * tap only swaps to a ready list. On a tap the list is shrunk to INITIAL_ROWS
+ * for one frame, which resets FlatList's rendered window so it draws a few rows
+ * first and the rest in background batches instead of all at once.
  */
 export function useStrongWeakFilter(rows, { enabled = true } = {}) {
   const list = Array.isArray(rows) ? rows : EMPTY_ROWS;
   const [value, setValue] = useState(null);
-  const deferredValue = useDeferredValue(value);
+  const [limitRows, setLimitRows] = useState(false);
   const buckets = useMemo(() => partitionRows(list), [list]);
-  const active = enabled && (deferredValue === STRONG || deferredValue === WEAK) ? deferredValue : null;
+  const active = enabled && (value === STRONG || value === WEAK) ? value : null;
 
-  const clear = useCallback(() => setValue(null), []);
+  const onChange = useCallback((next) => {
+    setLimitRows(true);
+    setValue(next);
+  }, []);
+
+  const clear = useCallback(() => onChange(null), [onChange]);
+
+  useEffect(() => {
+    if (!limitRows) return undefined;
+    const id = requestAnimationFrame(() => setLimitRows(false));
+    return () => cancelAnimationFrame(id);
+  }, [limitRows, value]);
+
+  const filtered = active ? buckets[active] : list;
+  const visibleRows = useMemo(
+    () => (limitRows ? filtered.slice(0, INITIAL_ROWS) : filtered),
+    [limitRows, filtered]
+  );
 
   return {
     value,
-    onChange: setValue,
+    onChange,
     clear,
-    rows: active ? buckets[active] : list,
-    pending: enabled && value !== deferredValue,
+    rows: visibleRows,
+    pending: enabled && limitRows,
   };
 }
 
