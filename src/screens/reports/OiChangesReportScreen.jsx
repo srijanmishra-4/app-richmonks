@@ -1,4 +1,4 @@
-import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet, Modal, Dimensions } from 'react-native';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ExpiryDropdownComponent from '@/components/ExpiryDropdownComponent';
 import ScreenHeader from '@/components/ScreenHeader';
+import StrongWeakFilter, { useStrongWeakFilter } from '@/components/reports/StrongWeakFilter';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
 
@@ -246,9 +247,6 @@ function OiChangesReportScreen() {
   const expiryParam = paramString(params.expiry_state).trim();
   const [filters, setFilters] = useState(() => initialFilters(params));
   const { option_type, oi_type, period, expiry_state } = filters;
-  const [remark, setRemark] = useState(null);
-  const deferredRemark = useDeferredValue(remark);
-  const remarkPending = remark !== deferredRemark;
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -321,11 +319,8 @@ function OiChangesReportScreen() {
   const periodLabel = PERIODS.find((item) => item.value === period)?.label ?? '1 Day';
   const showStrike = option_type !== 'future';
   const oiOptions = option_type === 'future' ? OI_QUANTITY_ONLY : OI_TYPES;
-  const visibleRows = useMemo(() => {
-    const rows = Array.isArray(result?.data) ? result.data : [];
-    if (option_type === 'future' || (deferredRemark !== 'Strong' && deferredRemark !== 'Weak')) return rows;
-    return rows.filter((row) => row?.remark === deferredRemark);
-  }, [result, option_type, deferredRemark]);
+  const sourceRows = Array.isArray(result?.data) ? result.data : null;
+  const { value: remark, onChange: setRemark, clear: clearRemark, rows: visibleRows } = useStrongWeakFilter(sourceRows, { enabled: showStrike });
 
   const columns = useMemo(() => [
     { flex: COL.symbol, align: 'left', lines: showStrike ? 2 : 1 },
@@ -357,9 +352,9 @@ function OiChangesReportScreen() {
   }, [navigation]);
 
   const onOptionType = useCallback((value) => {
-    if (value === 'future') setRemark(null);
+    if (value === 'future') clearRemark();
     updateFilters({ option_type: value });
-  }, [updateFilters]);
+  }, [clearRemark, updateFilters]);
 
   const onOiType = useCallback((value) => updateFilters({ oi_type: value }), [updateFilters]);
   const onPeriod = useCallback((value) => updateFilters({ period: value }), [updateFilters]);
@@ -381,19 +376,10 @@ function OiChangesReportScreen() {
           <Text style={styles.metaSep}>|</Text>
           <Text style={styles.timestamp} numberOfLines={1}>{timestamp}</Text>
         </View>
-        {showStrike ? (
-          <View style={styles.chips}>
-            <Pressable onPress={() => setRemark((prev) => (prev === 'Strong' ? null : 'Strong'))} accessibilityRole="button" accessibilityState={{ selected: remark === 'Strong' }} style={[styles.chip, remark === 'Strong' ? styles.chipStrong : null, Platform.OS === 'web' ? styles.pointer : null]}>
-              <Text style={[styles.chipText, remark === 'Strong' ? styles.chipTextStrong : null]}>Strong</Text>
-            </Pressable>
-            <Pressable onPress={() => setRemark((prev) => (prev === 'Weak' ? null : 'Weak'))} accessibilityRole="button" accessibilityState={{ selected: remark === 'Weak' }} style={[styles.chip, remark === 'Weak' ? styles.chipWeak : null, Platform.OS === 'web' ? styles.pointer : null]}>
-              <Text style={[styles.chipText, remark === 'Weak' ? styles.chipTextWeak : null]}>Weak</Text>
-            </Pressable>
-          </View>
-        ) : null}
+        {showStrike ? <StrongWeakFilter value={remark} onChange={setRemark} /> : null}
       </View>
       <View style={styles.table}>
-        <CommonTable data={visibleRows} columns={columns} loading={loading || remarkPending} HeaderComponent={HeaderComponent} RowComponent={RowComponent} keyExtractor={rowKey} emptyText={error ? 'Failed to load report. Please try again.' : 'No data to show'} rowStyle={styles.row} />
+        <CommonTable data={visibleRows} columns={columns} loading={loading} HeaderComponent={HeaderComponent} RowComponent={RowComponent} keyExtractor={rowKey} emptyText={error ? 'Failed to load report. Please try again.' : 'No data to show'} rowStyle={styles.row} />
       </View>
     </SafeAreaView>
   );
@@ -422,13 +408,6 @@ const styles = StyleSheet.create({
   metaLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, gap: 6 },
   metaSep: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#CBD5E1' },
   timestamp: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#64748B' },
-  chips: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  chip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
-  chipStrong: { backgroundColor: '#E5F6EA', borderColor: '#16A34A' },
-  chipWeak: { backgroundColor: '#FCE8EC', borderColor: '#DC2626' },
-  chipText: { fontSize: 11, lineHeight: 14, fontFamily: 'Inter_500Medium', color: '#64748B' },
-  chipTextStrong: { color: '#16A34A' },
-  chipTextWeak: { color: '#DC2626' },
   table: { flex: 1, minHeight: 0 },
   row: { alignItems: 'flex-start', paddingVertical: 8 },
   headStack: { minWidth: 0, justifyContent: 'flex-end' },
