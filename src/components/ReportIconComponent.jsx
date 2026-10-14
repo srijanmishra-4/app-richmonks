@@ -88,6 +88,8 @@ export default function ReportIconComponent({ name, size = 16, color = '#64748B'
       return <SearchIcon size={size} color={color} {...props} />;
     case 'clock':
       return <ClockIcon size={size} color={color} {...props} />;
+    case 'calendar':
+      return <CalendarIcon size={size} color={color} {...props} />;
     default:
       return null;
   }
