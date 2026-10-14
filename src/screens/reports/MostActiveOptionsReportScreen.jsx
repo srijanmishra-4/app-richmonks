@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
@@ -12,7 +12,6 @@ import {
   MostActiveOptionsHeader,
   MostActiveOptionsRow,
 } from '@/components/reports/mostActiveOptionsTable';
-import { ClockIcon } from '@/components/ReportIconComponent';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
 
@@ -100,16 +99,10 @@ function MostActiveOptionsReportScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="Most Active Options" />
+      <ScreenHeader label="Most Active Options" timestamp={cdate} />
 
       <View style={styles.firstRow}>
         <ExpiryDropdownComponent value={expiry} onSelect={handleExpiryChange} />
-        {cdate ? (
-          <View style={styles.timeWrap}>
-            <ClockIcon size={12} color="#64748B" />
-            <Text style={styles.timestamp} numberOfLines={1}>{cdate}</Text>
-          </View>
-        ) : null}
       </View>
 
       <View style={styles.secondRow}>
@@ -142,7 +135,6 @@ const styles = StyleSheet.create({
   firstRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 8,
@@ -155,19 +147,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 10,
     gap: 8,
-  },
-  timeWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flexShrink: 1,
-  },
-  timestamp: {
-    fontSize: 11,
-    lineHeight: 15,
-    fontFamily: 'Inter_500Medium',
-    color: '#64748B',
-    flexShrink: 1,
   },
   table: { flex: 1, minHeight: 0 },
 });

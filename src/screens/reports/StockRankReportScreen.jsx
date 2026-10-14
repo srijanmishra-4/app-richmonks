@@ -1,12 +1,11 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
 import StockRankDropdown from '@/components/reports/StockRankDropdown';
 import { STOCK_RANK_COLUMNS, StockRankHeader, StockRankRow } from '@/components/reports/stockRankTable';
-import { ClockIcon } from '@/components/ReportIconComponent';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
 
@@ -76,22 +75,15 @@ function StockRankReportScreen() {
     setFilter(next);
   }, []);
 
-  const headerDropdown = useMemo(() => (
-    <StockRankDropdown value={filter} onChange={handleFilterChange} />
-  ), [filter, handleFilterChange]);
-
   const rows = Array.isArray(result?.data) ? result.data : [];
   const cdate = result?.cdate ?? '';
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="Stock Rank" headerDropdown={headerDropdown} />
-      {cdate ? (
-        <View style={styles.metaRow}>
-          <ClockIcon size={12} color="#94A3B8" />
-          <Text style={styles.metaDate}>{cdate}</Text>
-        </View>
-      ) : null}
+      <ScreenHeader label="Stock Rank" timestamp={cdate} />
+      <View style={styles.metaRow}>
+        <StockRankDropdown value={filter} onChange={handleFilterChange} />
+      </View>
       <View style={styles.table}>
         <CommonTable
           data={rows}
@@ -115,13 +107,11 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-end',
     paddingHorizontal: 16,
     paddingTop: 2,
     paddingBottom: 6,
-    gap: 4,
   },
-  metaDate: { fontSize: 11, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
   table: { flex: 1, minHeight: 0 },
   row: { paddingVertical: 8 },
 });

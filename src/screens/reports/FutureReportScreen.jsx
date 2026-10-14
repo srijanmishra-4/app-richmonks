@@ -108,11 +108,11 @@ function FutureReportScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="Future" />
+      <ScreenHeader label="Future" timestamp={cdate} />
       <ReportTabs active={tab} onChange={handleTab} />
       {loading ? (
         <View style={styles.content}>
-          <SkeletonMetaRow pulse={pulse} />
+          <SkeletonMetaRow pulse={pulse} showRight={false} />
           <View style={styles.table}>
             <CommonTable data={[]} loading columns={FUTURE_TABLE_COLUMNS} HeaderComponent={FutureHeader} rowStyle={styles.row} />
           </View>
@@ -128,7 +128,6 @@ function FutureReportScreen() {
               <Text style={styles.metaLabel}>Expiry Date</Text>
               <Text style={styles.metaValue}>{expiryDate || '—'}</Text>
             </View>
-            {cdate ? <Text style={styles.metaDate}>{cdate}</Text> : null}
           </View>
           <View style={styles.table}>
             <CommonTable data={rows} columns={FUTURE_TABLE_COLUMNS} HeaderComponent={FutureHeader} RowComponent={FutureRow} emptyText="No futures to show" rowStyle={styles.row} />
@@ -158,7 +157,6 @@ const styles = StyleSheet.create({
   metaLeft: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   metaLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
   metaValue: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  metaDate: { fontSize: 11, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
   table: { flex: 1, minHeight: 0 },
   row: { paddingVertical: 8 },
 });

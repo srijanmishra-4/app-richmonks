@@ -13,7 +13,6 @@ import {
   CallPutValueHeader,
   CallPutValueRow,
 } from '@/components/reports/callPutValueTable';
-import { ClockIcon } from '@/components/ReportIconComponent';
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
@@ -107,7 +106,7 @@ function CallPutValueReportScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="Call / Put Value" />
+      <ScreenHeader label="Call / Put Value" timestamp={cdate} />
 
       <View style={styles.metaRow}>
         <ExpiryDropdownComponent value={expiry} onSelect={setExpiry} />
@@ -119,14 +118,6 @@ function CallPutValueReportScreen() {
       </View>
 
       <View style={styles.infoRow}>
-        <View style={styles.timeWrap}>
-          {cdate ? (
-            <>
-              <ClockIcon size={12} color="#64748B" />
-              <Text style={styles.infoText} numberOfLines={1}>{cdate}</Text>
-            </>
-          ) : null}
-        </View>
         <Text style={styles.infoText} numberOfLines={1}>OI Value in Lacs</Text>
       </View>
 
@@ -167,17 +158,9 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    gap: 12,
-  },
-  timeWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    minWidth: 0,
   },
   infoText: {
     fontSize: 11,

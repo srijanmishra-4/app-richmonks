@@ -3,9 +3,10 @@ import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
 import { ChevronRightIcon } from '@/components/icons/HomeIcons';
+import ReportTimestamp from '@/components/reports/ReportTimestamp';
 import { useFs } from '@/utils/responsive';
 
-function ScreenHeader({ label, fallbackHref = '/home', compact = false, headerDropdown = null }) {
+function ScreenHeader({ label, fallbackHref = '/home', compact = false, timestamp = '' }) {
   const fs = useFs();
   const onBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -18,7 +19,7 @@ function ScreenHeader({ label, fallbackHref = '/home', compact = false, headerDr
         <View style={styles.backIcon}><ChevronRightIcon size={compact ? 18 : 22} color="#0F172A" /></View>
       </Pressable>
       <Text style={[styles.title, compact ? { fontSize: fs(15), lineHeight: fs(19) } : { fontSize: fs(17), lineHeight: fs(22) }]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{label}</Text>
-      {headerDropdown}
+      <ReportTimestamp value={timestamp} />
     </View>
   );
 }

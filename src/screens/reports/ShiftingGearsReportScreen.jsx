@@ -6,7 +6,6 @@ import CommonTable from '@/components/CommonTable';
 import ExpiryDropdownComponent from '@/components/ExpiryDropdownComponent';
 import ScreenHeader from '@/components/ScreenHeader';
 import { SHIFTING_GEARS_COLUMNS, ShiftingGearsHeader, ShiftingGearsRow } from '@/components/reports/shiftingGearsTable';
-import { ClockIcon } from '@/components/ReportIconComponent';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
 
@@ -119,15 +118,9 @@ function ShiftingGearsReportScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="Shifting Gears" />
+      <ScreenHeader label="Shifting Gears" timestamp={timestamp} />
       <View style={styles.metaRow}>
         <ExpiryDropdownComponent value={expiry_state} onSelect={handleExpiryChange} />
-        {timestamp ? (
-          <View style={styles.timeWrap}>
-            <Text style={styles.timestamp} numberOfLines={1}>{timestamp}</Text>
-            <ClockIcon size={12} color={MUTED} />
-          </View>
-        ) : null}
       </View>
       <View style={styles.toggleWrap}>
         <View style={styles.toggleRow}>
@@ -174,9 +167,7 @@ export default memo(ShiftingGearsReportScreen);
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   pointer: { cursor: 'pointer' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, gap: 8 },
-  timeWrap: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  timestamp: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: MUTED },
+  metaRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, gap: 8 },
   toggleWrap: { paddingHorizontal: 16, paddingBottom: 16 },
   toggleRow: { flexDirection: 'row', borderRadius: 10, overflow: 'hidden', backgroundColor: '#EEF2F6', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
   toggleBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 11 },

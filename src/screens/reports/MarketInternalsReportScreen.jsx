@@ -1,10 +1,9 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
-import { CalendarIcon } from '@/components/ReportIconComponent';
 import {
   MARKET_INTERNALS_COLUMNS,
   MarketInternalsHeader,
@@ -76,15 +75,9 @@ function MarketInternalsReportScreen() {
   const timestamp = result?.timestamp ?? '';
   const rows = Array.isArray(result?.data) ? result.data : [];
 
-  const headerRight = useMemo(() => (
-    <View style={styles.headerRight}>
-      {timestamp ? <Text style={styles.headerTimestamp} numberOfLines={1}>{timestamp}</Text> : null}
-    </View>
-  ), [timestamp]);
-
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="Market Internals" headerDropdown={headerRight} />
+      <ScreenHeader label="Market Internals" timestamp={timestamp} />
       <View style={styles.table}>
         <CommonTable
           data={rows}
@@ -105,8 +98,6 @@ export default memo(MarketInternalsReportScreen);
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  headerTimestamp: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#64748B' },
   table: { flex: 1, minHeight: 0 },
   row: { paddingVertical: 8 },
 });

@@ -8,7 +8,7 @@ import ExpiryDropdownComponent, { useExpiryOptions } from '@/components/ExpiryDr
 import HeatmapFilterSlideOnComponent from '@/components/reports/HeatmapFilterSlideOnComponent';
 import LineGraph from '@/components/LineGraph';
 import { cdnApi } from '@/utils/api';
-import { FilterIcon, FlipIcon, SearchIcon, ClockIcon } from '@/components/ReportIconComponent';
+import { FilterIcon, FlipIcon, SearchIcon } from '@/components/ReportIconComponent';
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { socketRequest } from '@/utils/socket';
@@ -416,10 +416,9 @@ function HeatMapReportScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="Heat Map Report" />
+      <ScreenHeader label="Heat Map Report" timestamp={timestamp} />
       <View style={styles.metaRow}>
         <ExpiryDropdownComponent value={selected_expiry} onSelect={handleExpiryChange} />
-        {timestamp ? <View style={styles.timeWrap}><Text style={t.timestamp} numberOfLines={1} maxFontSizeMultiplier={1.1}>{timestamp}</Text><ClockIcon size={12} color={MUTED} /></View> : null}
       </View>
       <View style={styles.controlsRow}>
         <View style={styles.searchBox}>
@@ -512,8 +511,7 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
   tabLabelActive: { fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
   tabLabelIdle: { color: MUTED },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, gap: 8 },
-  timeWrap: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, gap: 8 },
   controlsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 10, gap: 8 },
   searchBox: { flex: 1, flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', height: 40, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, borderRadius: 8, paddingHorizontal: 10, gap: 8 },
   ctrlBtn: { width: 40, height: 40, flexShrink: 0, flexGrow: 0, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
@@ -531,7 +529,6 @@ const styles = StyleSheet.create({
 
 const textStyles = (fs) => ({
   tabLabel: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(9, 10, 11), lineHeight: fs(12, 13, 14), fontFamily: 'Inter_500Medium', includeFontPadding: false },
-  timestamp: { flexShrink: 1, fontSize: fs(11), lineHeight: fs(15), fontFamily: 'Inter_500Medium', color: MUTED },
   searchInput: { flex: 1, minWidth: 0, padding: 0, fontSize: fs(13), fontFamily: 'Inter_400Regular', color: TEXT },
   tileSymbol: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(11, 10, 12), lineHeight: fs(15, 13, 17), fontFamily: 'Inter_500Medium', includeFontPadding: false },
   tilePrice: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(10, 9, 11), lineHeight: fs(12, 11, 14), fontFamily: 'Inter_500Medium', includeFontPadding: false, fontVariant: ['tabular-nums'] },

@@ -360,11 +360,11 @@ function OiChangesReportScreen() {
   const onPeriod = useCallback((value) => updateFilters({ period: value }), [updateFilters]);
   const onExpiry = useCallback((value) => updateFilters({ expiry_state: value }), [updateFilters]);
 
-  const timestamp = typeof result?.timestamp === 'string' && result.timestamp ? result.timestamp : '—';
+  const timestamp = typeof result?.timestamp === 'string' && result.timestamp ? result.timestamp : '';
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="OI Changes" />
+      <ScreenHeader label="OI Changes" timestamp={timestamp} />
       <View style={styles.controls}>
         <Dropdown label="Option Type" value={option_type} options={OPTION_TYPES} onSelect={onOptionType} />
         <Dropdown label="OI Type" value={oi_type} options={oiOptions} onSelect={onOiType} />
@@ -373,8 +373,6 @@ function OiChangesReportScreen() {
       <View style={styles.metaRow}>
         <View style={styles.metaLeft}>
           <ExpiryDropdownComponent value={expiry_state} onSelect={onExpiry} />
-          <Text style={styles.metaSep}>|</Text>
-          <Text style={styles.timestamp} numberOfLines={1}>{timestamp}</Text>
         </View>
         {showStrike ? <StrongWeakFilter value={remark} onChange={setRemark} /> : null}
       </View>
@@ -406,8 +404,6 @@ const styles = StyleSheet.create({
   menuTextActive: { color: '#0071A9' },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, gap: 8 },
   metaLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, gap: 6 },
-  metaSep: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#CBD5E1' },
-  timestamp: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#64748B' },
   table: { flex: 1, minHeight: 0 },
   row: { alignItems: 'flex-start', paddingVertical: 8 },
   headStack: { minWidth: 0, justifyContent: 'flex-end' },

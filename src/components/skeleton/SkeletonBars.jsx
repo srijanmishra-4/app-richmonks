@@ -19,14 +19,14 @@ export function SkeletonBar({ pulse, width = '78%', height = 10, style }) {
   return <Animated.View style={[styles.bar, { height, opacity: pulse }, typeof width === 'number' ? { width } : { width }, style]} />;
 }
 
-export function SkeletonMetaRow({ pulse }) {
+export function SkeletonMetaRow({ pulse, showRight = true }) {
   return (
     <View style={styles.metaRow}>
       <View style={styles.metaLeft}>
         <SkeletonBar pulse={pulse} width={72} height={9} />
         <SkeletonBar pulse={pulse} width={88} height={11} />
       </View>
-      <SkeletonBar pulse={pulse} width={64} height={9} />
+      {showRight ? <SkeletonBar pulse={pulse} width={64} height={9} /> : null}
     </View>
   );
 }
