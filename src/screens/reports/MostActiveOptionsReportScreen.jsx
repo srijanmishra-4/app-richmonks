@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
@@ -13,6 +14,7 @@ import {
   MostActiveOptionsRow,
 } from '@/components/reports/mostActiveOptionsTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { MONTHLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
 
 const SOCKET_EVENTS = {
@@ -20,13 +22,29 @@ const SOCKET_EVENTS = {
   put: 'GET_MOST_ACTIVE_PUT_STOCKS_MONTHLY',
 };
 
+const OPTION_TYPES = [{ value: 'call' }, { value: 'put' }];
+
+function parseMostActive(raw) {
+  const filters = {
+    option_type: resolveChoice(raw, 'option_type', OPTION_TYPES, 'call'),
+    expiry_state: resolveChoice(raw, 'expiry_state', MONTHLY_EXPIRY_OPTIONS, 'near'),
+  };
+  return { filters, serialized: filters };
+}
+
 function rowKey(item, index) {
   return `${item?.symbol ?? 'opt'}-${item?.strike ?? ''}-${item?.category ?? ''}-${index}`;
 }
 
 function MostActiveOptionsReportScreen() {
-  const [optionType, setOptionType] = useState('call');
-  const [expiry, setExpiry] = useState('near');
+  const routeParams = useLocalSearchParams();
+  const rawParams = {
+    option_type: paramString(routeParams.option_type).trim(),
+    expiry_state: paramString(routeParams.expiry_state).trim(),
+  };
+  const initial = parseMostActive(rawParams).filters;
+  const [optionType, setOptionType] = useState(initial.option_type);
+  const [expiry, setExpiry] = useState(initial.expiry_state);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -34,7 +52,18 @@ function MostActiveOptionsReportScreen() {
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
   const optionTypeRef = useRef(optionType);
-  optionTypeRef.current = optionType;
+  const expiryRef = useRef(expiry);
+  useEffect(() => {
+    optionTypeRef.current = optionType;
+    expiryRef.current = expiry;
+  }, [optionType, expiry]);
+  const stateKey = queryKey({ option_type: optionType, expiry_state: expiry });
+  const pushParams = useReportQuery(rawParams, parseMostActive, stateKey, (filters) => {
+    optionTypeRef.current = filters.option_type;
+    expiryRef.current = filters.expiry_state;
+    setOptionType(filters.option_type);
+    setExpiry(filters.expiry_state);
+  });
 
   const fetchReport = useCallback((type, { silent = false } = {}) => {
     const gen = ++genRef.current;
@@ -81,12 +110,17 @@ function MostActiveOptionsReportScreen() {
 
   const handleOptionTypeChange = useCallback((next) => {
     if (next === optionTypeRef.current) return;
+    optionTypeRef.current = next;
     setOptionType(next);
-  }, []);
+    pushParams({ option_type: next, expiry_state: expiryRef.current });
+  }, [pushParams]);
 
   const handleExpiryChange = useCallback((next) => {
+    if (next === expiryRef.current) return;
+    expiryRef.current = next;
     setExpiry(next);
-  }, []);
+    pushParams({ option_type: optionTypeRef.current, expiry_state: next });
+  }, [pushParams]);
 
   const activeGroup = expiry === 'next' ? result?.next : result?.near;
   const sourceRows = Array.isArray(activeGroup?.data) ? activeGroup.data : null;

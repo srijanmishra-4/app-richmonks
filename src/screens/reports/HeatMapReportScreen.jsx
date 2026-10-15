@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Dimensions, Platform, StyleSheet, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ScreenHeader from '@/components/ScreenHeader';
@@ -11,6 +12,7 @@ import { cdnApi } from '@/utils/api';
 import { FilterIcon, FlipIcon, SearchIcon } from '@/components/ReportIconComponent';
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { MONTHLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
 import { useFs, useScaledStyles } from '@/utils/responsive';
 
@@ -36,6 +38,23 @@ const SORT_OPTIONS = [
   { key: 'chg_in_oi_10d', label: 'OI Change 10 Days' },
   { key: 'chg_in_oi_expiry', label: 'OI Change Since Expiry' },
 ];
+
+const REPORT_OPTIONS = REPORT_TABS.map((item) => ({ value: item.id }));
+
+function heatSerialized(filters) {
+  return {
+    report: filters.report,
+    expiry_state: filters.expiry_state,
+  };
+}
+
+function parseHeat(raw) {
+  const filters = {
+    report: resolveChoice(raw, 'report', REPORT_OPTIONS, 'topGainersLosers'),
+    expiry_state: resolveChoice(raw, 'expiry_state', MONTHLY_EXPIRY_OPTIONS, 'near'),
+  };
+  return { filters, serialized: heatSerialized(filters) };
+}
 
 const NUM_COLUMNS = 4;
 const GRID_H_PAD = 10;
@@ -229,8 +248,15 @@ const noop = () => {};
 
 function HeatMapReportScreen() {
   const { industries } = useCommonData();
-  const [selected_report, setSelectedReport] = useState('topGainersLosers');
-  const [selected_expiry, setSelectedExpiry] = useState('near');
+  const navigation = useNavigation();
+  const routeParams = useLocalSearchParams();
+  const rawParams = {
+    report: paramString(routeParams.report).trim(),
+    expiry_state: paramString(routeParams.expiry_state).trim(),
+  };
+  const initial = parseHeat(rawParams).filters;
+  const [selected_report, setSelectedReport] = useState(initial.report);
+  const [selected_expiry, setSelectedExpiry] = useState(initial.expiry_state);
   const [search_query, setSearchQuery] = useState('');
   const [sort_key, setSortKey] = useState('NONE');
   const [industry_id, setIndustryId] = useState(null);
@@ -245,7 +271,43 @@ function HeatMapReportScreen() {
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
   const stateRef = useRef({ report: selected_report, expiry: selected_expiry });
-  stateRef.current = { report: selected_report, expiry: selected_expiry };
+  const urlRef = useRef({
+    report: selected_report,
+    expiry_state: selected_expiry,
+  });
+  useEffect(() => {
+    stateRef.current = { report: selected_report, expiry: selected_expiry };
+    urlRef.current = {
+      report: selected_report,
+      expiry_state: selected_expiry,
+    };
+  }, [selected_report, selected_expiry]);
+  const stateKey = queryKey(heatSerialized({
+    report: selected_report,
+    expiry_state: selected_expiry,
+  }));
+  const pushParams = useReportQuery(rawParams, parseHeat, stateKey, (filters) => {
+    urlRef.current = filters;
+    stateRef.current = { report: filters.report, expiry: filters.expiry_state };
+    setSelectedReport(filters.report);
+    setSelectedExpiry(filters.expiry_state);
+  });
+  useEffect(() => {
+    navigation.setParams({
+      sort_key: undefined,
+      industry_id: undefined,
+      search_query: undefined,
+      is_flipped: undefined,
+    });
+  }, [navigation]);
+
+  const publish = useCallback((next) => {
+    urlRef.current = next;
+    stateRef.current = { report: next.report, expiry: next.expiry_state };
+    setSelectedReport(next.report);
+    setSelectedExpiry(next.expiry_state);
+    pushParams(heatSerialized(next));
+  }, [pushParams]);
 
   const expiryChoices = useExpiryOptions();
 
@@ -295,13 +357,17 @@ function HeatMapReportScreen() {
   const handleReportTab = useCallback((nextReport) => {
     if (nextReport === stateRef.current.report) return;
     setIsFlipped(false);
-    setSelectedReport(nextReport);
-  }, []);
+    publish({ ...urlRef.current, report: nextReport });
+  }, [publish]);
 
   const handleExpiryChange = useCallback((nextExpiryState) => {
     if (nextExpiryState === stateRef.current.expiry) return;
     setIsFlipped(false);
-    setSelectedExpiry(nextExpiryState);
+    publish({ ...urlRef.current, expiry_state: nextExpiryState });
+  }, [publish]);
+
+  const handleSearch = useCallback((text) => {
+    setSearchQuery(text);
   }, []);
 
   // Industry symbol Set for filtering
@@ -423,7 +489,7 @@ function HeatMapReportScreen() {
       <View style={styles.controlsRow}>
         <View style={styles.searchBox}>
           <SearchIcon size={16} color={SUBTLE} />
-          <TextInput style={[t.searchInput, Platform.OS === 'web' ? styles.noOutline : null]} maxFontSizeMultiplier={1.1} placeholder="Search symbol" placeholderTextColor={SUBTLE} value={search_query} onChangeText={setSearchQuery} autoCapitalize="characters" autoCorrect={false} />
+          <TextInput style={[t.searchInput, Platform.OS === 'web' ? styles.noOutline : null]} maxFontSizeMultiplier={1.1} placeholder="Search symbol" placeholderTextColor={SUBTLE} value={search_query} onChangeText={handleSearch} autoCapitalize="characters" autoCorrect={false} />
         </View>
         <ControlButton onPress={openFilterSheet} label="Filter" active={filterActive}>
           <FilterIcon size={18} color={filterActive ? PRIMARY : MUTED} />

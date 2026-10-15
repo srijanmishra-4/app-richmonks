@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
@@ -7,6 +8,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import StockRankDropdown from '@/components/reports/StockRankDropdown';
 import { STOCK_RANK_COLUMNS, StockRankHeader, StockRankRow } from '@/components/reports/stockRankTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
 
 const SOCKET_EVENTS = {
@@ -15,12 +17,21 @@ const SOCKET_EVENTS = {
   bottom20: 'GET_STOCK_RANKING_BOTTOM_20',
 };
 
+const RANK_FILTERS = [{ value: 'all' }, { value: 'top20' }, { value: 'bottom20' }];
+
+function parseStockRank(raw) {
+  const filter = resolveChoice(raw, 'filter', RANK_FILTERS, 'all');
+  return { filters: { filter }, serialized: { filter } };
+}
+
 function rowKey(item, index) {
   return `${item?.symbol ?? 'stock'}-${item?.rank ?? index}`;
 }
 
 function StockRankReportScreen() {
-  const [filter, setFilter] = useState('all');
+  const routeParams = useLocalSearchParams();
+  const rawParams = { filter: paramString(routeParams.filter).trim() };
+  const [filter, setFilter] = useState(() => parseStockRank(rawParams).filters.filter);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -28,7 +39,14 @@ function StockRankReportScreen() {
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
   const filterRef = useRef(filter);
-  filterRef.current = filter;
+  useEffect(() => {
+    filterRef.current = filter;
+  }, [filter]);
+  const stateKey = queryKey({ filter });
+  const pushParams = useReportQuery(rawParams, parseStockRank, stateKey, (filters) => {
+    filterRef.current = filters.filter;
+    setFilter(filters.filter);
+  });
 
   const fetchReport = useCallback((type, { silent = false } = {}) => {
     const gen = ++genRef.current;
@@ -72,8 +90,10 @@ function StockRankReportScreen() {
 
   const handleFilterChange = useCallback((next) => {
     if (next === filterRef.current) return;
+    filterRef.current = next;
     setFilter(next);
-  }, []);
+    pushParams({ filter: next });
+  }, [pushParams]);
 
   const rows = Array.isArray(result?.data) ? result.data : [];
   const cdate = result?.cdate ?? '';

@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
@@ -7,12 +8,20 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { SkeletonMetaRow, usePulse } from '@/components/skeleton/SkeletonBars';
 import { FUTURE_TABLE_COLUMNS, FutureHeader, FutureRow } from '@/components/reports/futureTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
 
 const TABS = [
   { id: 'bullish', label: 'Feeling Bullish' },
   { id: 'bearish', label: 'Feeling Bearish' },
 ];
+
+const REPORT_TYPES = [{ value: 'bullish' }, { value: 'bearish' }];
+
+function parseFuture(raw) {
+  const report_type = resolveChoice(raw, 'report_type', REPORT_TYPES, 'bullish');
+  return { filters: { report_type }, serialized: { report_type } };
+}
 
 const TAB_TONE = {
   bullish: {
@@ -50,14 +59,23 @@ function ReportTabs({ active, onChange }) {
 }
 
 function FutureReportScreen() {
-  const [tab, setTab] = useState('bullish');
+  const routeParams = useLocalSearchParams();
+  const rawParams = { report_type: paramString(routeParams.report_type).trim() };
+  const [tab, setTab] = useState(() => parseFuture(rawParams).filters.report_type);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
   const tabRef = useRef(tab);
-  tabRef.current = tab;
+  useEffect(() => {
+    tabRef.current = tab;
+  }, [tab]);
+  const stateKey = queryKey({ report_type: tab });
+  const pushParams = useReportQuery(rawParams, parseFuture, stateKey, (filters) => {
+    tabRef.current = filters.report_type;
+    setTab(filters.report_type);
+  });
 
   const fetchReport = useCallback((reportType, { silent = false } = {}) => {
     const gen = ++genRef.current;
@@ -98,8 +116,10 @@ function FutureReportScreen() {
 
   const handleTab = useCallback((next) => {
     if (next === tabRef.current) return;
+    tabRef.current = next;
     setTab(next);
-  }, []);
+    pushParams({ report_type: next });
+  }, [pushParams]);
 
   const rows = Array.isArray(result?.data) ? result.data : [];
   const expiryDate = result?.expiry_date ?? '';

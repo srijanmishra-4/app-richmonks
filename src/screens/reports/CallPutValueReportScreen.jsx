@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
@@ -15,11 +16,41 @@ import {
 } from '@/components/reports/callPutValueTable';
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { MONTHLY_EXPIRY_OPTIONS, industryIdFromParam, paramString, queryKey, resolveChoice, useCanonicalIndustryId, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
+
+function callPutParams(expiry, industryId) {
+  return { expiry_state: expiry, industry_id: industryId == null ? 'all' : String(industryId) };
+}
+
+function parseCallPut(raw) {
+  const filters = {
+    expiry_state: resolveChoice(raw, 'expiry_state', MONTHLY_EXPIRY_OPTIONS, 'near'),
+    industry_id: industryIdFromParam(raw.industry_id),
+  };
+  return { filters, serialized: callPutParams(filters.expiry_state, filters.industry_id) };
+}
 function CallPutValueReportScreen() {
   const { industries } = useCommonData();
-  const [expiry, setExpiry] = useState('near');
-  const [industryId, setIndustryId] = useState(null);
+  const routeParams = useLocalSearchParams();
+  const rawParams = {
+    expiry_state: paramString(routeParams.expiry_state).trim(),
+    industry_id: paramString(routeParams.industry_id).trim(),
+  };
+  const initial = parseCallPut(rawParams).filters;
+  const [expiry, setExpiry] = useState(initial.expiry_state);
+  const [industryId, setIndustryId] = useState(initial.industry_id);
+  const selectionRef = useRef({ expiry, industryId });
+  useEffect(() => {
+    selectionRef.current = { expiry, industryId };
+  }, [expiry, industryId]);
+  const stateKey = queryKey(callPutParams(expiry, industryId));
+  const pushParams = useReportQuery(rawParams, parseCallPut, stateKey, (filters) => {
+    selectionRef.current = { expiry: filters.expiry_state, industryId: filters.industry_id };
+    setExpiry(filters.expiry_state);
+    setIndustryId(filters.industry_id);
+  });
+  useCanonicalIndustryId(industryId, setIndustryId, industries);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -69,6 +100,22 @@ function CallPutValueReportScreen() {
     useCallback(() => fetchReport({ silent: true }), [fetchReport])
   );
 
+  const handleExpiry = useCallback((next) => {
+    if (next === selectionRef.current.expiry) return;
+    const updated = { ...selectionRef.current, expiry: next };
+    selectionRef.current = updated;
+    setExpiry(next);
+    pushParams(callPutParams(updated.expiry, updated.industryId));
+  }, [pushParams]);
+
+  const handleIndustry = useCallback((next) => {
+    if (next === selectionRef.current.industryId) return;
+    const updated = { ...selectionRef.current, industryId: next };
+    selectionRef.current = updated;
+    setIndustryId(next);
+    pushParams(callPutParams(updated.expiry, updated.industryId));
+  }, [pushParams]);
+
   const activeGroup = expiry === 'next' ? result?.next : result?.near;
   const cdate = activeGroup?.cdate ?? '';
   const industrySet = useMemo(() => {
@@ -109,8 +156,8 @@ function CallPutValueReportScreen() {
       <ScreenHeader label="Call / Put Value" timestamp={cdate} />
 
       <View style={styles.metaRow}>
-        <ExpiryDropdownComponent value={expiry} onSelect={setExpiry} />
-        <IndustryDropdown value={industryId} onChange={setIndustryId} style={styles.industry} />
+        <ExpiryDropdownComponent value={expiry} onSelect={handleExpiry} />
+        <IndustryDropdown value={industryId} onChange={handleIndustry} style={styles.industry} />
       </View>
 
       <View style={styles.filterRow}>

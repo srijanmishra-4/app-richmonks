@@ -1,21 +1,39 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ExpiryDropdownComponent from '@/components/ExpiryDropdownComponent';
 import ScreenHeader from '@/components/ScreenHeader';
 import CallPutStrongWeakFilterButton, { useCallPutStrengthFilter } from '@/components/reports/CallPutStrongWeakFilterButton';
-import IndexDropdown from '@/components/reports/IndexDropdown';
+import IndexDropdown, { INDEX_OPTIONS } from '@/components/reports/IndexDropdown';
 import IndicesOptionTable from '@/components/reports/indicesOptionTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { MONTHLY_EXPIRY_OPTIONS, WEEKLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
 
 const WEEKLY_STATES = ['weeklyNear', 'weeklyNext', 'weeklyFar'];
+const SYMBOL_OPTIONS = INDEX_OPTIONS.map((value) => ({ value }));
+const EXPIRY_OPTIONS = [...MONTHLY_EXPIRY_OPTIONS, ...WEEKLY_EXPIRY_OPTIONS];
+
+function parseIndices(raw) {
+  const symbol = resolveChoice(raw, 'symbol', SYMBOL_OPTIONS, 'NIFTY');
+  let expiry_state = resolveChoice(raw, 'expiry_state', EXPIRY_OPTIONS, 'near');
+  if (symbol !== 'NIFTY' && WEEKLY_STATES.includes(expiry_state)) expiry_state = 'near';
+  const filters = { symbol, expiry_state };
+  return { filters, serialized: filters };
+}
 
 function IndicesOptionReportScreen() {
   const insets = useSafeAreaInsets();
-  const [symbol, setSymbol] = useState('NIFTY');
-  const [expiry, setExpiry] = useState('near');
+  const routeParams = useLocalSearchParams();
+  const rawParams = {
+    symbol: paramString(routeParams.symbol).trim(),
+    expiry_state: paramString(routeParams.expiry_state).trim(),
+  };
+  const initial = parseIndices(rawParams).filters;
+  const [symbol, setSymbol] = useState(initial.symbol);
+  const [expiry, setExpiry] = useState(initial.expiry_state);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -23,15 +41,31 @@ function IndicesOptionReportScreen() {
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
   const currentParamsRef = useRef({ symbol, expiry });
-  currentParamsRef.current = { symbol, expiry };
+  useEffect(() => {
+    currentParamsRef.current = { symbol, expiry };
+  }, [symbol, expiry]);
+  const stateKey = queryKey({ symbol, expiry_state: expiry });
+  const pushParams = useReportQuery(rawParams, parseIndices, stateKey, (filters) => {
+    currentParamsRef.current = { symbol: filters.symbol, expiry: filters.expiry_state };
+    setSymbol(filters.symbol);
+    setExpiry(filters.expiry_state);
+  });
 
   const handleIndexChange = useCallback((newSymbol) => {
     if (newSymbol === symbol) return;
+    const nextExpiry = newSymbol !== 'NIFTY' && WEEKLY_STATES.includes(expiry) ? 'near' : expiry;
+    currentParamsRef.current = { symbol: newSymbol, expiry: nextExpiry };
     setSymbol(newSymbol);
-    if (newSymbol !== 'NIFTY' && WEEKLY_STATES.includes(expiry)) setExpiry('near');
-  }, [symbol, expiry]);
+    if (nextExpiry !== expiry) setExpiry(nextExpiry);
+    pushParams({ symbol: newSymbol, expiry_state: nextExpiry });
+  }, [symbol, expiry, pushParams]);
 
-  const handleExpiryChange = useCallback((newExpiry) => setExpiry(newExpiry), []);
+  const handleExpiryChange = useCallback((newExpiry) => {
+    if (newExpiry === expiry) return;
+    currentParamsRef.current = { symbol, expiry: newExpiry };
+    setExpiry(newExpiry);
+    pushParams({ symbol, expiry_state: newExpiry });
+  }, [symbol, expiry, pushParams]);
 
   const handlePositioned = useCallback((positionedId) => {
     const { symbol: currentSymbol, expiry: currentExpiry } = currentParamsRef.current;

@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet, Modal, Dimensions } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable from '@/components/CommonTable';
@@ -7,6 +8,7 @@ import ExpiryDropdownComponent from '@/components/ExpiryDropdownComponent';
 import ScreenHeader from '@/components/ScreenHeader';
 import { SHIFTING_GEARS_COLUMNS, ShiftingGearsHeader, ShiftingGearsRow } from '@/components/reports/shiftingGearsTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { MONTHLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
 
 const PRIMARY = '#0071A9';
@@ -25,6 +27,24 @@ const DURATIONS = [
   { value: 100, label: '100 Days' },
   { value: 200, label: '200 Days' },
 ];
+
+const OPTION_VALUES = [{ value: '5' }, { value: '20' }, { value: '100' }, { value: '200' }];
+
+function parseShifting(raw) {
+  const filters = {
+    expiry_state: resolveChoice(raw, 'expiry_state', MONTHLY_EXPIRY_OPTIONS, 'near'),
+    report_type: resolveChoice(raw, 'report_type', REPORT_TYPES, 'above'),
+    option: Number(resolveChoice(raw, 'option', OPTION_VALUES, '5')),
+  };
+  return {
+    filters,
+    serialized: { expiry_state: filters.expiry_state, report_type: filters.report_type, option: String(filters.option) },
+  };
+}
+
+function shiftingParams(state) {
+  return { expiry_state: state.expiry_state, report_type: state.reportType, option: String(state.option) };
+}
 
 const ReportTypeDropdown = memo(function ReportTypeDropdown({ value, onSelect }) {
   const anchorRef = useRef(null);
@@ -91,16 +111,33 @@ function rowKey(item, index) {
 }
 
 function ShiftingGearsReportScreen() {
-  const [expiry_state, setExpiryState] = useState('near');
-  const [reportType, setReportType] = useState('above');
-  const [option, setOption] = useState(5);
+  const routeParams = useLocalSearchParams();
+  const rawParams = {
+    expiry_state: paramString(routeParams.expiry_state).trim(),
+    report_type: paramString(routeParams.report_type).trim(),
+    option: paramString(routeParams.option).trim(),
+  };
+  const initial = parseShifting(rawParams).filters;
+  const [expiry_state, setExpiryState] = useState(initial.expiry_state);
+  const [reportType, setReportType] = useState(initial.report_type);
+  const [option, setOption] = useState(initial.option);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
   const stateRef = useRef({ expiry_state, reportType, option });
-  stateRef.current = { expiry_state, reportType, option };
+  useEffect(() => {
+    stateRef.current = { expiry_state, reportType, option };
+  }, [expiry_state, reportType, option]);
+  const stateKey = queryKey(shiftingParams({ expiry_state, reportType, option }));
+  const pushParams = useReportQuery(rawParams, parseShifting, stateKey, (filters) => {
+    const next = { expiry_state: filters.expiry_state, reportType: filters.report_type, option: filters.option };
+    stateRef.current = next;
+    setExpiryState(next.expiry_state);
+    setReportType(next.reportType);
+    setOption(next.option);
+  });
 
   const fetchReport = useCallback((params, { silent = false } = {}) => {
     const gen = ++genRef.current;
@@ -139,20 +176,28 @@ function ShiftingGearsReportScreen() {
 
   useRegisterRefresh(useCallback(() => fetchReport(stateRef.current, { silent: true }), [fetchReport]));
 
+  const publish = useCallback((next) => {
+    stateRef.current = next;
+    setExpiryState(next.expiry_state);
+    setReportType(next.reportType);
+    setOption(next.option);
+    pushParams(shiftingParams(next));
+  }, [pushParams]);
+
   const handleExpiryChange = useCallback((next) => {
     if (next === stateRef.current.expiry_state) return;
-    setExpiryState(next);
-  }, []);
+    publish({ ...stateRef.current, expiry_state: next });
+  }, [publish]);
 
   const handleReportType = useCallback((next) => {
     if (next === stateRef.current.reportType) return;
-    setReportType(next);
-  }, []);
+    publish({ ...stateRef.current, reportType: next });
+  }, [publish]);
 
   const handleOption = useCallback((next) => {
     if (next === stateRef.current.option) return;
-    setOption(next);
-  }, []);
+    publish({ ...stateRef.current, option: next });
+  }, [publish]);
 
   const currentLevelField = useMemo(() => levelField(reportType, option), [reportType, option]);
   const currentLevelLabel = useMemo(() => levelLabel(reportType, option), [reportType, option]);
