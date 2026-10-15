@@ -1,12 +1,15 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Modal, Dimensions, Platform, StyleSheet } from 'react-native';
 
+import { useScaledStyles } from '@/utils/responsive';
+
 export const CALL_PUT_OPTIONS = [
   { value: 'call', label: 'Call' },
   { value: 'put', label: 'Put' },
 ];
 
 function CallPutDropdown({ value, onChange }) {
+  const t = useScaledStyles(textStyles);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
   const anchorRef = useRef(null);
@@ -48,6 +51,7 @@ function CallPutDropdown({ value, onChange }) {
 
   return (
     <View style={styles.wrap}>
+      <Text style={t.label} maxFontSizeMultiplier={1.1}>Option Type</Text>
       <View ref={anchorRef} collapsable={false}>
         <Pressable
           onPress={toggle}
@@ -117,8 +121,12 @@ function nodeContains(node, target) {
 
 export default memo(CallPutDropdown);
 
+const textStyles = (fs) => ({
+  label: { fontSize: fs(12), lineHeight: fs(16), fontFamily: 'Inter_500Medium', color: '#64748B' },
+});
+
 const styles = StyleSheet.create({
-  wrap: { justifyContent: 'center' },
+  wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   pointer: { cursor: 'pointer' },
   btn: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { memo, useMemo } from 'react';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 
 import { TableHeaderCell } from '@/components/CommonTable';
 
@@ -7,14 +7,43 @@ export const GREEN = '#16A34A';
 export const RED = '#DC2626';
 export const NEUTRAL = '#64748B';
 
-export const COL = { symbol: 1.25, tp: 0.9, cmpWap: 1.05, oi: 1.15, };
+// Five columns, spaced like trending options. OI is the widest so an 8-digit
+// Indian-grouped value (1,23,45,678) and its signed delta stay on one line.
+export const COL = { symbol: 1.1, tp: 0.92, cmpWap: 1.05, hl: 1.02, oi: 1.0 };
 
 export const MOST_ACTIVE_OPTIONS_COLUMNS = [
-  { flex: COL.symbol, align: 'left', lines: 4, bars: ['70%', '56%', '62%', '62%'] },
-  { flex: COL.tp, align: 'right', lines: 1 },
-  { flex: COL.cmpWap, align: 'right', lines: 2 },
+  { flex: COL.symbol, align: 'left', lines: 2, bars: ['70%', '56%'] },
+  { flex: COL.tp, align: 'center', lines: 1 },
+  { flex: COL.cmpWap, align: 'center', lines: 2 },
+  { flex: COL.hl, align: 'center', lines: 2 },
   { flex: COL.oi, align: 'right', lines: 2 },
 ];
+
+const NARROW_PHONE = 360;
+const WIDE_PHONE = 440;
+
+function useMostActiveType() {
+  const { width } = useWindowDimensions();
+  return useMemo(() => {
+    const t = Math.min(1, Math.max(0, (width - NARROW_PHONE) / (WIDE_PHONE - NARROW_PHONE)));
+    const symbolSize = 10 + t * 1.5;
+    const strikeSize = 8.5 + t * 1.5;
+    const valueSize = 9.5 + t * 1.5;
+    const subSize = 8.5 + t;
+    const text = { fontFamily: 'Inter_500Medium' };
+    return {
+      gap: 8 + t * 8,
+      stackGap: 5 + t,
+      symbol: { ...text, fontFamily: 'Inter_600SemiBold', fontSize: symbolSize, lineHeight: symbolSize + 3, color: '#0F172A' },
+      strike: { ...text, fontSize: strikeSize, lineHeight: strikeSize + 3, color: '#64748B' },
+      center: { ...text, fontFamily: 'Inter_600SemiBold', fontSize: valueSize, lineHeight: valueSize + 3, color: '#0F172A', textAlign: 'center' },
+      oi: { ...text, fontSize: valueSize, lineHeight: valueSize + 3, color: '#0F172A', textAlign: 'right' },
+      sub: { ...text, fontSize: subSize, lineHeight: subSize + 3, color: '#64748B', textAlign: 'right' },
+      centerSub: { ...text, fontSize: subSize, lineHeight: subSize + 3, color: '#64748B', textAlign: 'center' },
+      hl: { ...text, fontFamily: 'Inter_600SemiBold', fontSize: valueSize, lineHeight: valueSize + 3, color: '#1E293B', textAlign: 'center' },
+    };
+  }, [width]);
+}
 
 function groupDigits(intPart) {
   if (intPart.length <= 3) return intPart;
@@ -89,6 +118,7 @@ function highLowLines(lowVal, highVal) {
 }
 
 export const MostActiveOptionsRow = memo(function MostActiveOptionsRow({ data, optionType }) {
+  const type = useMostActiveType();
   if (!data) return null;
 
   const priceChangeNum = parseNumber(data.price_change);
@@ -100,38 +130,39 @@ export const MostActiveOptionsRow = memo(function MostActiveOptionsRow({ data, o
   const optSuffix = optionType === 'put' ? 'PE' : 'CE';
   const levels = highLowLines(data.low, data.high);
   const newColor = data.is_new === 'green' ? GREEN : data.is_new === 'red' ? RED : null;
+  const end = [styles.cell, styles.cellEnd, { marginLeft: type.gap }];
+  const mid = [styles.cell, styles.cellCenter, { marginLeft: type.gap }];
+  const stack = { gap: type.stackGap };
 
   return (
     <>
       {newColor ? <View style={[styles.newMark, { backgroundColor: newColor }]} /> : null}
-      <View style={[styles.cell, { flex: COL.symbol }]}>
-        <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+      <View style={[styles.cell, stack, { flex: COL.symbol }]}>
+        <Text style={type.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
         {data.strike != null && data.strike !== '' ? (
-          <Text style={styles.strike} numberOfLines={1}>
+          <Text style={type.strike} numberOfLines={1}>
             {`SP: ${formatGrouped(data.strike)} ${optSuffix}`}
           </Text>
         ) : null}
-        {levels?.high ? (
-          <Text style={styles.rangeText} numberOfLines={1}>{`High: ${levels.high}`}</Text>
-        ) : null}
-        {levels?.low ? (
-          <Text style={styles.rangeText} numberOfLines={1}>{`Low: ${levels.low}`}</Text>
-        ) : null}
       </View>
-      <View style={[styles.cell, styles.cellEnd, { flex: COL.tp }]}>
-        <Text style={styles.tp} numberOfLines={1}>{formatMoney(data.trigger_point)}</Text>
+      <View style={[mid, styles.cellTop, { flex: COL.tp }]}>
+        <Text style={type.center} numberOfLines={1}>{formatMoney(data.trigger_point)}</Text>
       </View>
-      <View style={[styles.cell, styles.cellEnd, { flex: COL.cmpWap }]}>
-        <Text style={[styles.cmp, { color: cmpColor }]} numberOfLines={1}>
+      <View style={[mid, stack, { flex: COL.cmpWap }]}>
+        <Text style={[type.center, { color: cmpColor }]} numberOfLines={1}>
           {formatMoney(data.price)}
         </Text>
-        <Text style={styles.wap} numberOfLines={1}>
+        <Text style={type.centerSub} numberOfLines={1}>
           {formatMoney(data.wap)}
         </Text>
       </View>
-      <View style={[styles.cell, styles.cellEnd, { flex: COL.oi }]}>
-        <Text style={styles.oi} numberOfLines={1}>{formatGrouped(data.oi)}</Text>
-        <Text style={[styles.oiDelta, { color: oiDeltaColor }]} numberOfLines={1}>
+      <View style={[mid, stack, { flex: COL.hl }]}>
+        <Text style={type.hl} numberOfLines={1}>{levels?.high ?? '—'}</Text>
+        <Text style={type.hl} numberOfLines={1}>{levels?.low ?? '—'}</Text>
+      </View>
+      <View style={[end, stack, { flex: COL.oi }]}>
+        <Text style={type.oi} numberOfLines={1}>{formatGrouped(data.oi)}</Text>
+        <Text style={[type.sub, { color: oiDeltaColor }]} numberOfLines={1}>
           {formatOiDelta(data.chg_in_oi)}
         </Text>
       </View>
@@ -140,6 +171,9 @@ export const MostActiveOptionsRow = memo(function MostActiveOptionsRow({ data, o
 });
 
 export function MostActiveOptionsHeader({ sort, onSort }) {
+  const type = useMostActiveType();
+  const colGap = { marginLeft: type.gap, minWidth: 0 };
+
   return (
     <>
       <TableHeaderCell
@@ -155,22 +189,32 @@ export function MostActiveOptionsHeader({ sort, onSort }) {
       <TableHeaderCell
         label="TP"
         flex={COL.tp}
-        align="right"
+        align="center"
         sortKey="trigger_point"
         getValue={(row) => sortNumber(row?.trigger_point)}
         sort={sort}
         onSort={onSort}
-        style={styles.endHeader}
+        style={[styles.centerHeader, colGap]}
       />
       <TableHeaderCell
         label="CMP / WAP"
         flex={COL.cmpWap}
-        align="right"
+        align="center"
         sortKey="price"
         getValue={(row) => sortNumber(row?.price)}
         sort={sort}
         onSort={onSort}
-        style={styles.endHeader}
+        style={[styles.centerHeader, colGap]}
+      />
+      <TableHeaderCell
+        label="HIGH / LOW"
+        flex={COL.hl}
+        align="center"
+        sortKey="high"
+        getValue={(row) => sortNumber(row?.high)}
+        sort={sort}
+        onSort={onSort}
+        style={[styles.centerHeader, colGap]}
       />
       <TableHeaderCell
         label="OI"
@@ -180,7 +224,7 @@ export function MostActiveOptionsHeader({ sort, onSort }) {
         getValue={(row) => sortNumber(row?.oi)}
         sort={sort}
         onSort={onSort}
-        style={styles.endHeader}
+        style={[styles.endHeader, colGap]}
       />
     </>
   );
@@ -197,16 +241,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 4,
     borderBottomLeftRadius: 4,
   },
-  cell: { minWidth: 0, justifyContent: 'center', paddingLeft: 2, paddingRight: 2 },
+  cell: { minWidth: 0, justifyContent: 'center', overflow: 'hidden', paddingVertical: 4 },
   cellEnd: { alignItems: 'flex-end', paddingLeft: 0, paddingRight: 0 },
-  symbolHeader: { paddingLeft: 2, paddingRight: 2 },
+  cellCenter: { alignItems: 'center', paddingLeft: 0, paddingRight: 0 },
+  cellTop: { alignSelf: 'stretch', justifyContent: 'flex-start' },
+  symbolHeader: { minWidth: 0, paddingLeft: 0, paddingRight: 2 },
   endHeader: { paddingLeft: 0, paddingRight: 0 },
-  symbol: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  strike: { marginTop: 2, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#64748B' },
-  rangeText: { marginTop: 2, fontSize: 8.5, lineHeight: 11, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
-  tp: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'right' },
-  cmp: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_600SemiBold', textAlign: 'right' },
-  wap: { marginTop: 2, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#64748B', textAlign: 'right' },
-  oi: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  oiDelta: { marginTop: 2, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', textAlign: 'right' },
+  centerHeader: { paddingLeft: 0, paddingRight: 0 },
 });
