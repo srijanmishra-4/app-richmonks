@@ -50,7 +50,7 @@ function resolveParam(params, key, options, fallback) {
 
 function periodFields(period) {
   const prefix = period === 'day5' ? 'day5' : period === 'mom' ? 'mom' : 'day';
-  return { price: `${prefix}_price`, price_change: `${prefix}_price_change`, oi: `${prefix}_oi` };
+  return { price: `${prefix}_price`, price_change: `${prefix}_price_change` };
 }
 
 function groupDigits(intPart) {
@@ -156,7 +156,7 @@ const Dropdown = memo(function Dropdown({ label, value, options, onSelect }) {
       </View>
       <Modal visible={open} transparent animationType="none" statusBarTranslucent onRequestClose={() => setOpen(false)}>
         <View style={styles.menuRoot}>
-          <Pressable style={styles.menuBackdrop} onPress={() => setOpen(false)} />
+          <View collapsable={false} onTouchEnd={() => setOpen(false)} style={[styles.menuBackdrop, { width: Dimensions.get('window').width, height: Dimensions.get('window').height }]} />
           {anchor ? (
             <View style={[styles.menu, { left: anchor.left, top: anchor.top, width: anchor.width }]}>
               {options.map((item, index) => {
@@ -189,7 +189,6 @@ function OiChangesHeader({ sort, onSort, fields, periodLabel }) {
       </View>
       <View style={[styles.headStack, { flex: COL.oi }]}>
         <TableHeaderCell label="OI" align="right" style={styles.headLine} />
-        <TableHeaderCell label={`${periodLabel} OI`} align="right" style={styles.headLine} />
         <TableHeaderCell label="Δ OI" align="right" sortKey="change_in_oi" getValue={(row) => sortNumber(row?.change_in_oi)} sort={sort} onSort={onSort} style={styles.headLine} />
       </View>
     </>
@@ -217,7 +216,6 @@ const OiChangesRow = memo(function OiChangesRow({ data, fields, showStrike }) {
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.oi }]}>
         <Text style={styles.oi} numberOfLines={1}>{formatGrouped(data.oi)}</Text>
-        <Text style={styles.subValue} numberOfLines={1}>{formatGrouped(data?.[fields.oi])}</Text>
         <Text style={[styles.change, { color: pctColor(oiChange) }]} numberOfLines={1}>{oiChange || '—'}</Text>
       </View>
     </>
@@ -326,7 +324,7 @@ function OiChangesReportScreen() {
     { flex: COL.symbol, align: 'left', lines: showStrike ? 2 : 1 },
     { flex: COL.price, align: 'right', lines: 2 },
     { flex: COL.period, align: 'right', lines: 2 },
-    { flex: COL.oi, align: 'right', lines: 3, bars: [48, 40, 32] },
+    { flex: COL.oi, align: 'right', lines: 2 },
   ], [showStrike]);
 
   const HeaderComponent = useCallback(({ sort, onSort }) => (
@@ -414,6 +412,5 @@ const styles = StyleSheet.create({
   strike: { marginTop: 4, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#64748B' },
   price: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
   oi: { fontSize: 10, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  subValue: { marginTop: 4, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
   change: { marginTop: 4, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', textAlign: 'right' },
 });

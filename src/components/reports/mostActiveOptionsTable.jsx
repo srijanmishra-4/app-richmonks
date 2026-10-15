@@ -7,12 +7,7 @@ export const GREEN = '#16A34A';
 export const RED = '#DC2626';
 export const NEUTRAL = '#64748B';
 
-export const COL = {
-  symbol: 1.25,
-  tp: 0.9,
-  cmpWap: 1.05,
-  oi: 1.0,
-};
+export const COL = { symbol: 1.25, tp: 0.9, cmpWap: 1.05, oi: 1.15, };
 
 export const MOST_ACTIVE_OPTIONS_COLUMNS = [
   { flex: COL.symbol, align: 'left', lines: 4, bars: ['70%', '56%', '62%', '62%'] },
