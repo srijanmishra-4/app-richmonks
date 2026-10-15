@@ -12,7 +12,7 @@ const BORDER = '#E2E8F0';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const MONTHLY_STATES = ['near', 'next'];
+const MONTHLY_STATES = ['near', 'next', 'far'];
 const WEEKLY_STATES = ['weeklyNear', 'weeklyNext', 'weeklyFar'];
 
 export function formatExpiryDate(value) {

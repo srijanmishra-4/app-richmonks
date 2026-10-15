@@ -85,6 +85,15 @@ export const BearIcon = memo(function BearIcon({ width = 22, height = 28, color 
   );
 });
 
+/** Chevron left icon for table selection */
+export const ChevronLeftIcon = memo(function ChevronLeftIcon({ size = 12, color = '#0071A9' }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M15 18L9 12L15 6" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+});
+
 /** Chevron right icon for table selection */
 export const ChevronRightIcon = memo(function ChevronRightIcon({ size = 12, color = '#0071A9' }) {
   return (

@@ -46,17 +46,18 @@ export function useCallPutStrengthFilter(rows) {
     [limitRows, filtered]
   );
 
-  return { value, onChange, rows: visibleRows };
+  return { value, onChange, rows: visibleRows, limitRows };
 }
 
-function CallPutStrongWeakFilterButton({ value, onChange, style }) {
+function CallPutStrongWeakFilterButton({ value, onChange, style, withNeutral = true }) {
   const handlePress = useCallback((item) => {
     onChange?.(value === item ? null : item);
   }, [onChange, value]);
+  const options = withNeutral ? CALL_PUT_FILTER_OPTIONS : CALL_PUT_FILTER_OPTIONS.slice(0, 4);
 
   return (
     <View style={[styles.row, style]}>
-      {CALL_PUT_FILTER_OPTIONS.map((item) => {
+      {options.map((item) => {
         const selected = value === item;
         const tone = item.startsWith('Strong') ? 'strong' : item.startsWith('Weak') ? 'weak' : 'neutral';
         return (
@@ -76,6 +77,7 @@ function CallPutStrongWeakFilterButton({ value, onChange, style }) {
   );
 }
 
+export { CallPutStrongWeakFilterButton as CallPutStrongWeakFilter };
 export default memo(CallPutStrongWeakFilterButton);
 
 const styles = StyleSheet.create({
