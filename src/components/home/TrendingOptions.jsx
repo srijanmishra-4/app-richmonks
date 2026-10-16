@@ -81,7 +81,10 @@ function mapOptionRow(item) {
   };
 }
 
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+
 function TrendingOptions() {
+  const { isDesktop } = useBreakpoint();
   const [optionType, setOptionType] = useState('CE');
   const [selectedReport, setSelectedReport] = useState('abv_wap');
   const [rows, setRows] = useState([]);
@@ -165,8 +168,8 @@ function TrendingOptions() {
         if (!row) return null;
         return (
           <>
-            <Text style={styles.symbolText} numberOfLines={1}>{row.symbol}</Text>
-            <Text style={styles.strikeText} numberOfLines={1}>{`SP : ${Number(row.strike_pr).toLocaleString('en-IN')}`}</Text>
+            <Text style={[styles.symbolText, isDesktop && styles.desktopSymbolText]} numberOfLines={1}>{row.symbol}</Text>
+            <Text style={[styles.strikeText, isDesktop && styles.desktopStrikeText]} numberOfLines={1}>{`SP : ${Number(row.strike_pr).toLocaleString('en-IN')}`}</Text>
           </>
         );
       }
@@ -174,7 +177,7 @@ function TrendingOptions() {
     {
       key: 'dynamic', header: dynamicKey, flex: 0.82, align: 'right', render: (row) => {
         if (!row) return null;
-        return <Text style={styles.wapText} numberOfLines={1}>{formatIndianNumber(row.value)}</Text>;
+        return <Text style={[styles.wapText, isDesktop && styles.desktopWapText]} numberOfLines={1}>{formatIndianNumber(row.value)}</Text>;
       }
     },
     {
@@ -184,8 +187,8 @@ function TrendingOptions() {
         const color = pc.startsWith('+') ? GREEN : pc.startsWith('-') ? RED : NEUTRAL;
         return (
           <>
-            <Text style={styles.cmpPriceText} numberOfLines={1}>{formatIndianNumber(row.option_price)}</Text>
-            {pc ? <Text style={[styles.cmpChangeText, { color }]} numberOfLines={1}>{pc}</Text> : null}
+            <Text style={[styles.cmpPriceText, isDesktop && styles.desktopCmpPriceText]} numberOfLines={1}>{formatIndianNumber(row.option_price)}</Text>
+            {pc ? <Text style={[styles.cmpChangeText, isDesktop && styles.desktopCmpChangeText, { color }]} numberOfLines={1}>{pc}</Text> : null}
           </>
         );
       }
@@ -198,16 +201,16 @@ function TrendingOptions() {
   }, [rows]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDesktop && styles.desktopContainer]}>
       {/* ─── Header: Title & Call/Put Toggle ─────────────────────────────────── */}
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Trending Options</Text>
+        <Text style={[styles.title, isDesktop && styles.desktopTitle]}>Trending Options</Text>
         <View style={styles.toggleRow}>
           <Pressable onPress={() => handleToggle('CE')} style={[styles.pillBtn, isCallSelected ? styles.pillActive : styles.pillInactive, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityState={{ selected: isCallSelected }} accessibilityLabel="Call Options">
-            <Text style={[styles.pillText, isCallSelected ? styles.pillTextActive : styles.pillTextInactive]}>Call</Text>
+            <Text style={[styles.pillText, isDesktop && styles.desktopPillText, isCallSelected ? styles.pillTextActive : styles.pillTextInactive]}>Call</Text>
           </Pressable>
           <Pressable onPress={() => handleToggle('PE')} style={[styles.pillBtn, !isCallSelected ? styles.pillActive : styles.pillInactive, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityState={{ selected: !isCallSelected }} accessibilityLabel="Put Options">
-            <Text style={[styles.pillText, !isCallSelected ? styles.pillTextActive : styles.pillTextInactive]}>Put</Text>
+            <Text style={[styles.pillText, isDesktop && styles.desktopPillText, !isCallSelected ? styles.pillTextActive : styles.pillTextInactive]}>Put</Text>
           </Pressable>
         </View>
       </View>
@@ -229,20 +232,28 @@ export default memo(TrendingOptions);
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16, backgroundColor: '#FFFFFF' },
+  desktopContainer: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#0F172A' },
+  desktopTitle: { fontSize: 20 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pillBtn: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   pillActive: { backgroundColor: BLUE_ACCENT, borderWidth: 1, borderColor: BLUE_ACCENT },
   pillInactive: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0' },
   pillText: { fontSize: 11.5, fontFamily: 'Inter_600SemiBold' },
+  desktopPillText: { fontSize: 12.5 },
   pillTextActive: { color: '#FFFFFF' },
   pillTextInactive: { color: '#64748B', fontFamily: 'Inter_500Medium' },
   symbolText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'left' },
+  desktopSymbolText: { fontSize: 13.5 },
   strikeText: { alignSelf: 'stretch', fontSize: 10.5, fontFamily: 'Inter_500Medium', color: '#64748B', marginTop: 1, textAlign: 'left' },
+  desktopStrikeText: { fontSize: 11.5 },
   wapText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  desktopWapText: { fontSize: 13.5 },
   cmpPriceText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'right' },
+  desktopCmpPriceText: { fontSize: 13.5 },
   cmpChangeText: { alignSelf: 'stretch', fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 1, textAlign: 'right' },
+  desktopCmpChangeText: { fontSize: 12 },
   viewMoreBtn: { marginTop: 14, paddingVertical: 12, borderRadius: 10, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },
   viewMoreBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#0071A9' },
 });

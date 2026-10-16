@@ -6,7 +6,7 @@ import { socketRequest } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { useFnoStats } from '@/context/FnoStatsContext';
-import { TradeUpIcon, TradeDownIcon, ArrowUpIcon, ArrowDownIcon, ChartColumnIcon } from '@/components/icons/HomeIcons';
+import { TradeUpIcon, TradeDownIcon, ArrowUpIcon, ArrowDownIcon, ChartColumnIcon, ChartColumnDecreasingIcon } from '@/components/icons/HomeIcons';
 
 // ─── Formatting ────────────────────────────────────────────────────────────────
 
@@ -35,13 +35,30 @@ function formatPctSigned(val) {
   return `${num}%`;
 }
 
+function readNumericStat(stats, key) {
+  if (!Array.isArray(stats)) return null;
+  const entry = stats.find((item) => item != null && item[key] != null && item[key] !== '');
+  if (!entry) return null;
+  const num = typeof entry[key] === 'number' ? entry[key] : parseFloat(String(entry[key]).replace(/%/g, ''));
+  return Number.isFinite(num) ? num : null;
+}
+
+function formatWapPercent(num) {
+  if (num == null) return '—';
+  const rounded = Math.round(num * 100) / 100;
+  return `${rounded}%`;
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
 const NEUTRAL = '#64748B';
 
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+
 function FnoProfitMeter() {
+  const { isDesktop } = useBreakpoint();
   const [ppl, setPpl] = useState(null);
   const [advDec, setAdvDec] = useState(null);
   const fnoStats = useFnoStats();
@@ -76,24 +93,24 @@ function FnoProfitMeter() {
   const advance = advDec?.advance ?? '—';
   const declined = advDec?.declined ?? '—';
 
-  let abvWap = '—';
-  let abvWapNum = null;
-  if (Array.isArray(fnoStats)) {
-    const entry = fnoStats.find((e) => e.abv_wap !== undefined);
-    if (entry) {
-      abvWap = entry.abv_wap;
-      abvWapNum = typeof abvWap === 'number' ? abvWap : parseFloat(abvWap);
-    }
-  }
+  const abvWapNum = readNumericStat(fnoStats, 'abv_wap');
+  const blwFromApi = readNumericStat(fnoStats, 'blw_wap') ?? readNumericStat(fnoStats, 'below_wap');
+  const blwWapNum = blwFromApi != null
+    ? blwFromApi
+    : abvWapNum != null
+      ? Math.round((100 - abvWapNum) * 100) / 100
+      : null;
   const abvWapColor = abvWapNum == null ? NEUTRAL : abvWapNum >= 50 ? GREEN : RED;
-  const abvWapDisplay = abvWapNum != null ? `${abvWapNum}%` : abvWap;
+  const blwWapColor = blwWapNum == null ? NEUTRAL : blwWapNum >= 50 ? GREEN : RED;
+  const abvWapDisplay = formatWapPercent(abvWapNum);
+  const blwWapDisplay = formatWapPercent(blwWapNum);
 
   const HeaderIcon = isNegative ? TradeDownIcon : TradeUpIcon;
   const headerIconColor = isPositive ? GREEN : isNegative ? RED : NEUTRAL;
   const headerIconBg = isPositive ? '#DCFCE7' : isNegative ? '#FEE2E2' : '#F1F5F9';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDesktop && styles.desktopContainer]}>
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={[styles.headerIconBg, { backgroundColor: headerIconBg }]}>
@@ -107,7 +124,7 @@ function FnoProfitMeter() {
       </View>
 
       {/* Main P&L */}
-      <View style={styles.plSection}>
+      <View style={[styles.plSection, isDesktop && styles.desktopPlSection]}>
         <Text style={[styles.plValue, { color: plColor }]}>{formatIndianCurrency(pl1day)}</Text>
         <Text style={[styles.plPct, { color: plColor }]}>{formatPctSigned(pl1daypercent)}</Text>
       </View>
@@ -119,8 +136,8 @@ function FnoProfitMeter() {
           <View style={[styles.statIconBg, { backgroundColor: '#DCFCE7' }]}>
             <ArrowUpIcon size={16} color={GREEN} />
           </View>
-          <Text style={styles.statLabel}>Gainers</Text>
-          <Text style={[styles.statValue, { color: GREEN }]}>{advance}</Text>
+          <Text style={styles.statLabel} numberOfLines={1}>Gainers</Text>
+          <Text style={[styles.statValue, { color: GREEN }]} numberOfLines={1}>{advance}</Text>
         </View>
 
         <View style={styles.statDivider} />
@@ -130,8 +147,8 @@ function FnoProfitMeter() {
           <View style={[styles.statIconBg, { backgroundColor: '#FEE2E2' }]}>
             <ArrowDownIcon size={16} color={RED} />
           </View>
-          <Text style={styles.statLabel}>Losers</Text>
-          <Text style={[styles.statValue, { color: RED }]}>{declined}</Text>
+          <Text style={styles.statLabel} numberOfLines={1}>Losers</Text>
+          <Text style={[styles.statValue, { color: RED }]} numberOfLines={1}>{declined}</Text>
         </View>
 
         <View style={styles.statDivider} />
@@ -141,8 +158,19 @@ function FnoProfitMeter() {
           <View style={[styles.statIconBg, { backgroundColor: abvWapNum != null && abvWapNum >= 50 ? '#DCFCE7' : '#FEE2E2' }]}>
             <ChartColumnIcon size={14} color={abvWapColor} />
           </View>
-          <Text style={styles.statLabel}>Above WAP</Text>
-          <Text style={[styles.statValue, { color: abvWapColor }]}>{abvWapDisplay}</Text>
+          <Text style={styles.statLabel} numberOfLines={1}>Above WAP</Text>
+          <Text style={[styles.statValue, { color: abvWapColor }]} numberOfLines={1}>{abvWapDisplay}</Text>
+        </View>
+
+        <View style={styles.statDivider} />
+
+        {/* Below WAP */}
+        <View style={styles.statItem}>
+          <View style={[styles.statIconBg, { backgroundColor: blwWapNum != null && blwWapNum >= 50 ? '#DCFCE7' : '#FEE2E2' }]}>
+            <ChartColumnDecreasingIcon size={14} color={blwWapColor} />
+          </View>
+          <Text style={styles.statLabel} numberOfLines={1}>Below WAP</Text>
+          <Text style={[styles.statValue, { color: blwWapColor }]} numberOfLines={1}>{blwWapDisplay}</Text>
         </View>
       </View>
 
@@ -168,6 +196,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 8,
+  },
+  desktopContainer: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  desktopPlSection: {
+    marginTop: 14,
+    marginBottom: 14,
   },
   headerRow: {
     flexDirection: 'row',
@@ -227,9 +264,11 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
+    paddingHorizontal: 2,
   },
   statIconBg: {
     width: 32,
@@ -242,10 +281,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'Inter_400Regular',
     color: '#64748B',
+    textAlign: 'center',
   },
   statValue: {
     fontSize: 16,
     fontFamily: 'Inter_700Bold',
+    textAlign: 'center',
   },
   statDivider: {
     width: StyleSheet.hairlineWidth,

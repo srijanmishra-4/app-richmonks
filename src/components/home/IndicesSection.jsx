@@ -165,9 +165,14 @@ function graphPayload(value) {
   return value.result && typeof value.result === 'object' ? value.result : null;
 }
 
-function IndicesSection() {
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+
+function IndicesSection({ symbol: fixedSymbol } = {}) {
+  const { isDesktop } = useBreakpoint();
   const [data, setData] = useState(null);
-  const [selected, setSelected] = useState('NIFTY');
+  const [internalSelected, setInternalSelected] = useState(fixedSymbol || 'NIFTY');
+  const selected = fixedSymbol || internalSelected;
+  const setSelected = setInternalSelected;
   const [period, setPeriod] = useState('1D');
   const [graphs, setGraphs] = useState({ NIFTY: null, BANKNIFTY: null });
 
@@ -242,116 +247,222 @@ function IndicesSection() {
   const putStrong = String(item.put_strength || '').toLowerCase().includes('strong');
 
   return (
-    <View style={styles.container}>
-      {/* Top Selector & Market Status */}
-      <View style={styles.topRow}>
-        <View style={styles.statusCol}>
-          <View style={styles.statusRow}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>Market Open</Text>
+    <View style={[styles.container, isDesktop && styles.desktopContainer]}>
+      {isDesktop ? (
+        /* Desktop Header: 2 Columns (Left: Status -> Tabs -> Title -> Price; Right: Metrics Table) */
+        <View style={styles.desktopHeaderRow}>
+          <View style={styles.desktopHeaderLeftCol}>
+            <View style={styles.desktopStatusRow}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>Market Open</Text>
+              {cdate ? <Text style={styles.desktopCdateText}>  ·  {cdate}</Text> : null}
+            </View>
+
+            {!fixedSymbol && (
+              <View style={styles.desktopTabsContainer}>
+                <Pressable
+                  onPress={() => setSelected('NIFTY')}
+                  style={[styles.desktopTabBtn, selected === 'NIFTY' ? styles.tabBtnActive : null, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: selected === 'NIFTY' }}
+                  accessibilityLabel="NIFTY"
+                >
+                  <Text style={[styles.desktopTabText, selected === 'NIFTY' ? styles.tabTextActive : null]}>NIFTY</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setSelected('BANKNIFTY')}
+                  style={[styles.desktopTabBtn, selected === 'BANKNIFTY' ? styles.tabBtnActive : null, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: selected === 'BANKNIFTY' }}
+                  accessibilityLabel="BANKNIFTY"
+                >
+                  <Text style={[styles.desktopTabText, selected === 'BANKNIFTY' ? styles.tabTextActive : null]}>BANKNIFTY</Text>
+                </Pressable>
+              </View>
+            )}
+
+            <View style={[styles.titleRow, styles.desktopTitleRow, fixedSymbol && styles.desktopTitleRowNoTabs]}>
+              <Text style={styles.symbolTitle}>
+                {selected === 'NIFTY' ? 'NIFTY FUTURES' : 'BANKNIFTY FUTURES'}
+                {expiryDate ? <Text style={styles.expiryText}>   {expiryDate}</Text> : null}
+              </Text>
+            </View>
+
+            <View style={styles.priceRow}>
+              <Text style={[styles.priceText, styles.desktopPriceText]}>{price}</Text>
+              {changeStr ? (
+                <Text style={[styles.changeText, { color: priceDown ? '#DC2626' : '#16A34A' }]}>
+                  {changeStr}
+                </Text>
+              ) : null}
+            </View>
           </View>
-          {cdate ? <Text style={styles.cdateText}>{cdate}</Text> : null}
+
+          <View style={styles.desktopMetricsTable}>
+            <View style={styles.desktopMetricRow}>
+              <Text style={styles.tableLabel}>OI</Text>
+              <View style={styles.oiValueRow}>
+                <Text style={styles.tableValue}>{item.oi ? formatIndian(item.oi) : '—'}</Text>
+                {item.chg_in_oi ? (
+                  <Text style={[styles.oiChg, { color: String(item.chg_in_oi).includes('-') ? '#DC2626' : '#16A34A' }]}>
+                    {formatOiChg(item.chg_in_oi)}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+
+            <View style={styles.tableDivider} />
+
+            <View style={styles.desktopMetricRow}>
+              <Text style={styles.tableLabel}>WAP</Text>
+              <Text style={styles.tableValue}>{formatPrice(item.daily_wap)}</Text>
+            </View>
+
+            <View style={styles.tableDivider} />
+
+            <View style={styles.desktopMetricRow}>
+              <Text style={styles.tableLabel}>Call Strength</Text>
+              {item.call_strength ? (
+                <View style={[styles.badge, callStrong ? styles.badgeStrong : styles.badgeWeak]}>
+                  <Text style={[styles.badgeText, callStrong ? styles.badgeTextStrong : styles.badgeTextWeak]}>
+                    {callStrong ? 'Strong' : 'Weak'}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.tableValue}>—</Text>
+              )}
+            </View>
+
+            <View style={styles.tableDivider} />
+
+            <View style={styles.desktopMetricRow}>
+              <Text style={styles.tableLabel}>Put Strength</Text>
+              {item.put_strength ? (
+                <View style={[styles.badge, putStrong ? styles.badgeStrong : styles.badgeWeak]}>
+                  <Text style={[styles.badgeText, putStrong ? styles.badgeTextStrong : styles.badgeTextWeak]}>
+                    {putStrong ? 'Strong' : 'Weak'}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.tableValue}>—</Text>
+              )}
+            </View>
+          </View>
         </View>
+      ) : (
+        <>
+          {/* Top Selector & Market Status (Mobile) */}
+          <View style={styles.topRow}>
+            <View style={styles.statusCol}>
+              <View style={styles.statusRow}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>Market Open</Text>
+              </View>
+              {cdate ? <Text style={styles.cdateText}>{cdate}</Text> : null}
+            </View>
 
-        <View style={styles.tabsContainer}>
-          <Pressable
-            onPress={() => setSelected('NIFTY')}
-            style={[styles.tabBtn, selected === 'NIFTY' ? styles.tabBtnActive : null, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: selected === 'NIFTY' }}
-            accessibilityLabel="NIFTY"
-          >
-            <Text style={[styles.tabText, selected === 'NIFTY' ? styles.tabTextActive : null]}>NIFTY</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setSelected('BANKNIFTY')}
-            style={[styles.tabBtn, selected === 'BANKNIFTY' ? styles.tabBtnActive : null, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: selected === 'BANKNIFTY' }}
-            accessibilityLabel="BANKNIFTY"
-          >
-            <Text style={[styles.tabText, selected === 'BANKNIFTY' ? styles.tabTextActive : null]}>BANKNIFTY</Text>
-          </Pressable>
-        </View>
-      </View>
+            {!fixedSymbol && (
+              <View style={styles.tabsContainer}>
+                <Pressable
+                  onPress={() => setSelected('NIFTY')}
+                  style={[styles.tabBtn, selected === 'NIFTY' ? styles.tabBtnActive : null, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: selected === 'NIFTY' }}
+                  accessibilityLabel="NIFTY"
+                >
+                  <Text style={[styles.tabText, selected === 'NIFTY' ? styles.tabTextActive : null]}>NIFTY</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setSelected('BANKNIFTY')}
+                  style={[styles.tabBtn, selected === 'BANKNIFTY' ? styles.tabBtnActive : null, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: selected === 'BANKNIFTY' }}
+                  accessibilityLabel="BANKNIFTY"
+                >
+                  <Text style={[styles.tabText, selected === 'BANKNIFTY' ? styles.tabTextActive : null]}>BANKNIFTY</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
 
-      {/* Instrument Title & Expiry */}
-      <View style={styles.titleRow}>
-        <Text style={styles.symbolTitle}>
-          {selected === 'NIFTY' ? 'NIFTY FUTURES' : 'BANKNIFTY FUTURES'}
-          {expiryDate ? <Text style={styles.expiryText}>   {expiryDate}</Text> : null}
-        </Text>
-      </View>
+          {/* Instrument Title & Price (Mobile) */}
+          <View style={styles.titleRow}>
+            <Text style={styles.symbolTitle}>
+              {selected === 'NIFTY' ? 'NIFTY FUTURES' : 'BANKNIFTY FUTURES'}
+              {expiryDate ? <Text style={styles.expiryText}>   {expiryDate}</Text> : null}
+            </Text>
+          </View>
 
-      {/* Price + Price Change on same horizontal row */}
-      <View style={styles.priceRow}>
-        <Text style={styles.priceText}>{price}</Text>
-        {changeStr ? (
-          <Text style={[styles.changeText, { color: priceDown ? '#DC2626' : '#16A34A' }]}>
-            {changeStr}
-          </Text>
-        ) : null}
-      </View>
-
-      {/* OI / WAP / Strength Table */}
-      <View style={styles.tableCard}>
-        <View style={styles.tableRow}>
-          <Text style={styles.tableLabel}>OI</Text>
-          <View style={styles.oiValueRow}>
-            <Text style={styles.tableValue}>{item.oi ? formatIndian(item.oi) : '—'}</Text>
-            {item.chg_in_oi ? (
-              <Text style={[styles.oiChg, { color: String(item.chg_in_oi).includes('-') ? '#DC2626' : '#16A34A' }]}>
-                {formatOiChg(item.chg_in_oi)}
+          <View style={styles.priceRow}>
+            <Text style={styles.priceText}>{price}</Text>
+            {changeStr ? (
+              <Text style={[styles.changeText, { color: priceDown ? '#DC2626' : '#16A34A' }]}>
+                {changeStr}
               </Text>
             ) : null}
           </View>
-        </View>
 
-        <View style={styles.tableDivider} />
-
-        <View style={styles.tableRow}>
-          <Text style={styles.tableLabel}>WAP</Text>
-          <Text style={styles.tableValue}>{formatPrice(item.daily_wap)}</Text>
-        </View>
-
-        <View style={styles.tableDivider} />
-
-        <View style={styles.tableRow}>
-          <Text style={styles.tableLabel}>Call Strength</Text>
-          {item.call_strength ? (
-            <View style={[styles.badge, callStrong ? styles.badgeStrong : styles.badgeWeak]}>
-              <Text style={[styles.badgeText, callStrong ? styles.badgeTextStrong : styles.badgeTextWeak]}>
-                {callStrong ? 'Strong' : 'Weak'}
-              </Text>
+          {/* Metrics Table Card (Mobile) */}
+          <View style={styles.tableCard}>
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>OI</Text>
+              <View style={styles.oiValueRow}>
+                <Text style={styles.tableValue}>{item.oi ? formatIndian(item.oi) : '—'}</Text>
+                {item.chg_in_oi ? (
+                  <Text style={[styles.oiChg, { color: String(item.chg_in_oi).includes('-') ? '#DC2626' : '#16A34A' }]}>
+                    {formatOiChg(item.chg_in_oi)}
+                  </Text>
+                ) : null}
+              </View>
             </View>
-          ) : (
-            <Text style={styles.tableValue}>—</Text>
-          )}
-        </View>
 
-        <View style={styles.tableDivider} />
+            <View style={styles.tableDivider} />
 
-        <View style={styles.tableRow}>
-          <Text style={styles.tableLabel}>Put Strength</Text>
-          {item.put_strength ? (
-            <View style={[styles.badge, putStrong ? styles.badgeStrong : styles.badgeWeak]}>
-              <Text style={[styles.badgeText, putStrong ? styles.badgeTextStrong : styles.badgeTextWeak]}>
-                {putStrong ? 'Strong' : 'Weak'}
-              </Text>
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>WAP</Text>
+              <Text style={styles.tableValue}>{formatPrice(item.daily_wap)}</Text>
             </View>
-          ) : (
-            <Text style={styles.tableValue}>—</Text>
-          )}
-        </View>
-      </View>
+
+            <View style={styles.tableDivider} />
+
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>Call Strength</Text>
+              {item.call_strength ? (
+                <View style={[styles.badge, callStrong ? styles.badgeStrong : styles.badgeWeak]}>
+                  <Text style={[styles.badgeText, callStrong ? styles.badgeTextStrong : styles.badgeTextWeak]}>
+                    {callStrong ? 'Strong' : 'Weak'}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.tableValue}>—</Text>
+              )}
+            </View>
+
+            <View style={styles.tableDivider} />
+
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>Put Strength</Text>
+              {item.put_strength ? (
+                <View style={[styles.badge, putStrong ? styles.badgeStrong : styles.badgeWeak]}>
+                  <Text style={[styles.badgeText, putStrong ? styles.badgeTextStrong : styles.badgeTextWeak]}>
+                    {putStrong ? 'Strong' : 'Weak'}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.tableValue}>—</Text>
+              )}
+            </View>
+          </View>
+        </>
+      )}
 
       {/* Graph Area */}
-      <View style={styles.graphContainer}>
-        <LineGraph data={chartData} height={190} />
+      <View style={[styles.graphContainer, isDesktop && styles.desktopGraphContainer]}>
+        <LineGraph data={chartData} height={isDesktop ? 190 : 190} />
       </View>
 
       {/* High / Low Range Bar */}
-      <View style={styles.rangeRow}>
+      <View style={[styles.rangeRow, isDesktop && styles.desktopRangeRow]}>
         <View style={styles.rangeColLeft}>
           <Text style={styles.rangeLabel}>Low</Text>
           <Text style={styles.rangeVal} numberOfLines={1}>{formatPrice(lowVal)}</Text>
@@ -374,24 +485,31 @@ function IndicesSection() {
       </View>
 
       {/* Period Buttons (1 Day, 5 Day, 30 Day) */}
-      <View style={styles.periodsRow}>
-        {PERIODS.map((p) => {
-          const active = period === p.key;
-          return (
-            <Pressable
-              key={p.key}
-              onPress={() => setPeriod(p.key)}
-              style={[styles.periodBtn, active ? styles.periodBtnActive : styles.periodBtnInactive, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={p.label}
-            >
-              <Text style={[styles.periodText, active ? styles.periodTextActive : styles.periodTextInactive]}>
-                {p.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <View style={isDesktop ? styles.desktopBottomRow : styles.periodsRow}>
+        <View style={isDesktop ? styles.desktopPeriodsGroup : styles.periodsMobileGroup}>
+          {PERIODS.map((p) => {
+            const active = period === p.key;
+            return (
+              <Pressable
+                key={p.key}
+                onPress={() => setPeriod(p.key)}
+                style={[
+                  styles.periodBtn,
+                  isDesktop && styles.desktopPeriodBtn,
+                  active ? styles.periodBtnActive : styles.periodBtnInactive,
+                  Platform.OS === 'web' ? { cursor: 'pointer' } : null,
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={p.label}
+              >
+                <Text style={[styles.periodText, active ? styles.periodTextActive : styles.periodTextInactive]} numberOfLines={1}>
+                  {p.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -633,5 +751,108 @@ const styles = StyleSheet.create({
   periodTextInactive: {
     fontFamily: 'Inter_500Medium',
     color: '#0F172A',
+  },
+  desktopContainer: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  desktopHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+    marginBottom: 6,
+  },
+  desktopHeaderLeftCol: {
+    flex: 1.15,
+    minWidth: 160,
+    justifyContent: 'center',
+  },
+  desktopStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  desktopCdateText: {
+    fontSize: 11,
+    fontFamily: 'Inter_400Regular',
+    color: '#64748B',
+  },
+  desktopTabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    padding: 3,
+    alignSelf: 'flex-start',
+    marginVertical: 6,
+    gap: 3,
+  },
+  desktopTabBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 6,
+  },
+  desktopTabText: {
+    fontSize: 13.5,
+    fontFamily: 'Inter_600SemiBold',
+    color: '#0F172A',
+  },
+  desktopTitleRow: {
+    marginTop: 2,
+  },
+  desktopTitleRowNoTabs: {
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  desktopPriceText: {
+    fontSize: 24,
+  },
+  desktopMetricsTable: {
+    flex: 1,
+    minWidth: 180,
+    maxWidth: 240,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  desktopMetricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 7,
+  },
+  desktopGraphContainer: {
+    height: 190,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  desktopRangeRow: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  desktopBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingBottom: 2,
+  },
+  desktopPeriodsGroup: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  periodsMobileGroup: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  desktopPeriodBtn: {
+    flex: 0,
+    minWidth: 80,
+    paddingHorizontal: 14,
+    height: 32,
   },
 });

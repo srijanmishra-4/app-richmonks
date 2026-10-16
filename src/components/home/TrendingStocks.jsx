@@ -15,7 +15,6 @@ const NEUTRAL = '#64748B';
 
 const POSITIVE_REPORTS = [
   { id: 'cr_2_day_low', label: 'Crossing 2% From Low' },
-  { id: 'algo_positive_trends', label: 'Algo +ve Trends' },
   { id: 'abv_intraday_high', label: 'Above Intraday High' },
   { id: 'abv_yesterday_high', label: "Above Yesterday's High" },
   { id: 'abv_prev_week_high', label: "Above Previous Week's High" },
@@ -24,7 +23,6 @@ const POSITIVE_REPORTS = [
 
 const NEGATIVE_REPORTS = [
   { id: 'br_2_day_high', label: 'Breaking 2% From High' },
-  { id: 'algo_negative_trends', label: 'Algo -ve Trends' },
   { id: 'blw_intraday_low', label: 'Below Intraday Low' },
   { id: 'blw_yesterday_low', label: "Below Yesterday's Low" },
   { id: 'blw_prev_week_low', label: "Below Previous Week's Low" },
@@ -64,6 +62,8 @@ const INITIAL_DATA_BY_REPORT = {
     ],
   },
 };
+
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 // ─── Formatters ─────────────────────────────────────────────────────────────────
 
@@ -156,6 +156,7 @@ function normalizeResponse(payload) {
 // ─── Component ──────────────────────────────────────────────────────────────────
 
 function TrendingStocks() {
+  const { isDesktop } = useBreakpoint();
   const [filter, setFilter] = useState('positive'); // 'positive' | 'negative'
   const [selectedReport, setSelectedReport] = useState('cr_2_day_low');
   const [reportCache, setReportCache] = useState(INITIAL_DATA_BY_REPORT);
@@ -248,8 +249,8 @@ function TrendingStocks() {
   // Build columns config for the shared table
   const columns = [
     { key: 'report', header: 'Report', flex: 1.2, align: 'left' },
-    { key: 'symbol', header: 'Symbol', flex: 0.95, align: 'left', render: (row) => row ? <Text style={styles.symbolText} numberOfLines={1}>{row.symbol}</Text> : null },
-    { key: 'dynamic', header: dynamicKey, flex: 0.82, align: 'right', render: (row) => row ? <Text style={styles.levelText} numberOfLines={1}>{formatIndianNumber(row.value)}</Text> : null },
+    { key: 'symbol', header: 'Symbol', flex: 0.95, align: 'left', render: (row) => row ? <Text style={[styles.symbolText, isDesktop && styles.symbolTextDesktop]} numberOfLines={1}>{row.symbol}</Text> : null },
+    { key: 'dynamic', header: dynamicKey, flex: 0.82, align: 'right', render: (row) => row ? <Text style={[styles.levelText, isDesktop && styles.levelTextDesktop]} numberOfLines={1}>{formatIndianNumber(row.value)}</Text> : null },
     { key: 'cmp', header: 'CMP', flex: 0.88, align: 'right', render: (row) => {
       if (!row) return null;
       const pc = formatPriceChange(row.price_change);
@@ -258,8 +259,8 @@ function TrendingStocks() {
       const color = isPos ? GREEN : isNeg ? RED : NEUTRAL;
       return (
         <>
-          <Text style={styles.cmpPriceText} numberOfLines={1}>{formatIndianNumber(row.price)}</Text>
-          {pc ? <Text style={[styles.cmpChangeText, { color }]} numberOfLines={1}>{pc}</Text> : null}
+          <Text style={[styles.cmpPriceText, isDesktop && styles.cmpPriceTextDesktop]} numberOfLines={1}>{formatIndianNumber(row.price)}</Text>
+          {pc ? <Text style={[styles.cmpChangeText, isDesktop && styles.cmpChangeTextDesktop, { color }]} numberOfLines={1}>{pc}</Text> : null}
         </>
       );
     }},
@@ -278,20 +279,20 @@ function TrendingStocks() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDesktop && styles.desktopContainer]}>
       {/* ─── Header: Title & Toggle Buttons ─────────────────────────────────── */}
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Trending Stocks</Text>
+        <Text style={[styles.title, isDesktop && styles.titleDesktop]}>Trending Stocks</Text>
 
         <View style={styles.toggleRow}>
           {/* Positive Button */}
           <Pressable onPress={() => handleToggle('positive')} style={[styles.pillBtn, isPositiveSelected ? styles.pillPositiveActive : styles.pillInactive, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityState={{ selected: isPositiveSelected }} accessibilityLabel="Positive Trending Stocks">
-            <Text style={[styles.pillText, isPositiveSelected ? styles.pillTextActive : styles.pillTextInactive]}>Positive</Text>
+            <Text style={[styles.pillText, isDesktop && styles.pillTextDesktop, isPositiveSelected ? styles.pillTextActive : styles.pillTextInactive]}>Positive</Text>
           </Pressable>
 
           {/* Negative Button */}
           <Pressable onPress={() => handleToggle('negative')} style={[styles.pillBtn, !isPositiveSelected ? styles.pillNegativeActive : styles.pillInactive, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityState={{ selected: !isPositiveSelected }} accessibilityLabel="Negative Trending Stocks">
-            <Text style={[styles.pillText, !isPositiveSelected ? styles.pillTextActive : styles.pillTextInactive]}>Negative</Text>
+            <Text style={[styles.pillText, isDesktop && styles.pillTextDesktop, !isPositiveSelected ? styles.pillTextActive : styles.pillTextInactive]}>Negative</Text>
           </Pressable>
         </View>
       </View>
@@ -313,20 +314,27 @@ export default memo(TrendingStocks);
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16, backgroundColor: '#FFFFFF' },
+  desktopContainer: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#0F172A' },
+  titleDesktop: { fontSize: 20 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pillBtn: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   pillPositiveActive: { backgroundColor: '#16A34A', borderWidth: 1, borderColor: '#16A34A' },
   pillNegativeActive: { backgroundColor: '#DC2626', borderWidth: 1, borderColor: '#DC2626' },
   pillInactive: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0' },
   pillText: { fontSize: 11.5, fontFamily: 'Inter_600SemiBold' },
+  pillTextDesktop: { fontSize: 12.5 },
   pillTextActive: { color: '#FFFFFF' },
   pillTextInactive: { color: '#64748B', fontFamily: 'Inter_500Medium' },
   symbolText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'left' },
+  symbolTextDesktop: { fontSize: 13.5 },
   levelText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  levelTextDesktop: { fontSize: 13.5 },
   cmpPriceText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'right' },
+  cmpPriceTextDesktop: { fontSize: 13.5 },
   cmpChangeText: { alignSelf: 'stretch', fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 1, textAlign: 'right' },
+  cmpChangeTextDesktop: { fontSize: 12 },
   viewMoreBtn: { marginTop: 14, paddingVertical: 12, borderRadius: 10, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },
   viewMoreBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#0071A9' },
 });

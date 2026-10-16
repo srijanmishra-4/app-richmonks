@@ -12,6 +12,9 @@ import {
   TradesContainIcon, TradesOutlineIcon,
 } from '@/components/icons/NavIcons';
 
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import DesktopHeader from '@/components/home/DesktopHeader';
+
 const ACTIVE_COLOR = '#FFFFFF';
 const INACTIVE_COLOR = 'rgba(255,255,255,0.55)';
 const TAB_BG = '#0071A9';
@@ -70,25 +73,37 @@ export const unstable_settings = {
 };
 
 export default function AppLayout() {
+  const { isDesktop } = useBreakpoint();
+
   return (
     <CommonDataProvider>
       <RefreshProvider>
-        <Tabs
-          tabBar={(props) => <TabBar {...props} />}
-          backBehavior="history"
-          screenOptions={{ headerShown: false }}
-        >
-          <Tabs.Screen name="index" options={{ href: null }} />
-          <Tabs.Screen name="home" />
-          <Tabs.Screen name="watchlist" />
-          <Tabs.Screen name="trades" />
-        </Tabs>
+        <View style={styles.appContainer}>
+          {isDesktop && <DesktopHeader />}
+          <Tabs
+            tabBar={(props) => (isDesktop ? null : <TabBar {...props} />)}
+            backBehavior="history"
+            screenOptions={{
+              headerShown: false,
+              tabBarStyle: isDesktop ? { display: 'none' } : undefined,
+            }}
+          >
+            <Tabs.Screen name="index" options={{ href: null }} />
+            <Tabs.Screen name="home" />
+            <Tabs.Screen name="watchlist" />
+            <Tabs.Screen name="trades" />
+          </Tabs>
+        </View>
       </RefreshProvider>
     </CommonDataProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  appContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: TAB_BG,

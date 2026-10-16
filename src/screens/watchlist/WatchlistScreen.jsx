@@ -97,6 +97,7 @@ function MoreIcon({ size = 16, color = '#94A3B8' }) {
   );
 }
 
+
 function WatchlistHeader({ query, onQueryChange, onAdd }) {
   return (
     <View style={styles.header}>
@@ -104,9 +105,23 @@ function WatchlistHeader({ query, onQueryChange, onAdd }) {
       <View style={styles.headerActions}>
         <View style={styles.searchBox}>
           <SearchIcon size={15} color="#94A3B8" />
-          <TextInput value={query} onChangeText={onQueryChange} placeholder="Search" placeholderTextColor="#94A3B8" autoCorrect={false} autoCapitalize="characters" style={styles.searchInput} />
+          <TextInput
+            value={query}
+            onChangeText={onQueryChange}
+            placeholder="Search"
+            placeholderTextColor="#94A3B8"
+            autoCorrect={false}
+            autoCapitalize="characters"
+            style={styles.searchInput}
+          />
         </View>
-        <Pressable onPress={onAdd} hitSlop={8} accessibilityRole="button" accessibilityLabel="Add to Watchlist" style={[styles.addBtn, Platform.OS === 'web' ? styles.pointer : null]}>
+        <Pressable
+          onPress={onAdd}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Add to Watchlist"
+          style={[styles.addBtn, Platform.OS === 'web' ? styles.pointer : null]}
+        >
           <PlusIcon />
         </Pressable>
       </View>
@@ -173,7 +188,7 @@ const WatchlistRow = memo(function WatchlistRow({ item, onMore }) {
   );
 });
 
-export default function WatchlistScreen() {
+export default function WatchlistScreen({ isSidebar = false }) {
   const snackbar = useSnackbar();
   const [tab, setTab] = useState('futures');
   const [query, setQuery] = useState('');
@@ -183,6 +198,8 @@ export default function WatchlistScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [menuItem, setMenuItem] = useState(null);
+  const [sortField, setSortField] = useState(null); // 'symbol' | 'price' | null
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
   const listsRef = useRef(lists);
   const genRef = useRef(0);
   listsRef.current = lists;
@@ -216,7 +233,39 @@ export default function WatchlistScreen() {
   useRegisterRefresh(useCallback(() => load(tab, { silent: true }), [load, tab]));
 
   const rows = lists[tab] ?? [];
-  const visible = useMemo(() => (query.trim() ? rows.filter((item) => matchesQuery(item, query)) : rows), [rows, query]);
+  const filtered = useMemo(() => (query.trim() ? rows.filter((item) => matchesQuery(item, query)) : rows), [rows, query]);
+
+  const visible = useMemo(() => {
+    if (!sortField) return filtered;
+    const sorted = [...filtered];
+    sorted.sort((a, b) => {
+      if (sortField === 'symbol') {
+        const sa = String(a.script || a.symbol || '').toLowerCase();
+        const sb = String(b.script || b.symbol || '').toLowerCase();
+        return sortOrder === 'asc' ? sa.localeCompare(sb) : sb.localeCompare(sa);
+      }
+      if (sortField === 'price') {
+        const pa = parseSigned(a.price) ?? 0;
+        const pb = parseSigned(b.price) ?? 0;
+        return sortOrder === 'asc' ? pa - pb : pb - pa;
+      }
+      return 0;
+    });
+    return sorted;
+  }, [filtered, sortField, sortOrder]);
+
+  const toggleSort = useCallback((field) => {
+    if (sortField !== field) {
+      setSortField(field);
+      setSortOrder('asc');
+    } else if (sortOrder === 'asc') {
+      setSortOrder('desc');
+    } else {
+      setSortField(null);
+      setSortOrder('asc');
+    }
+  }, [sortField, sortOrder]);
+
   const spec = TABS.find((item) => item.key === tab) ?? TABS[0];
 
   const openProfile = useCallback((item) => {
@@ -248,10 +297,42 @@ export default function WatchlistScreen() {
     }
   }, [snackbar, tab]);
 
+  const ContainerComponent = isSidebar ? View : SafeAreaView;
+  const containerProps = isSidebar ? { style: styles.sidebarRoot } : { style: styles.root, edges: ['top'] };
+
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
-      <WatchlistHeader query={query} onQueryChange={setQuery} onAdd={() => router.push({ pathname: '/watchlist/add', params: { type: tab } })} />
+    <ContainerComponent {...containerProps}>
+      <WatchlistHeader
+        query={query}
+        onQueryChange={setQuery}
+        onAdd={() => router.push({ pathname: '/watchlist/add', params: { type: tab } })}
+      />
       <WatchlistTabs active={tab} onChange={setTab} />
+
+      {/* Table Headers for sorting (aligned with row content) */}
+      <View style={styles.tableHeaderRow}>
+        <Pressable
+          onPress={() => toggleSort('symbol')}
+          style={[styles.sortHeaderBtn, Platform.OS === 'web' ? styles.pointer : null]}
+          accessibilityRole="button"
+          accessibilityLabel="Sort by Symbol"
+        >
+          <Text style={[styles.tableHeaderText, sortField === 'symbol' && styles.tableHeaderTextActive]}>
+            Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '↑' : '↓') : '↕'}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => toggleSort('price')}
+          style={[styles.sortHeaderBtn, Platform.OS === 'web' ? styles.pointer : null]}
+          accessibilityRole="button"
+          accessibilityLabel="Sort by Price or Change"
+        >
+          <Text style={[styles.tableHeaderText, sortField === 'price' && styles.tableHeaderTextActive]}>
+            Price / Change {sortField === 'price' ? (sortOrder === 'asc' ? '↑' : '↓') : '↕'}
+          </Text>
+        </Pressable>
+      </View>
+
       {cdates[tab] ? <Text style={styles.cdate}>{cdates[tab]}</Text> : null}
 
       {loading ? (
@@ -285,18 +366,25 @@ export default function WatchlistScreen() {
       </Modal>
 
       <Snackbar message={snackbar.message} visible={snackbar.visible} onDismiss={snackbar.hide} />
-    </SafeAreaView>
+    </ContainerComponent>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
+  sidebarRoot: { flex: 1, backgroundColor: '#FFFFFF', height: '100%' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 },
   title: { fontSize: 20, lineHeight: 26, fontFamily: 'Inter_700Bold', color: '#0F172A', letterSpacing: -0.3 },
   headerActions: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginLeft: 12 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', height: 34, maxWidth: 168, flexGrow: 1, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#F8FAFC', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
-  searchInput: { flex: 1, marginLeft: 6, padding: 0, fontSize: 13, fontFamily: 'Inter_400Regular', color: '#0F172A' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', height: 34, maxWidth: 220, flexGrow: 1, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#F8FAFC', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
+  searchInput: { flex: 1, marginLeft: 6, padding: 0, fontSize: 13, fontFamily: 'Inter_400Regular', color: '#0F172A', outlineWidth: 0 },
   addBtn: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
+
+  tableHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 44, paddingTop: 8, paddingBottom: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
+  sortHeaderBtn: { paddingVertical: 2 },
+  tableHeaderText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#64748B' },
+  tableHeaderTextActive: { color: ACCENT, fontFamily: 'Inter_600SemiBold' },
+
   pointer: { cursor: 'pointer' },
   tabs: { flexDirection: 'row', paddingHorizontal: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
   tab: { flex: 1, alignItems: 'center', paddingTop: 10 },
@@ -311,13 +399,13 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
-  symbolCol: { flex: 1.15, paddingRight: 8 },
+  symbolCol: { flex: 1, minWidth: 100, paddingRight: 8 },
   script: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  date: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_400Regular', color: '#94A3B8', marginTop: 2 },
-  priceCol: { width: 104, alignItems: 'flex-end', paddingLeft: 8 },
+  date: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_400Regular', color: '#94A3B8', marginTop: 1 },
+  priceCol: { width: 112, alignItems: 'flex-end', paddingLeft: 6 },
   price: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  change: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_500Medium', marginTop: 2 },
-  moreBtn: { width: 28, height: 36, alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
+  change: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_500Medium', marginTop: 1 },
+  moreBtn: { width: 24, height: 32, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
   menuBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.28)', justifyContent: 'flex-end' },
   menuCard: { marginHorizontal: 12, marginBottom: 18, backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: 8 },
   menuTitle: { paddingHorizontal: 16, paddingVertical: 8, fontSize: 12, fontFamily: 'Inter_500Medium', color: '#94A3B8' },

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { View, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { View, ScrollView, RefreshControl, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -18,12 +18,49 @@ import MarketSentimenter from '@/components/home/MarketSentimenter';
 import PremiumReports from '@/components/home/PremiumReports';
 import { FnoStatsProvider } from '@/context/FnoStatsContext';
 
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { clamp } from '@/utils/responsive';
+
+// Matches the fixed watchlist column in the home stack. Used only to decide
+// when the indices row is wide enough to give its gutter the spare width.
+const SIDEBAR_WIDTH = 420;
+const DESKTOP_MAX_WIDTH = 1440;
+
+function fluidNum(min, vwPercent, max, viewport) {
+  return clamp(min, (vwPercent / 100) * viewport, max);
+}
+
+function fluidSpace(min, vwPercent, max, viewport) {
+  if (Platform.OS === 'web') return `clamp(${min}px, ${vwPercent}vw, ${max}px)`;
+  return fluidNum(min, vwPercent, max, viewport);
+}
+
 // Ticker data will eventually come from Socket.IO — pass empty array to hide the ticker for now.
 const tickerItems = [];
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { isDesktop, width } = useBreakpoint();
+  const padHNum = fluidNum(20, 2, 36, width);
+  const indicesGapNum = fluidNum(24, 2.2, 40, width);
+  const paneWidth = Math.max(0, width - SIDEBAR_WIDTH - padHNum * 2);
+  const layoutWidth = Math.min(paneWidth, DESKTOP_MAX_WIDTH);
+  // Once each index would otherwise exceed ~440px, cap the pair slightly under
+  // half the row so the spare width becomes the gutter between them.
+  const relaxIndices = (layoutWidth - indicesGapNum) / 2 > 440;
+  const spacing = {
+    padH: fluidSpace(20, 2, 36, width),
+    padTop: fluidSpace(18, 1.6, 32, width),
+    padBottom: fluidSpace(44, 3.2, 72, width),
+    sectionGap: fluidSpace(40, 3.2, 72, width),
+    indicesGap: fluidSpace(26, 2.4, 40, width),
+    marketColumnGap: fluidSpace(36, 3.1, 52, width),
+    trendingGap: fluidSpace(26, 2.4, 40, width),
+    sentimentMaxWidth: Platform.OS === 'web'
+      ? 'min(100%, 340px)'
+      : Math.min(layoutWidth, 340),
+  };
   const refreshScreen = useScreenRefresh();
   const [refreshing, setRefreshing] = useState(false);
   const refreshingRef = useRef(false);
@@ -57,19 +94,21 @@ export default function HomeScreen() {
 
   return (
     <View
-      style={[styles.root, { paddingTop: insets.top }]}
+      style={[styles.root, { paddingTop: isDesktop ? 0 : insets.top }]}
       onTouchStart={handleScreenTouch}
     >
-      {/* Fixed Header */}
-      <HomeHeader user={user} onAvatarPress={() => router.push('/profile')} />
+      {/* Fixed Header (Mobile only; Desktop uses global DesktopHeader) */}
+      {!isDesktop && (
+        <HomeHeader user={user} onAvatarPress={() => router.push('/profile')} />
+      )}
 
       {/* Conditional Sticky Market Ticker */}
       <MarketTicker items={tickerItems} />
 
       {/* Scrollable Home Content */}
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        style={[styles.scroll, isDesktop && styles.desktopScroll]}
+        contentContainerStyle={isDesktop ? [styles.desktopScrollContent, { paddingHorizontal: spacing.padH, paddingTop: spacing.padTop, paddingBottom: spacing.padBottom }] : styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         onScroll={onScroll}
@@ -84,19 +123,62 @@ export default function HomeScreen() {
           />
         )}
       >
-        <View style={styles.sections}>
-          <IndicesSection />
-          <FnoStatsProvider>
-            <View style={styles.sections}>
-              <FnoProfitMeter />
-              <BullVsBearSection />
+        <FnoStatsProvider>
+          {isDesktop ? (
+            <View style={[styles.desktopContainer, { gap: spacing.sectionGap }]}>
+              {/* Row 1: NIFTY and BANKNIFTY Side-by-Side */}
+              <View style={[styles.desktopIndicesRow, relaxIndices && styles.desktopIndicesRowRelaxed, { gap: spacing.indicesGap }]}>
+                <View style={[styles.desktopIndicesCol, relaxIndices && styles.desktopIndicesColRelaxed]}>
+                  <IndicesSection symbol="NIFTY" />
+                </View>
+                <View style={[styles.desktopIndicesCol, relaxIndices && styles.desktopIndicesColRelaxed]}>
+                  <IndicesSection symbol="BANKNIFTY" />
+                </View>
+              </View>
+
+              {/* Row 2: FNO Profit Meter, Bulls vs. Bears, Market Sentimeter */}
+              <View style={[styles.desktopMarketRow, { gap: spacing.marketColumnGap }]}>
+                <View style={styles.desktopFnoCol}>
+                  <FnoProfitMeter />
+                </View>
+                <View style={[styles.desktopSentimentCol, { maxWidth: spacing.sentimentMaxWidth }]}>
+                  <MarketSentimenter />
+                </View>     
+                <View style={styles.desktopBullsCol}>
+                  <BullVsBearSection />
+                </View>
+
+              </View>
+
+              {/* Row 3: Trending Stocks + Trending Options */}
+              <View style={[styles.desktopTrendingRow, { gap: spacing.trendingGap }]}>
+                <View style={styles.desktopTrendingCol}>
+                  <TrendingStocks />
+                </View>
+                <View style={styles.desktopTrendingCol}>
+                  <TrendingOptions />
+                </View>
+              </View>
+
+              {/* Row 4: Richmonks Premium Reports */}
+              <View style={styles.desktopReportsCol}>
+                <PremiumReports />
+              </View>
             </View>
-          </FnoStatsProvider>
-          <TrendingStocks />
-          <TrendingOptions />
-          <MarketSentimenter />
-          <PremiumReports />
-        </View>
+          ) : (
+            <View style={styles.sections}>
+              <IndicesSection />
+              <View style={styles.sections}>
+                <FnoProfitMeter />
+                <BullVsBearSection />
+              </View>
+              <TrendingStocks />
+              <TrendingOptions />
+              <MarketSentimenter />
+              <PremiumReports />
+            </View>
+          )}
+        </FnoStatsProvider>
       </ScrollView>
     </View>
   );
@@ -110,10 +192,76 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
   },
+  desktopScroll: {
+    backgroundColor: '#FFFFFF',
+  },
   scrollContent: {
     flexGrow: 1,
   },
+  desktopScrollContent: {
+    flexGrow: 1,
+    backgroundColor: '#FFFFFF',
+  },
   sections: {
     gap: 20,
+  },
+  desktopContainer: {
+    width: '100%',
+    maxWidth: DESKTOP_MAX_WIDTH,
+    alignSelf: 'center',
+  },
+  desktopIndicesRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  desktopIndicesRowRelaxed: {
+    justifyContent: 'space-between',
+  },
+  desktopIndicesCol: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+  },
+  desktopIndicesColRelaxed: {
+    maxWidth: '46%',
+  },
+  desktopMarketRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  desktopFnoCol: {
+    flexGrow: 1.02,
+    flexShrink: 1,
+    flexBasis: 280,
+    minWidth: 260,
+  },
+  desktopBullsCol: {
+    flexGrow: 1.18,
+    flexShrink: 1,
+    flexBasis: 360,
+    minWidth: 320,
+  },
+  desktopSentimentCol: {
+    flexGrow: 0.75,
+    flexShrink: 1,
+    flexBasis: 260,
+    minWidth: 220,
+    alignSelf: 'stretch',
+  },
+  desktopTrendingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  desktopTrendingCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  desktopReportsCol: {
+    width: '100%',
   },
 });

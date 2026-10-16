@@ -146,7 +146,10 @@ function StatCard({ type = 'green', isUpTrend, title, value, titleFontSize, spac
   );
 }
 
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+
 function BullVsBearSection() {
+  const { isDesktop } = useBreakpoint();
   const [bullVsBear, setBullVsBear] = useState(null);
   const [gridWidth, setGridWidth] = useState(0);
   const [maxTitleWidth, setMaxTitleWidth] = useState(0);
@@ -192,7 +195,7 @@ function BullVsBearSection() {
   const blwIntradayLow = getStatValue(fnoStats, 'blw_intraday_low');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDesktop && styles.desktopContainer]}>
       <TitleWidthMeasurer titles={CARD_TITLES} onMeasured={handleTitlesMeasured} />
 
       <View style={styles.battleHeader}>
@@ -283,6 +286,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 24,
+  },
+  desktopContainer: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   measureRoot: {
     position: 'absolute',

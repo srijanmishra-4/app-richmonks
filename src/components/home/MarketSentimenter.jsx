@@ -15,6 +15,7 @@ const SENTIMENT_CONFIG = {
   'Fear': { color: '#E64A19' },
   'Mild Fear': { color: '#F57C00' },
   'Cautions': { color: '#F9A825' },
+  'Cautious': { color: '#F9A825' },
   'Mild Greed': { color: '#9CCC65' },
   'Greed': { color: '#43A047' },
   'Extreme Greed': { color: '#2E7D32' },
@@ -57,33 +58,37 @@ const RADIUS = (RING_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const RING_BG = '#ECECEC';
 
-function DonutRing({ score, activeColor }) {
+function DonutRing({ score, activeColor, isDesktop }) {
+  const size = isDesktop ? 104 : RING_SIZE;
+  const strokeWidth = isDesktop ? 11 : STROKE_WIDTH;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
   const pct = Math.max(0, Math.min(100, score ?? 0));
-  const cx = RING_SIZE / 2;
-  const cy = RING_SIZE / 2;
-  const filled = (pct / 100) * CIRCUMFERENCE;
-  const gap = CIRCUMFERENCE - filled;
+  const cx = size / 2;
+  const cy = size / 2;
+  const filled = (pct / 100) * circumference;
+  const gap = circumference - filled;
   const scoreLabel = score ?? '—';
 
   return (
-    <View style={styles.ringWrapper}>
+    <View style={[styles.ringWrapper, isDesktop && { width: size, height: size, minWidth: size, minHeight: size, marginRight: 0 }]}>
       <Svg
-        width={RING_SIZE}
-        height={RING_SIZE}
-        viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
         style={styles.ringSvg}
       >
-        <Circle cx={cx} cy={cy} r={RADIUS} stroke={RING_BG} strokeWidth={STROKE_WIDTH} fill="none" />
+        <Circle cx={cx} cy={cy} r={radius} stroke={RING_BG} strokeWidth={strokeWidth} fill="none" />
         {pct > 0 && (
           <Circle
             cx={cx}
             cy={cy}
-            r={RADIUS}
+            r={radius}
             stroke={activeColor}
-            strokeWidth={STROKE_WIDTH}
+            strokeWidth={strokeWidth}
             fill="none"
             strokeDasharray={`${filled} ${gap}`}
-            strokeDashoffset={CIRCUMFERENCE * 0.25}
+            strokeDashoffset={circumference * 0.25}
             strokeLinecap="round"
           />
         )}
@@ -91,7 +96,7 @@ function DonutRing({ score, activeColor }) {
           x={cx}
           y={cy}
           fill="#0F172A"
-          fontSize={20}
+          fontSize={isDesktop ? 22 : 20}
           fontFamily="Inter_700Bold"
           fontWeight="700"
           textAnchor="middle"
@@ -106,19 +111,28 @@ function DonutRing({ score, activeColor }) {
 
 // ─── Legend Item ────────────────────────────────────────────────────────────────
 
-function LegendItem({ label, isActive }) {
+function sentimentLabel(key) {
+  return key === 'Cautions' ? 'Cautious' : key;
+}
+
+function LegendItem({ label, isActive, isDesktop }) {
   const cfg = SENTIMENT_CONFIG[label];
   return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: cfg.color, opacity: isActive ? 1 : 0.35 }]} />
-      <Text style={[styles.legendLabel, isActive && styles.legendLabelActive]} numberOfLines={1}>{label}</Text>
+    <View style={[styles.legendItem, isDesktop && styles.desktopLegendItem]}>
+      <View style={[styles.legendDot, isDesktop && styles.desktopLegendDot, { backgroundColor: cfg.color, opacity: isActive ? 1 : 0.35 }]} />
+      <Text style={[styles.legendLabel, isDesktop && styles.desktopLegendLabel, isActive && styles.legendLabelActive]} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+
+const ALL_SENTIMENTS = ['Extreme Fear', 'Fear', 'Mild Fear', 'Cautions', 'Mild Greed', 'Greed', 'Extreme Greed'];
+
 function MarketSentimenter() {
+  const { isDesktop } = useBreakpoint();
   const [data, setData] = useState(null);
 
   const fetchData = useCallback(() => socketRequest('GET_MARKET_SENTIMETER'), []);
@@ -138,26 +152,47 @@ function MarketSentimenter() {
   const activeColor = activeSentiment ? SENTIMENT_CONFIG[activeSentiment].color : RING_BG;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDesktop && styles.desktopContainer]}>
       {/* Header */}
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Market Sentiment</Text>
+        <Text style={[styles.title, isDesktop && styles.desktopTitle]}>Market Sentimeter</Text>
         {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
       </View>
 
-      {/* Body: Ring + Legend */}
-      <View style={styles.body}>
-        <DonutRing score={score} activeColor={activeColor} />
+      {/* Body: ring beside the legend on mobile; ring above two tag rows on web. */}
+      <View style={[styles.body, isDesktop && styles.desktopBody]}>
+        {isDesktop ? <View style={styles.desktopTopSpace} /> : null}
+        <DonutRing score={score} activeColor={activeColor} isDesktop={isDesktop} />
+        {isDesktop ? <View style={styles.desktopMidSpace} /> : null}
 
-        {/* Legend — 2 columns */}
-        <View style={styles.legendContainer}>
-          <View style={styles.legendCol}>
-            {LEFT_COLUMN.map((l) => <LegendItem key={l} label={l} isActive={activeSentiment === l} />)}
+        {isDesktop ? (
+          <View style={styles.desktopLegendStack}>
+            <View style={styles.desktopLegendRow}>
+              {LEFT_COLUMN.map((l) => (
+                <LegendItem key={l} label={sentimentLabel(l)} isActive={activeSentiment === l} isDesktop />
+              ))}
+            </View>
+            <View style={styles.desktopLegendRow}>
+              {RIGHT_COLUMN.map((l) => (
+                <LegendItem key={l} label={l} isActive={activeSentiment === l} isDesktop />
+              ))}
+            </View>
           </View>
-          <View style={styles.legendCol}>
-            {RIGHT_COLUMN.map((l) => <LegendItem key={l} label={l} isActive={activeSentiment === l} />)}
+        ) : (
+          <View style={styles.legendContainer}>
+            <View style={styles.legendCol}>
+              {LEFT_COLUMN.map((l) => (
+                <LegendItem key={l} label={sentimentLabel(l)} isActive={activeSentiment === l} />
+              ))}
+            </View>
+            <View style={styles.legendCol}>
+              {RIGHT_COLUMN.map((l) => (
+                <LegendItem key={l} label={l} isActive={activeSentiment === l} />
+              ))}
+            </View>
           </View>
-        </View>
+        )}
+        {isDesktop ? <View style={styles.desktopBottomSpace} /> : null}
       </View>
     </View>
   );
@@ -169,10 +204,20 @@ export default memo(MarketSentimenter);
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 18, backgroundColor: '#FFFFFF' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  desktopContainer: { flex: 1, alignSelf: 'stretch', paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#0F172A' },
+  desktopTitle: { fontSize: 18 },
   timestamp: { fontSize: 11, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
-  body: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 4 },
+  body: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+  desktopBody: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  desktopTopSpace: { flexGrow: 1, flexShrink: 1, flexBasis: 0 },
+  desktopMidSpace: { flexGrow: 1.7, flexShrink: 1, flexBasis: 18 },
+  desktopBottomSpace: { flexGrow: 1.3, flexShrink: 1, flexBasis: 0 },
   // Ring — flexShrink/min size keeps SVG from collapsing on web; score lives inside SVG (no absolute overlay).
   ringWrapper: {
     width: RING_SIZE,
@@ -180,15 +225,20 @@ const styles = StyleSheet.create({
     minWidth: RING_SIZE,
     minHeight: RING_SIZE,
     flexShrink: 0,
-    marginRight: 22,
-    ...(Platform.OS === 'web' ? { alignSelf: 'flex-start' } : null),
+    marginRight: 20,
+    ...(Platform.OS === 'web' ? { alignSelf: 'center' } : null),
   },
   ringSvg: { flexShrink: 0 },
   // Legend
-  legendContainer: { flex: 1, flexDirection: 'row', gap: 12 },
+  legendContainer: { flex: 1, flexDirection: 'row', gap: 16 },
   legendCol: { flex: 1, gap: 10 },
+  desktopLegendStack: { alignItems: 'center', gap: 10, maxWidth: '100%' },
+  desktopLegendRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 14 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendLabel: { fontSize: 11.5, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  desktopLegendItem: { flexShrink: 0 },
+  legendDot: { width: 7, height: 7, borderRadius: 3.5 },
+  desktopLegendDot: { width: 7.5, height: 7.5, borderRadius: 3.75 },
+  legendLabel: { fontSize: 11.5, fontFamily: 'Inter_500Medium', color: '#64748B' },
+  desktopLegendLabel: { fontSize: 12, lineHeight: 16 },
   legendLabelActive: { color: '#0F172A', fontFamily: 'Inter_700Bold' },
 });

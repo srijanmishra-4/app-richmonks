@@ -41,7 +41,7 @@ export const ArrowDownIcon = memo(function ArrowDownIcon({ size = 20, color = '#
   );
 });
 
-/** Bar chart icon from assets/icons/home/chart-no-axes-column-increasing.svg */
+/** Rising bar chart from assets/icons/home/chart-no-axes-column-increasing.svg */
 export const ChartColumnIcon = memo(function ChartColumnIcon({ size = 18, color = '#FF0000' }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 18 18" fill="none">
@@ -49,6 +49,18 @@ export const ChartColumnIcon = memo(function ChartColumnIcon({ size = 18, color 
       <Path d="M11.25 15.75V5.25" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <Path d="M6.75 15.75V8.25" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <Path d="M2.25 15.75V11.25" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+});
+
+/** Falling bar chart — mirror of the rising bars, used for Below WAP. */
+export const ChartColumnDecreasingIcon = memo(function ChartColumnDecreasingIcon({ size = 18, color = '#FF0000' }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 18 18" fill="none">
+      <Path d="M2.25 15.75V2.25" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M6.75 15.75V5.25" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M11.25 15.75V8.25" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M15.75 15.75V11.25" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 });
