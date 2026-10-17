@@ -11,6 +11,7 @@ module.exports = {
       md: `${BREAKPOINTS.md}px`,
       lg: `${BREAKPOINTS.lg}px`,
       xl: `${BREAKPOINTS.xl}px`,
+      '2xl': `${BREAKPOINTS.xxl}px`,
     },
     extend: {},
   },

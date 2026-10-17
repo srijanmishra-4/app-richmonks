@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { router } from 'expo-router';
 
 import { socketRequest } from '@/utils/socket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import TrendingTable from '@/components/home/TrendingTable';
+import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Constants & Configuration ──────────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 function TrendingOptions() {
   const { isDesktop } = useBreakpoint();
+  const styles = useFluidStyles(createStyles);
   const [optionType, setOptionType] = useState('CE');
   const [selectedReport, setSelectedReport] = useState('abv_wap');
   const [rows, setRows] = useState([]);
@@ -230,30 +232,30 @@ export default memo(TrendingOptions);
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   container: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16, backgroundColor: '#FFFFFF' },
   desktopContainer: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#0F172A' },
-  desktopTitle: { fontSize: 20 },
+  title: { fontSize: f(18), fontFamily: 'Inter_700Bold', color: '#0F172A' },
+  desktopTitle: { fontSize: f(17, 23) },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pillBtn: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   pillActive: { backgroundColor: BLUE_ACCENT, borderWidth: 1, borderColor: BLUE_ACCENT },
   pillInactive: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0' },
-  pillText: { fontSize: 11.5, fontFamily: 'Inter_600SemiBold' },
-  desktopPillText: { fontSize: 12.5 },
+  pillText: { fontSize: f(11.5), fontFamily: 'Inter_600SemiBold' },
+  desktopPillText: { fontSize: f(11.5, 14) },
   pillTextActive: { color: '#FFFFFF' },
   pillTextInactive: { color: '#64748B', fontFamily: 'Inter_500Medium' },
-  symbolText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'left' },
-  desktopSymbolText: { fontSize: 13.5 },
-  strikeText: { alignSelf: 'stretch', fontSize: 10.5, fontFamily: 'Inter_500Medium', color: '#64748B', marginTop: 1, textAlign: 'left' },
-  desktopStrikeText: { fontSize: 11.5 },
-  wapText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  desktopWapText: { fontSize: 13.5 },
-  cmpPriceText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'right' },
-  desktopCmpPriceText: { fontSize: 13.5 },
-  cmpChangeText: { alignSelf: 'stretch', fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 1, textAlign: 'right' },
-  desktopCmpChangeText: { fontSize: 12 },
+  symbolText: { alignSelf: 'stretch', fontSize: f(12), fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'left' },
+  desktopSymbolText: { fontSize: f(12, 15) },
+  strikeText: { alignSelf: 'stretch', fontSize: f(10.5), fontFamily: 'Inter_500Medium', color: '#64748B', marginTop: 1, textAlign: 'left' },
+  desktopStrikeText: { fontSize: f(10.5, 13) },
+  wapText: { alignSelf: 'stretch', fontSize: f(12), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  desktopWapText: { fontSize: f(12, 15) },
+  cmpPriceText: { alignSelf: 'stretch', fontSize: f(12), fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'right' },
+  desktopCmpPriceText: { fontSize: f(12, 15) },
+  cmpChangeText: { alignSelf: 'stretch', fontSize: f(11), fontFamily: 'Inter_600SemiBold', marginTop: 1, textAlign: 'right' },
+  desktopCmpChangeText: { fontSize: f(11, 13) },
   viewMoreBtn: { marginTop: 14, paddingVertical: 12, borderRadius: 10, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },
-  viewMoreBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#0071A9' },
+  viewMoreBtnText: { fontSize: f(14, 16), fontFamily: 'Inter_600SemiBold', color: '#0071A9' },
 });

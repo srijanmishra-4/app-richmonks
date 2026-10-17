@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, memo } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 
 import { socketRequest } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { useFluid, useFluidStyles } from '@/utils/responsive';
 
 // ─── Sentiment Configuration ───────────────────────────────────────────────────
 // Colors mapped from reference design. The remark from the API is mapped
@@ -59,8 +60,10 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const RING_BG = '#ECECEC';
 
 function DonutRing({ score, activeColor, isDesktop }) {
-  const size = isDesktop ? 104 : RING_SIZE;
-  const strokeWidth = isDesktop ? 11 : STROKE_WIDTH;
+  const f = useFluid();
+  const styles = useFluidStyles(createStyles);
+  const size = isDesktop ? f(96, 124) : RING_SIZE;
+  const strokeWidth = isDesktop ? f(10, 13) : STROKE_WIDTH;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const pct = Math.max(0, Math.min(100, score ?? 0));
@@ -96,7 +99,7 @@ function DonutRing({ score, activeColor, isDesktop }) {
           x={cx}
           y={cy}
           fill="#0F172A"
-          fontSize={isDesktop ? 22 : 20}
+          fontSize={isDesktop ? f(20, 27) : f(20)}
           fontFamily="Inter_700Bold"
           fontWeight="700"
           textAnchor="middle"
@@ -116,6 +119,7 @@ function sentimentLabel(key) {
 }
 
 function LegendItem({ label, isActive, isDesktop }) {
+  const styles = useFluidStyles(createStyles);
   const cfg = SENTIMENT_CONFIG[label];
   return (
     <View style={[styles.legendItem, isDesktop && styles.desktopLegendItem]}>
@@ -133,6 +137,7 @@ const ALL_SENTIMENTS = ['Extreme Fear', 'Fear', 'Mild Fear', 'Cautions', 'Mild G
 
 function MarketSentimenter() {
   const { isDesktop } = useBreakpoint();
+  const styles = useFluidStyles(createStyles);
   const [data, setData] = useState(null);
 
   const fetchData = useCallback(() => socketRequest('GET_MARKET_SENTIMETER'), []);
@@ -202,13 +207,13 @@ export default memo(MarketSentimenter);
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   container: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 18, backgroundColor: '#FFFFFF' },
   desktopContainer: { flex: 1, alignSelf: 'stretch', paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#0F172A' },
-  desktopTitle: { fontSize: 18 },
-  timestamp: { fontSize: 11, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
+  title: { fontSize: f(18), fontFamily: 'Inter_700Bold', color: '#0F172A' },
+  desktopTitle: { fontSize: f(16, 21) },
+  timestamp: { fontSize: f(11, 13), fontFamily: 'Inter_400Regular', color: '#94A3B8' },
   body: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
   desktopBody: {
     flex: 1,
@@ -238,7 +243,7 @@ const styles = StyleSheet.create({
   desktopLegendItem: { flexShrink: 0 },
   legendDot: { width: 7, height: 7, borderRadius: 3.5 },
   desktopLegendDot: { width: 7.5, height: 7.5, borderRadius: 3.75 },
-  legendLabel: { fontSize: 11.5, fontFamily: 'Inter_500Medium', color: '#64748B' },
-  desktopLegendLabel: { fontSize: 12, lineHeight: 16 },
+  legendLabel: { fontSize: f(11.5), fontFamily: 'Inter_500Medium', color: '#64748B' },
+  desktopLegendLabel: { fontSize: f(11.5, 14), lineHeight: f(16, 19) },
   legendLabelActive: { color: '#0F172A', fontFamily: 'Inter_700Bold' },
 });

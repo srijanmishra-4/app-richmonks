@@ -1,10 +1,11 @@
 import { memo } from 'react';
-import { View, Text, Image, TextInput, Pressable, Platform, StyleSheet } from 'react-native';
+import { View, Text, Image, TextInput, Pressable, Platform } from 'react-native';
 import { router, usePathname } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
 import { SearchIcon } from '@/components/icons/NavIcons';
 import { getInitials } from '@/components/home/HomeHeader';
+import { useFluidStyles } from '@/utils/responsive';
 
 const logoAsset = require('@/assets/logo.png');
 
@@ -29,6 +30,7 @@ function DesktopHeader() {
   const { user } = useAuth();
   const pathname = usePathname() || '';
   const initials = getInitials(user?.full_name);
+  const styles = useFluidStyles(createStyles);
 
   const isHome = pathname.startsWith('/home') || pathname === '/' || pathname === '';
   const isTrades = pathname.startsWith('/trades');
@@ -111,7 +113,7 @@ function DesktopHeader() {
 
 export default memo(DesktopHeader);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   container: {
     height: 60,
     backgroundColor: '#FFFFFF',
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 8,
-    fontSize: 13,
+    fontSize: f(13, 15),
     fontFamily: 'Inter_400Regular',
     color: '#0F172A',
     padding: 0,
@@ -163,7 +165,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   navLabel: {
-    fontSize: 14,
+    fontSize: f(13, 16),
     fontFamily: 'Inter_500Medium',
     color: '#64748B',
   },
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 13,
+    fontSize: f(12, 14),
     fontFamily: 'Inter_600SemiBold',
     color: '#FFFFFF',
     letterSpacing: 0.3,

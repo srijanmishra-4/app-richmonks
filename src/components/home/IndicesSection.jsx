@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { View, Text, Image, Pressable, Platform, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { socketRequest } from '@/utils/socket';
+import { cdnApi } from '@/utils/api';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import LineGraph from '@/components/LineGraph';
+import { useFluidStyles } from '@/utils/responsive';
 
 const PERIODS = [
   { key: '1D', label: '1 Day', series: 'graphData' },
@@ -167,8 +169,51 @@ function graphPayload(value) {
 
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
-function IndicesSection({ symbol: fixedSymbol } = {}) {
+function IndexLogo({ symbol }) {
+  const [failed, setFailed] = useState(false);
+  const styles = useFluidStyles(createStyles);
+  if (failed) return null;
+  return (
+    <Image
+      source={{ uri: cdnApi(symbol) }}
+      style={styles.indexLogo}
+      resizeMode="contain"
+      onError={() => setFailed(true)}
+      accessibilityLabel={`${symbol} logo`}
+    />
+  );
+}
+
+function IndexIdentity({ symbol, expiryDate, price, changeStr, priceDown, desktop, noTabs }) {
+  const styles = useFluidStyles(createStyles);
+  return (
+    <View style={[
+      styles.identityRow,
+      desktop ? styles.desktopTitleRow : styles.titleRow,
+      desktop && noTabs ? styles.desktopTitleRowNoTabs : null,
+    ]}>
+      <IndexLogo key={symbol} symbol={symbol} />
+      <View style={styles.identityText}>
+        <Text style={[styles.symbolTitle, desktop ? styles.desktopSymbolTitle : null]}>
+          {symbol === 'NIFTY' ? 'NIFTY FUTURES' : 'BANKNIFTY FUTURES'}
+          {expiryDate ? <Text style={[styles.expiryText, desktop ? styles.desktopExpiryText : null]}>   {expiryDate}</Text> : null}
+        </Text>
+        <View style={styles.priceRow}>
+          <Text style={[styles.priceText, desktop ? styles.desktopPriceText : null]}>{price}</Text>
+          {changeStr ? (
+            <Text style={[styles.changeText, desktop ? styles.desktopChangeText : null, { color: priceDown ? '#DC2626' : '#16A34A' }]}>
+              {changeStr}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function IndicesSection({ symbol: fixedSymbol, stackStats = false } = {}) {
   const { isDesktop } = useBreakpoint();
+  const styles = useFluidStyles(createStyles);
   const [data, setData] = useState(null);
   const [internalSelected, setInternalSelected] = useState(fixedSymbol || 'NIFTY');
   const selected = fixedSymbol || internalSelected;
@@ -250,8 +295,8 @@ function IndicesSection({ symbol: fixedSymbol } = {}) {
     <View style={[styles.container, isDesktop && styles.desktopContainer]}>
       {isDesktop ? (
         /* Desktop Header: 2 Columns (Left: Status -> Tabs -> Title -> Price; Right: Metrics Table) */
-        <View style={styles.desktopHeaderRow}>
-          <View style={styles.desktopHeaderLeftCol}>
+        <View style={[styles.desktopHeaderRow, stackStats && styles.desktopHeaderRowStacked]}>
+          <View style={[styles.desktopHeaderLeftCol, stackStats && styles.desktopHeaderLeftColStacked]}>
             <View style={styles.desktopStatusRow}>
               <View style={styles.statusDot} />
               <Text style={styles.statusText}>Market Open</Text>
@@ -281,24 +326,18 @@ function IndicesSection({ symbol: fixedSymbol } = {}) {
               </View>
             )}
 
-            <View style={[styles.titleRow, styles.desktopTitleRow, fixedSymbol && styles.desktopTitleRowNoTabs]}>
-              <Text style={styles.symbolTitle}>
-                {selected === 'NIFTY' ? 'NIFTY FUTURES' : 'BANKNIFTY FUTURES'}
-                {expiryDate ? <Text style={styles.expiryText}>   {expiryDate}</Text> : null}
-              </Text>
-            </View>
-
-            <View style={styles.priceRow}>
-              <Text style={[styles.priceText, styles.desktopPriceText]}>{price}</Text>
-              {changeStr ? (
-                <Text style={[styles.changeText, { color: priceDown ? '#DC2626' : '#16A34A' }]}>
-                  {changeStr}
-                </Text>
-              ) : null}
-            </View>
+            <IndexIdentity
+              symbol={selected}
+              expiryDate={expiryDate}
+              price={price}
+              changeStr={changeStr}
+              priceDown={priceDown}
+              desktop
+              noTabs={!!fixedSymbol}
+            />
           </View>
 
-          <View style={styles.desktopMetricsTable}>
+          <View style={[styles.desktopMetricsTable, stackStats && styles.desktopMetricsTableStacked]}>
             <View style={styles.desktopMetricRow}>
               <Text style={styles.tableLabel}>OI</Text>
               <View style={styles.oiValueRow}>
@@ -385,22 +424,13 @@ function IndicesSection({ symbol: fixedSymbol } = {}) {
             )}
           </View>
 
-          {/* Instrument Title & Price (Mobile) */}
-          <View style={styles.titleRow}>
-            <Text style={styles.symbolTitle}>
-              {selected === 'NIFTY' ? 'NIFTY FUTURES' : 'BANKNIFTY FUTURES'}
-              {expiryDate ? <Text style={styles.expiryText}>   {expiryDate}</Text> : null}
-            </Text>
-          </View>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.priceText}>{price}</Text>
-            {changeStr ? (
-              <Text style={[styles.changeText, { color: priceDown ? '#DC2626' : '#16A34A' }]}>
-                {changeStr}
-              </Text>
-            ) : null}
-          </View>
+          <IndexIdentity
+            symbol={selected}
+            expiryDate={expiryDate}
+            price={price}
+            changeStr={changeStr}
+            priceDown={priceDown}
+          />
 
           {/* Metrics Table Card (Mobile) */}
           <View style={styles.tableCard}>
@@ -517,7 +547,7 @@ function IndicesSection({ symbol: fixedSymbol } = {}) {
 
 export default memo(IndicesSection);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   container: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -543,7 +573,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0071A9',
   },
   tabText: {
-    fontSize: 12,
+    fontSize: f(12),
     fontFamily: 'Inter_600SemiBold',
     color: '#0F172A',
   },
@@ -565,12 +595,12 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: f(11, 13),
     fontFamily: 'Inter_600SemiBold',
     color: '#0F172A',
   },
   cdateText: {
-    fontSize: 10,
+    fontSize: f(10),
     fontFamily: 'Inter_400Regular',
     color: '#64748B',
     marginTop: 1,
@@ -578,15 +608,36 @@ const styles = StyleSheet.create({
   titleRow: {
     marginTop: 14,
   },
+  identityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+  },
+  identityText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  indexLogo: {
+    width: 36,
+    height: 36,
+  },
   symbolTitle: {
-    fontSize: 18,
+    flexShrink: 1,
+    fontSize: f(18),
     fontFamily: 'Inter_700Bold',
     color: '#0F172A',
   },
+  desktopSymbolTitle: {
+    fontSize: f(15, 18),
+  },
   expiryText: {
-    fontSize: 13,
+    fontSize: f(13),
     fontFamily: 'Inter_400Regular',
     color: '#64748B',
+  },
+  desktopExpiryText: {
+    fontSize: f(11, 13),
   },
   priceRow: {
     flexDirection: 'row',
@@ -596,13 +647,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   priceText: {
-    fontSize: 24,
+    fontSize: f(24),
     fontFamily: 'Inter_700Bold',
     color: '#0F172A',
   },
   changeText: {
-    fontSize: 14,
+    fontSize: f(14),
     fontFamily: 'Inter_600SemiBold',
+  },
+  desktopChangeText: {
+    fontSize: f(12, 14.5),
   },
   tableCard: {
     backgroundColor: '#FFFFFF',
@@ -624,12 +678,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   tableLabel: {
-    fontSize: 12,
+    fontSize: f(12, 13.5),
     fontFamily: 'Inter_500Medium',
     color: '#64748B',
   },
   tableValue: {
-    fontSize: 12,
+    fontSize: f(12, 13.5),
     fontFamily: 'Inter_600SemiBold',
     color: '#0F172A',
   },
@@ -639,7 +693,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   oiChg: {
-    fontSize: 11,
+    fontSize: f(11, 12.5),
     fontFamily: 'Inter_500Medium',
   },
   badge: {
@@ -654,7 +708,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: f(11, 13),
     fontFamily: 'Inter_600SemiBold',
   },
   badgeTextStrong: {
@@ -684,12 +738,12 @@ const styles = StyleSheet.create({
     minWidth: 64,
   },
   rangeLabel: {
-    fontSize: 11,
+    fontSize: f(11, 13),
     fontFamily: 'Inter_400Regular',
     color: '#64748B',
   },
   rangeVal: {
-    fontSize: 12,
+    fontSize: f(12, 13.5),
     fontFamily: 'Inter_700Bold',
     color: '#0F172A',
     marginTop: 1,
@@ -742,7 +796,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   periodText: {
-    fontSize: 12,
+    fontSize: f(12, 13.5),
   },
   periodTextActive: {
     fontFamily: 'Inter_600SemiBold',
@@ -765,9 +819,23 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   desktopHeaderLeftCol: {
-    flex: 1.15,
+    flexGrow: 1.15,
+    flexShrink: 1,
+    flexBasis: 0,
     minWidth: 160,
     justifyContent: 'center',
+  },
+  desktopHeaderRowStacked: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
+  },
+  desktopHeaderLeftColStacked: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    width: '100%',
+    minWidth: 0,
   },
   desktopStatusRow: {
     flexDirection: 'row',
@@ -775,7 +843,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   desktopCdateText: {
-    fontSize: 11,
+    fontSize: f(11, 13),
     fontFamily: 'Inter_400Regular',
     color: '#64748B',
   },
@@ -794,7 +862,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   desktopTabText: {
-    fontSize: 13.5,
+    fontSize: f(12.5, 14),
     fontFamily: 'Inter_600SemiBold',
     color: '#0F172A',
   },
@@ -806,10 +874,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   desktopPriceText: {
-    fontSize: 24,
+    fontSize: f(20, 26),
   },
   desktopMetricsTable: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
     minWidth: 180,
     maxWidth: 240,
     backgroundColor: '#FFFFFF',
@@ -818,6 +888,15 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     paddingHorizontal: 12,
     paddingVertical: 4,
+  },
+  desktopMetricsTableStacked: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    width: '100%',
+    minWidth: 0,
+    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
   desktopMetricRow: {
     flexDirection: 'row',

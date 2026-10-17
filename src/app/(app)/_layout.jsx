@@ -73,19 +73,19 @@ export const unstable_settings = {
 };
 
 export default function AppLayout() {
-  const { isDesktop } = useBreakpoint();
+  const { isLaptop } = useBreakpoint();
 
   return (
     <CommonDataProvider>
       <RefreshProvider>
         <View style={styles.appContainer}>
-          {isDesktop && <DesktopHeader />}
+          {isLaptop && <DesktopHeader />}
           <Tabs
-            tabBar={(props) => (isDesktop ? null : <TabBar {...props} />)}
+            tabBar={(props) => (isLaptop ? null : <TabBar {...props} />)}
             backBehavior="history"
             screenOptions={{
               headerShown: false,
-              tabBarStyle: isDesktop ? { display: 'none' } : undefined,
+              tabBarStyle: isLaptop ? { display: 'none' } : undefined,
             }}
           >
             <Tabs.Screen name="index" options={{ href: null }} />

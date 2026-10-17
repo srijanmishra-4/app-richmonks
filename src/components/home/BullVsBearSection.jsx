@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, memo, useRef } from 'react';
-import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { router } from 'expo-router';
 
 import { socketRequest } from '@/utils/socket';
@@ -14,6 +14,7 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
 } from '@/components/icons/HomeIcons';
+import { useFluid, useFluidStyles } from '@/utils/responsive';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -25,7 +26,6 @@ const CARD_TITLES = [
   'Below Intraday Low',
 ];
 
-const HEADER_FONT_MAX = 12;
 const GRID_GAP = 10;
 const CARD_BORDER = 1;
 
@@ -56,24 +56,25 @@ function computeTitleSlotWidth(gridWidth, spacing) {
 
 /**
  * Text width scales linearly with font size, so the longest title measured at
- * HEADER_FONT_MAX is enough to derive the one size that fits every card.
+ * fontMax is enough to derive the one size that fits every card.
  */
-function resolveHeaderFontSize(slotWidth, maxTitleWidth, fontMin) {
+function resolveHeaderFontSize(slotWidth, maxTitleWidth, fontMin, fontMax) {
   if (slotWidth <= 0 || maxTitleWidth <= 0) return fontMin;
 
   // 1px guard absorbs sub-pixel rounding that would otherwise trigger an ellipsis.
   const usable = slotWidth - 1;
-  if (maxTitleWidth <= usable) return HEADER_FONT_MAX;
+  if (maxTitleWidth <= usable) return fontMax;
 
-  const fitted = Math.floor(HEADER_FONT_MAX * (usable / maxTitleWidth) * 10) / 10;
-  return Math.min(HEADER_FONT_MAX, Math.max(fontMin, fitted));
+  const fitted = Math.floor(fontMax * (usable / maxTitleWidth) * 10) / 10;
+  return Math.min(fontMax, Math.max(fontMin, fitted));
 }
 
 /**
- * Renders every title once at HEADER_FONT_MAX inside an off-screen row wide enough that
+ * Renders every title once at fontSize inside an off-screen row wide enough that
  * nothing can wrap, so each onLayout width is the text's natural single-line width.
  */
-function TitleWidthMeasurer({ titles, onMeasured }) {
+function TitleWidthMeasurer({ titles, fontSize, onMeasured }) {
+  const styles = useFluidStyles(createStyles);
   const widthsRef = useRef([]);
 
   const handleLayout = useCallback(
@@ -98,7 +99,7 @@ function TitleWidthMeasurer({ titles, onMeasured }) {
       {titles.map((title, index) => (
         <Text
           key={title}
-          style={styles.measureText}
+          style={[styles.measureText, { fontSize }]}
           onLayout={(event) => handleLayout(index, event)}
         >
           {title}
@@ -108,7 +109,8 @@ function TitleWidthMeasurer({ titles, onMeasured }) {
   );
 }
 
-function StatCard({ type = 'green', isUpTrend, title, value, titleFontSize, spacing }) {
+function StatCard({ type = 'green', isUpTrend, title, value, titleFontSize, titleFontMax, spacing }) {
+  const styles = useFluidStyles(createStyles);
   const isGreen = type === 'green';
   const color = isGreen ? GREEN : RED;
   const TrendIcon = isUpTrend ? TradeUpIcon : TradeDownIcon;
@@ -124,7 +126,7 @@ function StatCard({ type = 'green', isUpTrend, title, value, titleFontSize, spac
         { paddingHorizontal: spacing.padH },
       ]}
     >
-      <View style={[styles.cardTopRow, { gap: spacing.rowGap }]}>
+      <View style={[styles.cardTopRow, { gap: spacing.rowGap, minHeight: Math.ceil(titleFontMax * 1.35) }]}>
         <TrendIcon size={spacing.iconSize} color={color} />
         <View style={styles.cardTitleSlot}>
           <Text
@@ -150,6 +152,9 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 function BullVsBearSection() {
   const { isDesktop } = useBreakpoint();
+  const f = useFluid();
+  const styles = useFluidStyles(createStyles);
+  const headerFontMax = f(12, 14);
   const [bullVsBear, setBullVsBear] = useState(null);
   const [gridWidth, setGridWidth] = useState(0);
   const [maxTitleWidth, setMaxTitleWidth] = useState(0);
@@ -184,6 +189,7 @@ function BullVsBearSection() {
     computeTitleSlotWidth(gridWidth, spacing),
     maxTitleWidth,
     spacing.fontMin,
+    headerFontMax,
   );
 
   const bullCount = bullVsBear?.data?.bull ?? bullVsBear?.bull ?? '—';
@@ -196,7 +202,7 @@ function BullVsBearSection() {
 
   return (
     <View style={[styles.container, isDesktop && styles.desktopContainer]}>
-      <TitleWidthMeasurer titles={CARD_TITLES} onMeasured={handleTitlesMeasured} />
+      <TitleWidthMeasurer titles={CARD_TITLES} fontSize={headerFontMax} onMeasured={handleTitlesMeasured} />
 
       <View style={styles.battleHeader}>
         <View style={styles.sideCol}>
@@ -229,6 +235,7 @@ function BullVsBearSection() {
               title={CARD_TITLES[0]}
               value={abvHigh}
               titleFontSize={headerFontSize}
+              titleFontMax={headerFontMax}
               spacing={spacing}
             />
           </View>
@@ -239,6 +246,7 @@ function BullVsBearSection() {
               title={CARD_TITLES[2]}
               value={abvIntradayHigh}
               titleFontSize={headerFontSize}
+              titleFontMax={headerFontMax}
               spacing={spacing}
             />
           </View>
@@ -251,6 +259,7 @@ function BullVsBearSection() {
               title={CARD_TITLES[1]}
               value={belowLow}
               titleFontSize={headerFontSize}
+              titleFontMax={headerFontMax}
               spacing={spacing}
             />
           </View>
@@ -261,6 +270,7 @@ function BullVsBearSection() {
               title={CARD_TITLES[3]}
               value={blwIntradayLow}
               titleFontSize={headerFontSize}
+              titleFontMax={headerFontMax}
               spacing={spacing}
             />
           </View>
@@ -281,7 +291,7 @@ function BullVsBearSection() {
 
 export default memo(BullVsBearSection);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   container: {
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -304,7 +314,6 @@ const styles = StyleSheet.create({
   measureText: {
     alignSelf: 'flex-start',
     fontFamily: 'Inter_600SemiBold',
-    fontSize: HEADER_FONT_MAX,
   },
   battleHeader: {
     flexDirection: 'row',
@@ -317,13 +326,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sideLabel: {
-    fontSize: 12,
+    fontSize: f(12, 14),
     fontFamily: 'Inter_600SemiBold',
     color: '#64748B',
     letterSpacing: 0.5,
   },
   sideCount: {
-    fontSize: 22,
+    fontSize: f(22, 28),
     fontFamily: 'Inter_700Bold',
     marginTop: 2,
   },
@@ -346,7 +355,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
   },
   vsText: {
-    fontSize: 12,
+    fontSize: f(12, 14),
     fontFamily: 'Inter_700Bold',
     color: '#94A3B8',
   },
@@ -381,7 +390,6 @@ const styles = StyleSheet.create({
   cardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: Math.ceil(HEADER_FONT_MAX * 1.35),
   },
   cardTitleSlot: {
     flex: 1,
@@ -398,7 +406,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   cardCount: {
-    fontSize: 14,
+    fontSize: f(14, 16),
     fontFamily: 'Inter_700Bold',
   },
   reportBtn: {
@@ -410,7 +418,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   reportBtnText: {
-    fontSize: 14,
+    fontSize: f(14, 16),
     fontFamily: 'Inter_600SemiBold',
     color: '#0071A9',
   },

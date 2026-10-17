@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { router } from 'expo-router';
 
 import { socketRequest } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import TrendingTable from '@/components/home/TrendingTable';
+import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Constants & Configuration ──────────────────────────────────────────────────
 
@@ -157,6 +158,7 @@ function normalizeResponse(payload) {
 
 function TrendingStocks() {
   const { isDesktop } = useBreakpoint();
+  const styles = useFluidStyles(createStyles);
   const [filter, setFilter] = useState('positive'); // 'positive' | 'negative'
   const [selectedReport, setSelectedReport] = useState('cr_2_day_low');
   const [reportCache, setReportCache] = useState(INITIAL_DATA_BY_REPORT);
@@ -312,29 +314,29 @@ export default memo(TrendingStocks);
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   container: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16, backgroundColor: '#FFFFFF' },
   desktopContainer: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#0F172A' },
-  titleDesktop: { fontSize: 20 },
+  title: { fontSize: f(18), fontFamily: 'Inter_700Bold', color: '#0F172A' },
+  titleDesktop: { fontSize: f(17, 23) },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pillBtn: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   pillPositiveActive: { backgroundColor: '#16A34A', borderWidth: 1, borderColor: '#16A34A' },
   pillNegativeActive: { backgroundColor: '#DC2626', borderWidth: 1, borderColor: '#DC2626' },
   pillInactive: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0' },
-  pillText: { fontSize: 11.5, fontFamily: 'Inter_600SemiBold' },
-  pillTextDesktop: { fontSize: 12.5 },
+  pillText: { fontSize: f(11.5), fontFamily: 'Inter_600SemiBold' },
+  pillTextDesktop: { fontSize: f(11.5, 14) },
   pillTextActive: { color: '#FFFFFF' },
   pillTextInactive: { color: '#64748B', fontFamily: 'Inter_500Medium' },
-  symbolText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'left' },
-  symbolTextDesktop: { fontSize: 13.5 },
-  levelText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  levelTextDesktop: { fontSize: 13.5 },
-  cmpPriceText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'right' },
-  cmpPriceTextDesktop: { fontSize: 13.5 },
-  cmpChangeText: { alignSelf: 'stretch', fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 1, textAlign: 'right' },
-  cmpChangeTextDesktop: { fontSize: 12 },
+  symbolText: { alignSelf: 'stretch', fontSize: f(12), fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'left' },
+  symbolTextDesktop: { fontSize: f(12, 15) },
+  levelText: { alignSelf: 'stretch', fontSize: f(12), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  levelTextDesktop: { fontSize: f(12, 15) },
+  cmpPriceText: { alignSelf: 'stretch', fontSize: f(12), fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'right' },
+  cmpPriceTextDesktop: { fontSize: f(12, 15) },
+  cmpChangeText: { alignSelf: 'stretch', fontSize: f(11), fontFamily: 'Inter_600SemiBold', marginTop: 1, textAlign: 'right' },
+  cmpChangeTextDesktop: { fontSize: f(11, 13) },
   viewMoreBtn: { marginTop: 14, paddingVertical: 12, borderRadius: 10, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },
-  viewMoreBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#0071A9' },
+  viewMoreBtnText: { fontSize: f(14, 16), fontFamily: 'Inter_600SemiBold', color: '#0071A9' },
 });

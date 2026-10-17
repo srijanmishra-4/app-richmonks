@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { View, Text, Image, Pressable, Platform, StyleSheet } from 'react-native';
 
 import { SearchIcon } from '@/components/icons/NavIcons';
+import { useFluidStyles } from '@/utils/responsive';
 
 const rmIcon = require('@/assets/icon.png');
 
@@ -14,6 +15,7 @@ export function getInitials(fullName) {
 
 function HomeHeader({ user, onAvatarPress }) {
   const initials = getInitials(user?.full_name);
+  const styles = useFluidStyles(createStyles);
 
   return (
     <View style={styles.container}>
@@ -36,7 +38,7 @@ function HomeHeader({ user, onAvatarPress }) {
 
 export default memo(HomeHeader);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -62,7 +64,7 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : null),
   },
   searchPlaceholder: {
-    fontSize: 14,
+    fontSize: f(14),
     fontFamily: 'Inter_400Regular',
     color: '#94A3B8',
     marginLeft: 8,
@@ -77,7 +79,7 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : null),
   },
   avatarText: {
-    fontSize: 14,
+    fontSize: f(14),
     fontFamily: 'Inter_600SemiBold',
     color: '#FFFFFF',
     letterSpacing: 0.5,

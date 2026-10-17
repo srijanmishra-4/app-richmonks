@@ -19,12 +19,14 @@ import PremiumReports from '@/components/home/PremiumReports';
 import { FnoStatsProvider } from '@/context/FnoStatsContext';
 
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { clamp } from '@/utils/responsive';
+import { clamp, useFluid, SIDEBAR_WIDTH } from '@/utils/responsive';
 
-// Matches the fixed watchlist column in the home stack. Used only to decide
-// when the indices row is wide enough to give its gutter the spare width.
-const SIDEBAR_WIDTH = 420;
 const DESKTOP_MAX_WIDTH = 1440;
+// Futures + price beside the OI/WAP card needs about this much per index.
+// Below it, both Nifty and Bank Nifty stack the stats card under the price.
+const INDEX_HEADER_STACK_BELOW = 520;
+// Narrower than this per index (small tablets), Nifty and Bank Nifty stack vertically.
+const INDICES_STACK_BELOW = 300;
 
 function fluidNum(min, vwPercent, max, viewport) {
   return clamp(min, (vwPercent / 100) * viewport, max);
@@ -41,14 +43,22 @@ const tickerItems = [];
 export default function HomeScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const { isDesktop, width } = useBreakpoint();
+  const { isDesktop, isLaptop, width } = useBreakpoint();
+  const f = useFluid();
+  const sidebarWidth = isLaptop ? f(SIDEBAR_WIDTH.min, SIDEBAR_WIDTH.max) : 0;
   const padHNum = fluidNum(20, 2, 36, width);
   const indicesGapNum = fluidNum(24, 2.2, 40, width);
-  const paneWidth = Math.max(0, width - SIDEBAR_WIDTH - padHNum * 2);
+  const paneWidth = Math.max(0, width - sidebarWidth - padHNum * 2);
   const layoutWidth = Math.min(paneWidth, DESKTOP_MAX_WIDTH);
   // Once each index would otherwise exceed ~440px, cap the pair slightly under
   // half the row so the spare width becomes the gutter between them.
-  const relaxIndices = (layoutWidth - indicesGapNum) / 2 > 440;
+  const indexHalf = (layoutWidth - indicesGapNum) / 2;
+  const stackIndices = indexHalf < INDICES_STACK_BELOW;
+  const relaxIndices = !stackIndices && indexHalf > 440;
+  const indexColWidth = stackIndices
+    ? layoutWidth
+    : relaxIndices ? Math.min(indexHalf, layoutWidth * 0.46) : indexHalf;
+  const stackIndexStats = indexColWidth < INDEX_HEADER_STACK_BELOW;
   const spacing = {
     padH: fluidSpace(20, 2, 36, width),
     padTop: fluidSpace(18, 1.6, 32, width),
@@ -94,11 +104,11 @@ export default function HomeScreen() {
 
   return (
     <View
-      style={[styles.root, { paddingTop: isDesktop ? 0 : insets.top }]}
+      style={[styles.root, { paddingTop: isLaptop ? 0 : insets.top }]}
       onTouchStart={handleScreenTouch}
     >
-      {/* Fixed Header (Mobile only; Desktop uses global DesktopHeader) */}
-      {!isDesktop && (
+      {/* Laptops use the global DesktopHeader. Tablets and phones use this bar plus the bottom tabs. */}
+      {!isLaptop && (
         <HomeHeader user={user} onAvatarPress={() => router.push('/profile')} />
       )}
 
@@ -127,12 +137,12 @@ export default function HomeScreen() {
           {isDesktop ? (
             <View style={[styles.desktopContainer, { gap: spacing.sectionGap }]}>
               {/* Row 1: NIFTY and BANKNIFTY Side-by-Side */}
-              <View style={[styles.desktopIndicesRow, relaxIndices && styles.desktopIndicesRowRelaxed, { gap: spacing.indicesGap }]}>
-                <View style={[styles.desktopIndicesCol, relaxIndices && styles.desktopIndicesColRelaxed]}>
-                  <IndicesSection symbol="NIFTY" />
+              <View style={[styles.desktopIndicesRow, relaxIndices && styles.desktopIndicesRowRelaxed, stackIndices && styles.desktopIndicesRowStacked, { gap: spacing.indicesGap }]}>
+                <View style={[styles.desktopIndicesCol, relaxIndices && styles.desktopIndicesColRelaxed, stackIndices && styles.desktopIndicesColStacked]}>
+                  <IndicesSection symbol="NIFTY" stackStats={stackIndexStats} />
                 </View>
-                <View style={[styles.desktopIndicesCol, relaxIndices && styles.desktopIndicesColRelaxed]}>
-                  <IndicesSection symbol="BANKNIFTY" />
+                <View style={[styles.desktopIndicesCol, relaxIndices && styles.desktopIndicesColRelaxed, stackIndices && styles.desktopIndicesColStacked]}>
+                  <IndicesSection symbol="BANKNIFTY" stackStats={stackIndexStats} />
                 </View>
               </View>
 
@@ -227,6 +237,14 @@ const styles = StyleSheet.create({
   desktopIndicesColRelaxed: {
     maxWidth: '46%',
   },
+  desktopIndicesRowStacked: {
+    flexDirection: 'column',
+  },
+  desktopIndicesColStacked: {
+    flexGrow: 0,
+    flexBasis: 'auto',
+    width: '100%',
+  },
   desktopMarketRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -255,10 +273,14 @@ const styles = StyleSheet.create({
   },
   desktopTrendingRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'flex-start',
   },
+  // Wraps to one table per row once two would be narrower than this.
   desktopTrendingCol: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 300,
     minWidth: 0,
   },
   desktopReportsCol: {

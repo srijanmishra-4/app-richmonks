@@ -1,6 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useFluid, SIDEBAR_WIDTH } from '@/utils/responsive';
 import WatchlistScreen from '@/screens/watchlist/WatchlistScreen';
 
 // Deep links to a report still land with Home underneath, so Back returns to /home.
@@ -9,16 +10,17 @@ export const unstable_settings = {
 };
 
 export default function HomeStackLayout() {
-  const { isDesktop } = useBreakpoint();
+  const { isLaptop } = useBreakpoint();
+  const f = useFluid();
 
-  if (!isDesktop) {
+  if (!isLaptop) {
     return <Stack screenOptions={{ headerShown: false }} />;
   }
 
   return (
     <View style={styles.desktopShell}>
-      {/* Fixed Watchlist sidebar on the left */}
-      <View style={styles.desktopSidebar}>
+      {/* Watchlist sidebar on the left */}
+      <View style={[styles.desktopSidebar, { width: f(SIDEBAR_WIDTH.min, SIDEBAR_WIDTH.max) }]}>
         <WatchlistScreen isSidebar />
       </View>
       {/* Main dashboard or report screen on the right */}
@@ -37,7 +39,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   desktopSidebar: {
-    width: 420,
     height: '100%',
     backgroundColor: '#FFFFFF',
     borderRightWidth: 1,

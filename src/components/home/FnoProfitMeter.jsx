@@ -7,6 +7,7 @@ import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { useFnoStats } from '@/context/FnoStatsContext';
 import { TradeUpIcon, TradeDownIcon, ArrowUpIcon, ArrowDownIcon, ChartColumnIcon, ChartColumnDecreasingIcon } from '@/components/icons/HomeIcons';
+import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Formatting ────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 function FnoProfitMeter() {
   const { isDesktop } = useBreakpoint();
+  const styles = useFluidStyles(createStyles);
   const [ppl, setPpl] = useState(null);
   const [advDec, setAdvDec] = useState(null);
   const fnoStats = useFnoStats();
@@ -125,7 +127,7 @@ function FnoProfitMeter() {
 
       {/* Main P&L */}
       <View style={[styles.plSection, isDesktop && styles.desktopPlSection]}>
-        <Text style={[styles.plValue, { color: plColor }]}>{formatIndianCurrency(pl1day)}</Text>
+        <Text style={[styles.plValue, isDesktop && styles.desktopPlValue, { color: plColor }]}>{formatIndianCurrency(pl1day)}</Text>
         <Text style={[styles.plPct, { color: plColor }]}>{formatPctSigned(pl1daypercent)}</Text>
       </View>
 
@@ -191,7 +193,7 @@ export default memo(FnoProfitMeter);
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   container: {
     paddingHorizontal: 16,
     paddingTop: 20,
@@ -223,18 +225,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: f(16, 19),
     fontFamily: 'Inter_700Bold',
     color: '#0F172A',
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: f(11, 13),
     fontFamily: 'Inter_400Regular',
     color: '#0F172A',
     marginTop: 1,
   },
   cdate: {
-    fontSize: 11,
+    fontSize: f(11, 13),
     fontFamily: 'Inter_400Regular',
     color: '#94A3B8',
     alignSelf: 'flex-start',
@@ -246,11 +248,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   plValue: {
-    fontSize: 28,
+    fontSize: f(28),
     fontFamily: 'Inter_700Bold',
   },
+  desktopPlValue: {
+    fontSize: f(24, 34),
+  },
   plPct: {
-    fontSize: 14,
+    fontSize: f(14, 16),
     fontFamily: 'Inter_600SemiBold',
     marginTop: 4,
   },
@@ -278,13 +283,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: f(11, 13),
     fontFamily: 'Inter_400Regular',
     color: '#64748B',
     textAlign: 'center',
   },
   statValue: {
-    fontSize: 16,
+    fontSize: f(16, 19),
     fontFamily: 'Inter_700Bold',
     textAlign: 'center',
   },
@@ -302,7 +307,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   reportBtnText: {
-    fontSize: 14,
+    fontSize: f(14, 16),
     fontFamily: 'Inter_600SemiBold',
     color: '#0071A9',
   },

@@ -1,6 +1,8 @@
 import { memo, useEffect, useRef } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 
+import { useFluidStyles } from '@/utils/responsive';
+
 /**
  * Horizontally auto-scrolling market ticker.
  * Data-driven — accepts `items` prop; renders nothing when empty.
@@ -13,6 +15,7 @@ import { View, Text, Animated, StyleSheet } from 'react-native';
 const TICKER_SPEED = 50; // px per second — adjust to taste
 
 function TickerContent({ items }) {
+  const styles = useFluidStyles(createStyles);
   return (
     <View style={styles.tickerRow}>
       {items.map((item, i) => (
@@ -30,6 +33,7 @@ function MarketTicker({ items }) {
   const scrollX = useRef(new Animated.Value(0)).current;
   const contentWidth = useRef(0);
   const animRef = useRef(null);
+  const styles = useFluidStyles(createStyles);
 
   useEffect(() => {
     if (!items?.length) return undefined;
@@ -76,7 +80,7 @@ function MarketTicker({ items }) {
 
 export default memo(MarketTicker);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   container: {
     backgroundColor: '#F8FAFC',
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -99,19 +103,19 @@ const styles = StyleSheet.create({
     marginRight: 24,
   },
   tickerSymbol: {
-    fontSize: 13,
+    fontSize: f(13, 15),
     fontFamily: 'Inter_600SemiBold',
     color: '#0F172A',
     marginRight: 6,
   },
   tickerPrice: {
-    fontSize: 13,
+    fontSize: f(13, 15),
     fontFamily: 'Inter_500Medium',
     color: '#0071A9',
     marginRight: 4,
   },
   tickerStatus: {
-    fontSize: 11,
+    fontSize: f(11, 13),
     fontFamily: 'Inter_400Regular',
     color: '#64748B',
   },

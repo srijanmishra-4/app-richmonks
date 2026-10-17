@@ -1,6 +1,7 @@
 import { memo, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet, Animated } from 'react-native';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useFluidStyles } from '@/utils/responsive';
 
 const BLUE_ACCENT = '#0071A9';
 const BLUE_BG = '#F0F7FF';
@@ -11,6 +12,7 @@ const BLUE_BG = '#F0F7FF';
 
 function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRowData, loading = false, isOption = false }) {
   const { isDesktop } = useBreakpoint();
+  const styles = useFluidStyles(createStyles);
   const pulse = usePulse(loading);
   const reportFlex = isOption ? 1.3 : 1.2;
 
@@ -19,8 +21,8 @@ function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRo
       {/* Column Headers */}
       <View style={styles.tableHeaderRow}>
         {columns.map((col, ci) => (
-          <View key={col.key} style={colStyle(col, ci, reportFlex)}>
-            <Text style={[styles.thText, isDesktop && styles.thTextDesktop, ci === 0 ? styles.reportHeaderText : null, textAlignStyle(col, ci)]} numberOfLines={2}>{col.header}</Text>
+          <View key={col.key} style={colStyle(styles, col, ci, reportFlex)}>
+            <Text style={[styles.thText, isDesktop && styles.thTextDesktop, ci === 0 ? styles.reportHeaderText : null, textAlignStyle(styles, col, ci)]} numberOfLines={2}>{col.header}</Text>
           </View>
         ))}
       </View>
@@ -32,7 +34,7 @@ function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRo
         return (
           <View key={report.id} style={styles.tableRow}>
             {columns.map((col, ci) => (
-              <View key={col.key} style={colStyle(col, ci, reportFlex)}>
+              <View key={col.key} style={colStyle(styles, col, ci, reportFlex)}>
                 {ci === 0 ? (
                   <Pressable onPress={() => onSelectReport(report.id)} style={[styles.reportPill, isSelected ? styles.reportPillSelected : styles.reportPillUnselected, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityLabel={report.label}>
                     {isSelected ? <View style={styles.reportAccent} /> : null}
@@ -54,7 +56,7 @@ function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRo
 
 // Header and body must share this exact flex box. minWidth 0 stops long
 // labels from stretching a row wider than the header.
-function colStyle(col, index, reportFlex) {
+function colStyle(styles, col, index, reportFlex) {
   const isReport = index === 0;
   return [
     styles.col,
@@ -63,7 +65,7 @@ function colStyle(col, index, reportFlex) {
   ];
 }
 
-function textAlignStyle(col, index) {
+function textAlignStyle(styles, col, index) {
   if (index === 0 || col.align !== 'right') return styles.textLeft;
   return styles.textRight;
 }
@@ -87,6 +89,7 @@ function usePulse(active) {
 }
 
 function CellSkeleton({ pulse, align, lines }) {
+  const styles = useFluidStyles(createStyles);
   const right = align === 'right';
   return (
     <View style={[styles.skeletonCell, right ? styles.skeletonCellRight : null]}>
@@ -100,11 +103,11 @@ export default memo(TrendingTable);
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   table: { borderTopWidth: 0, width: '100%' },
   tableHeaderRow: { flexDirection: 'row', alignItems: 'stretch', width: '100%', minHeight: 42, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  thText: { alignSelf: 'stretch', fontSize: 12, fontFamily: 'Inter_700Bold', color: '#0F172A', lineHeight: 15 },
-  thTextDesktop: { fontSize: 13, lineHeight: 16 },
+  thText: { alignSelf: 'stretch', fontSize: f(12), fontFamily: 'Inter_700Bold', color: '#0F172A', lineHeight: f(15) },
+  thTextDesktop: { fontSize: f(12, 15), lineHeight: f(15, 19) },
   reportHeaderText: { paddingLeft: 8, paddingRight: 4 },
   textLeft: { textAlign: 'left' },
   textRight: { textAlign: 'right' },
@@ -117,8 +120,8 @@ const styles = StyleSheet.create({
   reportPillSelected: { backgroundColor: BLUE_BG, paddingVertical: 6 },
   reportPillUnselected: { backgroundColor: 'transparent', paddingVertical: 4 },
   reportAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, backgroundColor: BLUE_ACCENT },
-  reportLabel: { flex: 1, minWidth: 0, fontSize: 10.5, lineHeight: 14 },
-  reportLabelDesktop: { fontSize: 12, lineHeight: 16 },
+  reportLabel: { flex: 1, minWidth: 0, fontSize: f(10.5), lineHeight: f(14) },
+  reportLabelDesktop: { fontSize: f(11, 14), lineHeight: f(15, 19) },
   reportLabelSelected: { fontFamily: 'Inter_600SemiBold', color: BLUE_ACCENT },
   reportLabelUnselected: { fontFamily: 'Inter_500Medium', color: '#0F172A' },
   skeletonCell: { width: '100%', gap: 6 },
