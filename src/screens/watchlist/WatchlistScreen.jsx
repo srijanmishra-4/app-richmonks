@@ -15,6 +15,7 @@ import { socketRequest } from '@/utils/socket';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import BottomSlideOn from '@/components/BottomSlideOn';
 import { LineGraph } from '@/components/LineGraph';
+import AddWatchlistScreen from '@/screens/watchlist/AddWatchlistScreen';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -392,6 +393,7 @@ export default function WatchlistScreen({ isSidebar = false }) {
   const [reportResult, setReportResult] = useState(null);
   const [reportItem, setReportItem] = useState(null);
   const [slideOnVisible, setSlideOnVisible] = useState(false);
+  const [addingType, setAddingType] = useState(null);
   const { industries, nearExpiry, strikePricesAndPrices } = useCommonData();
   const [industryId, setIndustryId] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -428,8 +430,11 @@ export default function WatchlistScreen({ isSidebar = false }) {
     }
   }, [snackbar.show]);
 
+  // A silent refresh on focus waits out the pop animation so the list doesn't re-render mid-transition.
   useFocusEffect(useCallback(() => {
-    load(tab, { silent: (listsRef.current[tab] ?? []).length > 0 });
+    if ((listsRef.current[tab] ?? []).length === 0) { load(tab); return undefined; }
+    const timer = setTimeout(() => load(tab, { silent: true }), 400);
+    return () => clearTimeout(timer);
   }, [load, tab]));
   useRegisterRefresh(useCallback(() => load(tab, { silent: true }), [load, tab]));
 
@@ -609,15 +614,34 @@ export default function WatchlistScreen({ isSidebar = false }) {
     };
   }, [expandedKey, tab, reportLoading, reportError, reportResult, openProfile]);
 
+  const openAdd = useCallback(() => {
+    if (isDesktopSidebar) { setFilterOpen(false); setAddingType(tab); return; }
+    router.push({ pathname: '/watchlist/add', params: { type: tab } });
+  }, [isDesktopSidebar, tab]);
+
+  const closeAdd = useCallback(({ added } = {}) => {
+    const type = addingType;
+    setAddingType(null);
+    if (added && type) load(type, { silent: (listsRef.current[type] ?? []).length > 0 });
+  }, [addingType, load]);
+
   const ContainerComponent = isSidebar ? View : SafeAreaView;
   const containerProps = isSidebar ? { style: styles.sidebarRoot } : { style: styles.root, edges: ['top'] };
+
+  if (isDesktopSidebar && addingType) {
+    return (
+      <View style={styles.sidebarRoot}>
+        <AddWatchlistScreen embedded type={addingType} onClose={closeAdd} />
+      </View>
+    );
+  }
 
   return (
     <ContainerComponent {...containerProps} onStartShouldSetResponderCapture={handleRootTouchCapture}>
       <WatchlistHeader
         query={query}
         onQueryChange={setQuery}
-        onAdd={() => router.push({ pathname: '/watchlist/add', params: { type: tab } })}
+        onAdd={openAdd}
       />
       <WatchlistTabs active={tab} onChange={setTab} />
 
@@ -776,7 +800,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
   rowExpanded: { backgroundColor: '#F8FAFC', borderBottomWidth: 0 },
-  symbolCol: { flex: 1.5, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: 12, gap: 14 },
+  symbolCol: { flex: 1.3, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: 12, gap: 14 },
   symbolColOptions: { flex: 1.5 },
   symbolText: { flex: 1, minWidth: 0 },
   graphSlot: { width: 72, alignItems: 'center', justifyContent: 'center' },

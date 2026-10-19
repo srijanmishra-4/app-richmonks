@@ -45,6 +45,8 @@ export const watchlistApi = {
   options: () => request(`${config.watchlist}/options/`, { method: 'GET', auth: true }),
   industry: () => request(`${config.watchlist}/industry/`, { method: 'GET', auth: true }),
   add: (body) => request(`${config.watchlist}/`, { method: 'POST', auth: true, body }),
+  addFuture: (body) => request(`${config.watchlist}/futures/add`, { method: 'POST', auth: true, body }),
+  addOption: (body) => request(`${config.watchlist}/options/add`, { method: 'POST', auth: true, body }),
   remove: (id) => request(`${config.watchlist}/${id}/`, { method: 'DELETE', auth: true }),
 };
 
