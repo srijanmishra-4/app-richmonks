@@ -152,7 +152,7 @@ function WatchlistRowSkeleton({ pulse }) {
         <SkeletonBar pulse={pulse} width="72%" height={12} />
         <SkeletonBar pulse={pulse} width={48} height={9} style={{ marginTop: 4 }} />
       </View>
-      <SkeletonBar pulse={pulse} width={88} height={28} />
+      <SkeletonBar pulse={pulse} width={64} height={24} />
       <View style={styles.priceCol}>
         <SkeletonBar pulse={pulse} width={72} height={12} />
         <SkeletonBar pulse={pulse} width={56} height={9} style={{ marginTop: 4 }} />
