@@ -1,9 +1,11 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Image, Pressable, TextInput, FlatList, Modal, Platform, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Image, Pressable, TextInput, FlatList, Platform, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SearchIcon } from '@/components/icons/NavIcons';
+import { ListFilterIcon } from '@/components/icons/CommonIcons';
+import { useCommonData } from '@/context/CommonDataContext';
 import { SkeletonBar, SkeletonListRows, usePulse } from '@/components/skeleton/SkeletonBars';
 import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { useRegisterRefresh } from '@/context/RefreshContext';
@@ -124,12 +126,12 @@ function PlusIcon({ size = 18, color = '#0F172A' }) {
   );
 }
 
-function MoreIcon({ size = 16, color = '#94A3B8' }) {
+function CloseIcon({ size = 14, color = '#94A3B8' }) {
+  const bar = { position: 'absolute', width: size - 2, height: 1.6, borderRadius: 1, backgroundColor: color };
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center', gap: 2.5 }}>
-      <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: color }} />
-      <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: color }} />
-      <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: color }} />
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={[bar, { transform: [{ rotate: '45deg' }] }]} />
+      <View style={[bar, { transform: [{ rotate: '-45deg' }] }]} />
     </View>
   );
 }
@@ -221,7 +223,7 @@ function WatchlistRowSkeleton({ pulse }) {
           <SkeletonBar pulse={pulse} width={72} height={12} />
           <SkeletonBar pulse={pulse} width={56} height={9} style={{ marginTop: 4 }} />
         </View>
-        <View style={styles.moreBtn}>
+        <View style={styles.removeBtn}>
           <SkeletonBar pulse={pulse} width={12} height={12} />
         </View>
       </View>
@@ -313,7 +315,7 @@ const reportStyles = StyleSheet.create({
   actionText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
 });
 
-const WatchlistRow = memo(function WatchlistRow({ item, kind, onMore, onPress, isExpanded, reportState }) {
+const WatchlistRow = memo(function WatchlistRow({ item, kind, onRemove, onPress, isExpanded, reportState }) {
   const change = formatChange(item);
   const changeNum = parseSigned(item?.price_change_value) ?? parseSigned(item?.price_change);
   const changeColor = changeNum > 0 ? GREEN : changeNum < 0 ? RED : NEUTRAL;
@@ -337,9 +339,11 @@ const WatchlistRow = memo(function WatchlistRow({ item, kind, onMore, onPress, i
             <Text style={styles.price} numberOfLines={1}>{formatPrice(item.price)}</Text>
             {change ? <Text style={[styles.change, { color: changeColor }]} numberOfLines={1}>{change}</Text> : null}
           </View>
-          <Pressable onPress={(e) => { e.stopPropagation?.(); onMore(item); }} hitSlop={8} accessibilityRole="button" accessibilityLabel="More" style={[styles.moreBtn, Platform.OS === 'web' ? styles.pointer : null]}>
-            <MoreIcon />
-          </Pressable>
+          {kind === 'industry' ? null : (
+            <Pressable onPress={(e) => { e.stopPropagation?.(); onRemove(item); }} hitSlop={8} accessibilityRole="button" accessibilityLabel="Remove from watchlist" style={[styles.removeBtn, Platform.OS === 'web' ? styles.pointer : null]}>
+              <CloseIcon />
+            </Pressable>
+          )}
         </View>
       </Pressable>
       {isExpanded && reportState ? (
@@ -374,36 +378,47 @@ export default function WatchlistScreen({ isSidebar = false }) {
   const [tab, setTab] = useState('futures');
   const [query, setQuery] = useState('');
   const [lists, setLists] = useState({ futures: [], options: [], industry: [] });
-  const [cdates, setCdates] = useState({ futures: '', options: '', industry: '' });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
-  const [menuItem, setMenuItem] = useState(null);
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState('asc');
   // Report state
   const [expandedKey, setExpandedKey] = useState(null);
+  const expandedKeyRef = useRef(expandedKey);
+  expandedKeyRef.current = expandedKey;
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState(false);
   const [reportResult, setReportResult] = useState(null);
   const [reportItem, setReportItem] = useState(null);
   const [slideOnVisible, setSlideOnVisible] = useState(false);
+  const { industries, nearExpiry, strikePricesAndPrices } = useCommonData();
+  const [industryId, setIndustryId] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterMenuTop, setFilterMenuTop] = useState(0);
+  const filterOpenRef = useRef(false);
+  filterOpenRef.current = filterOpen;
+  const filterTriggerRef = useRef(null);
+  const filterMenuRef = useRef(null);
+  const filterRectsRef = useRef({ trigger: null, menu: null });
   const reportGenRef = useRef(0);
+  const removingRef = useRef(new Set());
   const listsRef = useRef(lists);
   const genRef = useRef(0);
   listsRef.current = lists;
-  const pulse = usePulse(loading);
-
+  const industryReady = Object.keys(strikePricesAndPrices ?? {}).length > 0;
+  const showLoading = tab === 'industry' ? !industryReady : loading;
+  const pulse = usePulse(showLoading);
   const load = useCallback(async (type, { silent = false } = {}) => {
     const spec = TABS.find((item) => item.key === type) ?? TABS[0];
     const gen = ++genRef.current;
+    if (type === 'industry') { setError(false); setLoading(false); setRefreshing(false); return; }
     if (!silent) setLoading(true);
     setError(false);
     try {
       const payload = parseResult(await spec.load());
       if (gen !== genRef.current) return;
       setLists((prev) => ({ ...prev, [type]: payload.data }));
-      setCdates((prev) => ({ ...prev, [type]: payload.cdate }));
     } catch (err) {
       if (gen !== genRef.current) return;
       setError(true);
@@ -419,9 +434,60 @@ export default function WatchlistScreen({ isSidebar = false }) {
   useRegisterRefresh(useCallback(() => load(tab, { silent: true }), [load, tab]));
 
   // Collapse accordion on tab change
-  useEffect(() => { setExpandedKey(null); setReportResult(null); setReportItem(null); }, [tab]);
+  useEffect(() => { setExpandedKey(null); setReportResult(null); setReportItem(null); setFilterOpen(false); }, [tab]);
 
-  const rows = lists[tab] ?? [];
+  const industryOptions = useMemo(() => {
+    const list = [{ id: null, label: 'All Industries' }];
+    if (Array.isArray(industries)) industries.forEach((ind) => { if (ind?.industry) list.push({ id: ind.id, label: ind.industry }); });
+    return list;
+  }, [industries]);
+  const selectedIndustry = industryOptions.find((opt) => opt.id === industryId) || industryOptions[0];
+
+  const industrySet = useMemo(() => {
+    if (industryId == null || !Array.isArray(industries)) return null;
+    const ind = industries.find((i) => i.id === industryId);
+    if (!ind || !Array.isArray(ind.symbols)) return null;
+    return new Set(ind.symbols.map((s) => String(s).trim().toUpperCase()));
+  }, [industryId, industries]);
+
+  const allIndustryRows = useMemo(() => Object.entries(strikePricesAndPrices ?? {}).map(([symbol, info]) => ({
+    id: symbol,
+    symbol,
+    script: symbol,
+    price: info?.price,
+    price_change: info?.price_change,
+    graph: info?.graph,
+    expiry_dt: nearExpiry,
+  })).sort((a, b) => a.symbol.localeCompare(b.symbol)), [strikePricesAndPrices, nearExpiry]);
+
+  const industryRows = useMemo(() => (
+    industrySet ? allIndustryRows.filter((item) => industrySet.has(item.symbol.trim().toUpperCase())) : allIndustryRows
+  ), [allIndustryRows, industrySet]);
+
+  const toggleFilter = useCallback(() => {
+    if (filterOpenRef.current) { setFilterOpen(false); return; }
+    filterTriggerRef.current?.measureInWindow((x, y, w, h) => {
+      filterRectsRef.current.trigger = { x, y, w, h };
+      setFilterOpen(true);
+    });
+  }, []);
+
+  const measureFilterMenu = useCallback(() => {
+    filterMenuRef.current?.measureInWindow((x, y, w, h) => { filterRectsRef.current.menu = { x, y, w, h }; });
+  }, []);
+
+  // While the menu is open, the root claims any outside touch so it only closes the menu and never reaches the row below.
+  const handleRootTouchCapture = useCallback((e) => {
+    if (!filterOpenRef.current) return false;
+    const { pageX, pageY } = e.nativeEvent;
+    const { trigger, menu } = filterRectsRef.current;
+    const inside = [trigger, menu].some((r) => r && pageX >= r.x && pageX <= r.x + r.w && pageY >= r.y && pageY <= r.y + r.h);
+    if (inside) return false;
+    setFilterOpen(false);
+    return true;
+  }, []);
+
+  const rows = tab === 'industry' ? industryRows : (lists[tab] ?? []);
   const filtered = useMemo(() => (query.trim() ? rows.filter((item) => matchesQuery(item, query)) : rows), [rows, query]);
 
   const visible = useMemo(() => {
@@ -452,7 +518,6 @@ export default function WatchlistScreen({ isSidebar = false }) {
   const spec = TABS.find((item) => item.key === tab) ?? TABS[0];
 
   const openProfile = useCallback((item) => {
-    setMenuItem(null);
     router.push({
       pathname: spec.profile,
       params: {
@@ -465,15 +530,23 @@ export default function WatchlistScreen({ isSidebar = false }) {
   }, [spec.profile]);
 
   const removeItem = useCallback(async (item) => {
-    setMenuItem(null);
     if (!item?.id) { snackbar.show('Unable to remove this instrument.'); return; }
+    if (removingRef.current.has(item.id)) return;
+    removingRef.current.add(item.id);
     try {
       await watchlistApi.remove(item.id);
       setLists((prev) => ({ ...prev, [tab]: (prev[tab] ?? []).filter((row) => row.id !== item.id) }));
+      if (itemKey(item, tab) === expandedKeyRef.current) {
+        setExpandedKey(null);
+        setReportResult(null);
+        setReportItem(null);
+      }
     } catch (err) {
       snackbar.show(err.message);
+    } finally {
+      removingRef.current.delete(item.id);
     }
-  }, [snackbar, tab]);
+  }, [snackbar.show, tab]);
 
   // ─── Report fetch ──────────────────────────────────────────────────────────
   const fetchReport = useCallback(async (item, kind) => {
@@ -497,7 +570,7 @@ export default function WatchlistScreen({ isSidebar = false }) {
   const handleRowPress = useCallback((item) => {
     const key = itemKey(item, tab);
     if (isDesktopSidebar) {
-      if (expandedKey === key) { setExpandedKey(null); setReportResult(null); setReportItem(null); return; }
+      if (expandedKeyRef.current === key) { setExpandedKey(null); setReportResult(null); setReportItem(null); return; }
       setExpandedKey(key);
       fetchReport(item, tab);
     } else {
@@ -506,7 +579,7 @@ export default function WatchlistScreen({ isSidebar = false }) {
       setSlideOnVisible(true);
       fetchReport(item, tab);
     }
-  }, [tab, isDesktopSidebar, expandedKey, fetchReport]);
+  }, [tab, isDesktopSidebar, fetchReport]);
 
   const closeSlideOn = useCallback(() => setSlideOnVisible(false), []);
   const clearSlideOn = useCallback(() => { setReportResult(null); setReportItem(null); }, []);
@@ -540,14 +613,30 @@ export default function WatchlistScreen({ isSidebar = false }) {
   const containerProps = isSidebar ? { style: styles.sidebarRoot } : { style: styles.root, edges: ['top'] };
 
   return (
-    <ContainerComponent {...containerProps}>
+    <ContainerComponent {...containerProps} onStartShouldSetResponderCapture={handleRootTouchCapture}>
       <WatchlistHeader
         query={query}
         onQueryChange={setQuery}
         onAdd={() => router.push({ pathname: '/watchlist/add', params: { type: tab } })}
       />
-      {cdates[tab] ? <Text style={styles.cdate}>{cdates[tab]}</Text> : null}
       <WatchlistTabs active={tab} onChange={setTab} />
+
+      {tab === 'industry' ? (
+        <View style={styles.filterRow} onLayout={(e) => setFilterMenuTop(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}>
+          <Pressable
+            ref={filterTriggerRef}
+            onPress={toggleFilter}
+            accessibilityRole="button"
+            accessibilityLabel="Filter by Industry"
+            accessibilityState={{ expanded: filterOpen }}
+            style={[styles.filterBtn, filterOpen ? styles.filterBtnOpen : null, Platform.OS === 'web' ? styles.pointer : null]}
+          >
+            <ListFilterIcon size={16} color={ACCENT} />
+            <Text style={styles.filterText} numberOfLines={1}>{selectedIndustry.label}</Text>
+            <Text style={styles.filterCaret}>{filterOpen ? '▴' : '▾'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.tableHeaderRow}>
         <Pressable
@@ -566,15 +655,15 @@ export default function WatchlistScreen({ isSidebar = false }) {
           accessibilityLabel="Sort by CMP"
         >
           <Text style={[styles.tableHeaderText, sortField === 'price' && styles.tableHeaderTextActive]}>CMP</Text>
-          <View style={styles.headerMoreSpacer} />
+          {tab !== 'industry' ? <View style={styles.headerRemoveSpacer} /> : null}
         </Pressable>
       </View>
 
-      {loading ? (
+      {showLoading ? (
         <View style={styles.list} accessibilityState={{ busy: true }}>
           <SkeletonListRows count={10} pulse={pulse} RowComponent={WatchlistRowSkeleton} />
         </View>
-      ) : error ? (
+      ) : error && tab !== 'industry' ? (
         <View style={styles.center}><Text style={styles.emptyText}>Failed to load watchlist. Please try again.</Text></View>
       ) : (
         <FlatList
@@ -582,7 +671,7 @@ export default function WatchlistScreen({ isSidebar = false }) {
           keyExtractor={(item, index) => String(item?.id ?? `${item?.script ?? 'row'}-${index}`)}
           renderItem={({ item }) => {
             const key = itemKey(item, tab);
-            return <WatchlistRow item={item} kind={tab} onMore={setMenuItem} onPress={handleRowPress} isExpanded={isDesktopSidebar && expandedKey === key} reportState={isDesktopSidebar ? getReportState(item) : null} />;
+            return <WatchlistRow item={item} kind={tab} onRemove={removeItem} onPress={handleRowPress} isExpanded={isDesktopSidebar && expandedKey === key} reportState={isDesktopSidebar ? getReportState(item) : null} />;
           }}
           extraData={expandedKey}
           style={styles.list}
@@ -615,15 +704,29 @@ export default function WatchlistScreen({ isSidebar = false }) {
         />
       ) : null}
 
-      <Modal visible={!!menuItem} transparent animationType="fade" onRequestClose={() => setMenuItem(null)}>
-        <Pressable style={styles.menuBackdrop} onPress={() => setMenuItem(null)}>
-          <View style={styles.menuCard}>
-            <Text style={styles.menuTitle} numberOfLines={1}>{menuItem?.symbol || menuItem?.script || 'Instrument'}</Text>
-            <Pressable onPress={() => openProfile(menuItem)} style={[styles.menuItem, Platform.OS === 'web' ? styles.pointer : null]}><Text style={styles.menuItemText}>Go to Profile</Text></Pressable>
-            <Pressable onPress={() => removeItem(menuItem)} style={[styles.menuItem, Platform.OS === 'web' ? styles.pointer : null]}><Text style={styles.menuDanger}>Remove from Watchlist</Text></Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+      {tab === 'industry' && filterOpen ? (
+        <View ref={filterMenuRef} onLayout={measureFilterMenu} style={[styles.filterMenu, { top: filterMenuTop + 4 }]}>
+          <FlatList
+            data={industryOptions}
+            keyExtractor={(opt, index) => `${opt.id ?? 'all'}-${index}`}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item: opt }) => {
+              const active = opt.id === industryId;
+              return (
+                <Pressable
+                  onPress={() => { setFilterOpen(false); setIndustryId(opt.id); }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.filterItem, active ? styles.filterItemActive : null, Platform.OS === 'web' ? styles.pointer : null]}
+                >
+                  <Text style={[styles.filterItemText, active ? styles.filterItemTextActive : null]} numberOfLines={1}>{opt.label}</Text>
+                </Pressable>
+              );
+            }}
+            style={styles.filterList}
+          />
+        </View>
+      ) : null}
 
       <Snackbar message={snackbar.message} visible={snackbar.visible} onDismiss={snackbar.hide} />
     </ContainerComponent>
@@ -643,9 +746,21 @@ const styles = StyleSheet.create({
 
   tableHeaderRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
   symbolHeader: { paddingLeft: LOGO_SIZE + 14 },
-  headerMoreSpacer: { width: 24, marginLeft: 4 },
+  headerRemoveSpacer: { width: 24, marginLeft: 4 },
   tableHeaderText: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_500Medium', color: '#64748B' },
   tableHeaderTextActive: { color: ACCENT, fontFamily: 'Inter_600SemiBold' },
+
+  filterRow: { alignItems: 'center', paddingTop: 12 },
+  filterBtn: { width: '80%', height: 40, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+  filterBtnOpen: { borderColor: '#CBD5E1', backgroundColor: '#F1F5F9' },
+  filterText: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18, fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  filterCaret: { fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#64748B' },
+  filterMenu: { position: 'absolute', left: '10%', width: '80%', zIndex: 20, elevation: 6, backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
+  filterList: { maxHeight: 300 },
+  filterItem: { paddingHorizontal: 16, paddingVertical: 13 },
+  filterItemActive: { backgroundColor: '#F8FAFC' },
+  filterItemText: { fontSize: 12.5, lineHeight: 17, fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  filterItemTextActive: { color: ACCENT, fontFamily: 'Inter_600SemiBold' },
 
   pointer: { cursor: 'pointer' },
   tabs: { flexDirection: 'row', paddingHorizontal: 8, marginTop: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
@@ -654,7 +769,6 @@ const styles = StyleSheet.create({
   tabLabelActive: { fontFamily: 'Inter_600SemiBold', color: ACCENT },
   tabIndicator: { height: 2, width: '72%', marginTop: 10, borderRadius: 1, backgroundColor: ACCENT },
   tabIndicatorSpacer: { height: 2, marginTop: 10 },
-  cdate: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
   list: { flex: 1 },
   listContent: { paddingBottom: 12 },
   emptyList: { flexGrow: 1 },
@@ -662,8 +776,8 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
   rowExpanded: { backgroundColor: '#F8FAFC', borderBottomWidth: 0 },
-  symbolCol: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: 12, gap: 14 },
-  symbolColOptions: { flex: 1.25 },
+  symbolCol: { flex: 1.5, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: 12, gap: 14 },
+  symbolColOptions: { flex: 1.5 },
   symbolText: { flex: 1, minWidth: 0 },
   graphSlot: { width: 72, alignItems: 'center', justifyContent: 'center' },
   priceWrap: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingLeft: 12 },
@@ -680,11 +794,5 @@ const styles = StyleSheet.create({
   priceCol: { flexShrink: 1, minWidth: 0, alignItems: 'flex-end' },
   price: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
   change: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_500Medium', marginTop: 1 },
-  moreBtn: { width: 24, height: 32, alignItems: 'flex-end', justifyContent: 'center', marginLeft: 4 },
-  menuBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.28)', justifyContent: 'flex-end' },
-  menuCard: { marginHorizontal: 12, marginBottom: 18, backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: 8 },
-  menuTitle: { paddingHorizontal: 16, paddingVertical: 8, fontSize: 12, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
-  menuItem: { paddingHorizontal: 16, paddingVertical: 13 },
-  menuItemText: { fontSize: 15, fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  menuDanger: { fontSize: 15, fontFamily: 'Inter_500Medium', color: RED },
+  removeBtn: { width: 24, height: 32, alignItems: 'flex-end', justifyContent: 'center', marginLeft: 4 },
 });

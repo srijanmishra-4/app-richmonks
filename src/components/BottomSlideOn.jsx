@@ -14,7 +14,6 @@ const GREEN = '#16A34A';
 const RED = '#DC2626';
 const USE_NATIVE = Platform.OS !== 'web';
 const MAX_WIDTH = 560;
-
 function Logo({ uri, title, size, t }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [uri]);
