@@ -1,5 +1,5 @@
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, Image, Pressable, TextInput, FlatList, Modal, Platform, RefreshControl, StyleSheet } from 'react-native';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Image, Pressable, TextInput, FlatList, Modal, Platform, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,10 @@ import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { cdnApi, watchlistApi } from '@/utils/api';
 import WatchlistSparkline from '@/components/watchlist/WatchlistSparkline';
+import { socketRequest } from '@/utils/socket';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import BottomSlideOn from '@/components/BottomSlideOn';
+import { LineGraph } from '@/components/LineGraph';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -86,6 +90,23 @@ function formatStrike(value) {
   const num = typeof value === 'number' ? value : parseFloat(String(value).replace(/,/g, ''));
   if (!Number.isFinite(num) || num === 0) return '';
   return Number.isInteger(num) ? String(num) : String(num);
+}
+
+function profileActionLabel(kind) {
+  return kind === 'options' ? 'Option Profile' : 'Stock Profile';
+}
+
+function slideOnMeta(item, kind) {
+  if (!item) return [];
+  const expiry = formatExpiry(item.expiry_dt);
+  if (kind === 'futures') return ['FUT', expiry].filter(Boolean);
+  if (kind === 'options') {
+    const strike = formatStrike(item.strike_pr);
+    const type = String(item.option_type ?? '').trim().toUpperCase();
+    const side = type && type !== 'XX' ? type : '';
+    return [strike, side, expiry].filter(Boolean);
+  }
+  return expiry ? [expiry] : [];
 }
 
 function logoSymbol(item) {
@@ -234,39 +255,122 @@ function InstrumentMeta({ item, kind }) {
   return expiry ? <Text style={styles.dateStacked} numberOfLines={1}>{expiry}</Text> : null;
 }
 
-const WatchlistRow = memo(function WatchlistRow({ item, kind, onMore }) {
+// ─── Shared report body (used in both SlideOn metrics + desktop accordion) ──────
+function buildReportMetrics(result, kind) {
+  if (!result) return [];
+  const isOption = kind === 'options';
+  const rows = [];
+  if (isOption && result.trigger_point != null && result.trigger_point !== '') rows.push({ label: 'TP', value: String(result.trigger_point) });
+  if (result.wap != null && result.wap !== '') rows.push({ label: 'WAP', value: String(result.wap) });
+  if (result.volume != null && result.volume !== '') rows.push({ label: 'Volume', value: String(result.volume) });
+  const hasHigh = result.high != null && result.high !== '';
+  const hasLow = result.low != null && result.low !== '';
+  if (hasHigh || hasLow) rows.push({ label: "Today's High / Low", value: [hasLow ? result.low : '', hasHigh ? result.high : ''].filter(Boolean).join(' — ') });
+  const has5H = result.high_5_days != null && result.high_5_days !== '';
+  const has5L = result.low_5_days != null && result.low_5_days !== '';
+  if (has5H || has5L) rows.push({ label: '5-Day High / Low', value: [has5L ? result.low_5_days : '', has5H ? result.high_5_days : ''].filter(Boolean).join(' — ') });
+  if (result.oi != null && result.oi !== '') rows.push({ label: 'OI', value: String(result.oi) });
+  if (result.chg_in_oi != null && result.chg_in_oi !== '') rows.push({ label: 'Change in OI', value: String(result.chg_in_oi) });
+  return rows;
+}
+
+function mapGraphData(data5Days) {
+  if (!Array.isArray(data5Days) || data5Days.length === 0) return [];
+  return data5Days.map((pt) => ({ price: pt?.price, price_change: pt?.price_change, price_change_value: pt?.price_change_value, cdate: pt?.cdate, time: pt?.time }));
+}
+
+function ReportBody({ metrics, graphData, onAction, actionLabel }) {
+  return (
+    <View style={reportStyles.body}>
+      {metrics.length > 0 ? (
+        <View style={reportStyles.metrics}>
+          {metrics.map((row) => (
+            <View key={row.label} style={reportStyles.metricRow}>
+              <Text style={reportStyles.metricLabel} numberOfLines={1}>{row.label}</Text>
+              <Text style={reportStyles.metricValue} numberOfLines={1}>{row.value}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+      {graphData.length > 1 ? <View style={reportStyles.graph}><LineGraph data={graphData} height={125} captureOnStart /></View> : null}
+      {actionLabel ? (
+        <Pressable onPress={onAction} accessibilityRole="button" accessibilityLabel={actionLabel} style={[reportStyles.action, Platform.OS === 'web' ? styles.pointer : null]}>
+          <Text style={reportStyles.actionText} numberOfLines={1}>{actionLabel}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+const reportStyles = StyleSheet.create({
+  body: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12 },
+  metrics: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E2E8F0', paddingTop: 12, paddingHorizontal: 10 },
+  metricRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 6 },
+  metricLabel: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_400Regular', color: '#334155' },
+  metricValue: { flexShrink: 0, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right', fontVariant: ['tabular-nums'] },
+  graph: { marginTop: 10 },
+  action: { marginTop: 8, marginHorizontal: 16, height: 36, borderRadius: 8, backgroundColor: '#0071A9', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  actionText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
+});
+
+const WatchlistRow = memo(function WatchlistRow({ item, kind, onMore, onPress, isExpanded, reportState }) {
   const change = formatChange(item);
   const changeNum = parseSigned(item?.price_change_value) ?? parseSigned(item?.price_change);
   const changeColor = changeNum > 0 ? GREEN : changeNum < 0 ? RED : NEUTRAL;
   const symbol = logoSymbol(item);
 
   return (
-    <View style={styles.row}>
-      <View style={[styles.symbolCol, kind === 'options' ? styles.symbolColOptions : null]}>
-        <WatchlistLogo key={symbol || 'logo'} symbol={symbol} title={symbol || item.script} />
-        <View style={styles.symbolText}>
-          <Text style={styles.script} numberOfLines={1}>{symbol || '—'}</Text>
-          <InstrumentMeta item={item} kind={kind} />
+    <View>
+      <Pressable onPress={() => onPress?.(item)} style={[styles.row, Platform.OS === 'web' ? styles.pointer : null, isExpanded ? styles.rowExpanded : null]}>
+        <View style={[styles.symbolCol, kind === 'options' ? styles.symbolColOptions : null]}>
+          <WatchlistLogo key={symbol || 'logo'} symbol={symbol} title={symbol || item.script} />
+          <View style={styles.symbolText}>
+            <Text style={styles.script} numberOfLines={1}>{symbol || '—'}</Text>
+            <InstrumentMeta item={item} kind={kind} />
+          </View>
         </View>
-      </View>
-      <View style={styles.graphSlot}>
-        <WatchlistSparkline id={item.id || item.script} graph={item.graph} change={changeNum} />
-      </View>
-      <View style={[styles.priceWrap, kind === 'options' ? styles.priceWrapOptions : null]}>
-        <View style={styles.priceCol}>
-          <Text style={styles.price} numberOfLines={1}>{formatPrice(item.price)}</Text>
-          {change ? <Text style={[styles.change, { color: changeColor }]} numberOfLines={1}>{change}</Text> : null}
+        <View style={styles.graphSlot}>
+          <WatchlistSparkline id={item.id || item.script} graph={item.graph} change={changeNum} />
         </View>
-        <Pressable onPress={() => onMore(item)} hitSlop={8} accessibilityRole="button" accessibilityLabel="More" style={[styles.moreBtn, Platform.OS === 'web' ? styles.pointer : null]}>
-          <MoreIcon />
-        </Pressable>
-      </View>
+        <View style={[styles.priceWrap, kind === 'options' ? styles.priceWrapOptions : null]}>
+          <View style={styles.priceCol}>
+            <Text style={styles.price} numberOfLines={1}>{formatPrice(item.price)}</Text>
+            {change ? <Text style={[styles.change, { color: changeColor }]} numberOfLines={1}>{change}</Text> : null}
+          </View>
+          <Pressable onPress={(e) => { e.stopPropagation?.(); onMore(item); }} hitSlop={8} accessibilityRole="button" accessibilityLabel="More" style={[styles.moreBtn, Platform.OS === 'web' ? styles.pointer : null]}>
+            <MoreIcon />
+          </Pressable>
+        </View>
+      </Pressable>
+      {isExpanded && reportState ? (
+        reportState.loading ? (
+          <View style={reportStyles.body}><ActivityIndicator size="small" color={ACCENT} style={{ paddingVertical: 16 }} /></View>
+        ) : reportState.error ? (
+          <View style={reportStyles.body}><Text style={styles.emptyText}>Failed to load report.</Text></View>
+        ) : reportState.result ? (
+          <ReportBody metrics={reportState.metrics} graphData={reportState.graphData} actionLabel={profileActionLabel(kind)} onAction={reportState.onProfile} />
+        ) : null
+      ) : null}
     </View>
   );
 });
 
+function itemKey(item, kind) {
+  return `${kind}:${item?.id ?? ''}:${item?.symbol ?? ''}:${item?.strike_pr ?? ''}:${item?.option_type ?? ''}:${item?.expiry_dt ?? ''}`;
+}
+
+function buildSocketPayload(item, kind) {
+  const symbol = String(item?.symbol ?? '').trim();
+  const expiry_dt = String(item?.expiry_dt ?? '').trim();
+  const option_type = kind === 'options' ? String(item?.option_type ?? 'XX').trim() : 'XX';
+  const strike_pr = kind === 'options' ? (parseFloat(String(item?.strike_pr ?? '0').replace(/,/g, '')) || 0) : 0;
+  return { symbol, expiry_dt, option_type, strike_pr };
+}
+
 export default function WatchlistScreen({ isSidebar = false }) {
   const snackbar = useSnackbar();
+  const { isLaptop } = useBreakpoint();
+  const isDesktopSidebar = isSidebar && isLaptop;
   const [tab, setTab] = useState('futures');
   const [query, setQuery] = useState('');
   const [lists, setLists] = useState({ futures: [], options: [], industry: [] });
@@ -275,8 +379,16 @@ export default function WatchlistScreen({ isSidebar = false }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [menuItem, setMenuItem] = useState(null);
-  const [sortField, setSortField] = useState(null); // 'symbol' | 'price' | null
-  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState('asc');
+  // Report state
+  const [expandedKey, setExpandedKey] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState(false);
+  const [reportResult, setReportResult] = useState(null);
+  const [reportItem, setReportItem] = useState(null);
+  const [slideOnVisible, setSlideOnVisible] = useState(false);
+  const reportGenRef = useRef(0);
   const listsRef = useRef(lists);
   const genRef = useRef(0);
   listsRef.current = lists;
@@ -297,10 +409,7 @@ export default function WatchlistScreen({ isSidebar = false }) {
       setError(true);
       if (silent) snackbar.show(err.message);
     } finally {
-      if (gen === genRef.current) {
-        setLoading(false);
-        setRefreshing(false);
-      }
+      if (gen === genRef.current) { setLoading(false); setRefreshing(false); }
     }
   }, [snackbar.show]);
 
@@ -308,6 +417,9 @@ export default function WatchlistScreen({ isSidebar = false }) {
     load(tab, { silent: (listsRef.current[tab] ?? []).length > 0 });
   }, [load, tab]));
   useRegisterRefresh(useCallback(() => load(tab, { silent: true }), [load, tab]));
+
+  // Collapse accordion on tab change
+  useEffect(() => { setExpandedKey(null); setReportResult(null); setReportItem(null); }, [tab]);
 
   const rows = lists[tab] ?? [];
   const filtered = useMemo(() => (query.trim() ? rows.filter((item) => matchesQuery(item, query)) : rows), [rows, query]);
@@ -332,15 +444,9 @@ export default function WatchlistScreen({ isSidebar = false }) {
   }, [filtered, sortField, sortOrder]);
 
   const toggleSort = useCallback((field) => {
-    if (sortField !== field) {
-      setSortField(field);
-      setSortOrder('asc');
-    } else if (sortOrder === 'asc') {
-      setSortOrder('desc');
-    } else {
-      setSortField(null);
-      setSortOrder('asc');
-    }
+    if (sortField !== field) { setSortField(field); setSortOrder('asc'); }
+    else if (sortOrder === 'asc') setSortOrder('desc');
+    else { setSortField(null); setSortOrder('asc'); }
   }, [sortField, sortOrder]);
 
   const spec = TABS.find((item) => item.key === tab) ?? TABS[0];
@@ -350,15 +456,10 @@ export default function WatchlistScreen({ isSidebar = false }) {
     router.push({
       pathname: spec.profile,
       params: {
-        id: item.id ?? '',
-        script: item.script ?? '',
-        symbol: item.symbol ?? '',
-        expiry_dt: item.expiry_dt ?? '',
-        price: String(item.price ?? ''),
-        price_change: String(item.price_change ?? ''),
-        price_change_value: String(item.price_change_value ?? ''),
-        option_type: item.option_type ?? '',
-        strike_pr: String(item.strike_pr ?? ''),
+        id: item.id ?? '', script: item.script ?? '', symbol: item.symbol ?? '',
+        expiry_dt: item.expiry_dt ?? '', price: String(item.price ?? ''),
+        price_change: String(item.price_change ?? ''), price_change_value: String(item.price_change_value ?? ''),
+        option_type: item.option_type ?? '', strike_pr: String(item.strike_pr ?? ''),
       },
     });
   }, [spec.profile]);
@@ -373,6 +474,67 @@ export default function WatchlistScreen({ isSidebar = false }) {
       snackbar.show(err.message);
     }
   }, [snackbar, tab]);
+
+  // ─── Report fetch ──────────────────────────────────────────────────────────
+  const fetchReport = useCallback(async (item, kind) => {
+    const gen = ++reportGenRef.current;
+    setReportLoading(true);
+    setReportError(false);
+    setReportResult(null);
+    setReportItem(item);
+    try {
+      const result = await socketRequest('GET_WATCHLIST_REPORT_DATA', buildSocketPayload(item, kind));
+      if (gen !== reportGenRef.current) return;
+      setReportResult(result ?? null);
+    } catch {
+      if (gen !== reportGenRef.current) return;
+      setReportError(true);
+    } finally {
+      if (gen === reportGenRef.current) setReportLoading(false);
+    }
+  }, []);
+
+  const handleRowPress = useCallback((item) => {
+    const key = itemKey(item, tab);
+    if (isDesktopSidebar) {
+      if (expandedKey === key) { setExpandedKey(null); setReportResult(null); setReportItem(null); return; }
+      setExpandedKey(key);
+      fetchReport(item, tab);
+    } else {
+      setExpandedKey(null);
+      setReportItem(item);
+      setSlideOnVisible(true);
+      fetchReport(item, tab);
+    }
+  }, [tab, isDesktopSidebar, expandedKey, fetchReport]);
+
+  const closeSlideOn = useCallback(() => setSlideOnVisible(false), []);
+  const clearSlideOn = useCallback(() => { setReportResult(null); setReportItem(null); }, []);
+
+  // ─── SlideOn props for mobile ──────────────────────────────────────────────
+  const slideOnMetrics = useMemo(() => buildReportMetrics(reportResult, tab), [reportResult, tab]);
+  const slideOnGraph = useMemo(() => mapGraphData(reportResult?.data_5_days), [reportResult]);
+  const slideOnTitle = useMemo(() => (reportItem ? logoSymbol(reportItem) : ''), [reportItem]);
+  const slideOnMetaParts = useMemo(() => slideOnMeta(reportItem, tab), [reportItem, tab]);
+  const slideOnPrice = reportResult?.price != null ? formatPrice(reportResult.price) : (reportItem ? formatPrice(reportItem.price) : '');
+  const slideOnChangeNum = parseSigned(reportResult?.price_change) ?? parseSigned(reportItem?.price_change);
+  const slideOnChange = reportResult?.price_change != null ? `${slideOnChangeNum > 0 ? '+' : slideOnChangeNum < 0 ? '-' : ''}${Math.abs(slideOnChangeNum ?? 0).toFixed(2)}%` : formatChange(reportItem);
+  const slideOnPositive = slideOnChangeNum != null ? slideOnChangeNum > 0 : null;
+  const slideOnProfileAction = useCallback(() => { closeSlideOn(); if (reportItem) openProfile(reportItem); }, [closeSlideOn, reportItem, openProfile]);
+
+  // ─── Desktop accordion report state for each row ─────────────────────────
+  const getReportState = useCallback((item) => {
+    const key = itemKey(item, tab);
+    if (expandedKey !== key) return null;
+    return {
+      loading: reportLoading,
+      error: reportError,
+      result: reportResult,
+      metrics: buildReportMetrics(reportResult, tab),
+      graphData: mapGraphData(reportResult?.data_5_days),
+      onProfile: () => openProfile(item),
+    };
+  }, [expandedKey, tab, reportLoading, reportError, reportResult, openProfile]);
 
   const ContainerComponent = isSidebar ? View : SafeAreaView;
   const containerProps = isSidebar ? { style: styles.sidebarRoot } : { style: styles.root, edges: ['top'] };
@@ -418,7 +580,11 @@ export default function WatchlistScreen({ isSidebar = false }) {
         <FlatList
           data={visible}
           keyExtractor={(item, index) => String(item?.id ?? `${item?.script ?? 'row'}-${index}`)}
-          renderItem={({ item }) => <WatchlistRow item={item} kind={tab} onMore={setMenuItem} />}
+          renderItem={({ item }) => {
+            const key = itemKey(item, tab);
+            return <WatchlistRow item={item} kind={tab} onMore={setMenuItem} onPress={handleRowPress} isExpanded={isDesktopSidebar && expandedKey === key} reportState={isDesktopSidebar ? getReportState(item) : null} />;
+          }}
+          extraData={expandedKey}
           style={styles.list}
           contentContainerStyle={visible.length === 0 ? styles.emptyList : styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -427,6 +593,27 @@ export default function WatchlistScreen({ isSidebar = false }) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(tab, { silent: true }); }} tintColor={ACCENT} colors={[ACCENT]} />}
         />
       )}
+
+      {/* Mobile SlideOn */}
+      {!isDesktopSidebar ? (
+        <BottomSlideOn
+          visible={slideOnVisible}
+          onClose={closeSlideOn}
+          onDismissed={clearSlideOn}
+          isWatchlist
+          logo={reportItem ? cdnApi(logoSymbol(reportItem)) : null}
+          title={slideOnTitle}
+          meta={slideOnMetaParts}
+          price={slideOnPrice}
+          change={slideOnChange}
+          changePct={null}
+          positive={slideOnPositive}
+          metrics={reportLoading ? [] : slideOnMetrics}
+          graph={reportLoading ? null : slideOnGraph.length > 1 ? <LineGraph data={slideOnGraph} height={125} captureOnStart /> : null}
+          actionLabel={reportLoading ? null : profileActionLabel(tab)}
+          onAction={slideOnProfileAction}
+        />
+      ) : null}
 
       <Modal visible={!!menuItem} transparent animationType="fade" onRequestClose={() => setMenuItem(null)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setMenuItem(null)}>
@@ -474,6 +661,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
+  rowExpanded: { backgroundColor: '#F8FAFC', borderBottomWidth: 0 },
   symbolCol: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: 12, gap: 14 },
   symbolColOptions: { flex: 1.25 },
   symbolText: { flex: 1, minWidth: 0 },

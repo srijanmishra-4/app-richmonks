@@ -25,7 +25,7 @@ function Logo({ uri, title, size, t }) {
   );
 }
 
-function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, price, change, changePct, positive, metrics = [], graph, actionLabel, onAction }) {
+function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, meta, isWatchlist = false, price, change, changePct, positive, metrics = [], graph, actionLabel, onAction }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const t = useScaledStyles(textStyles);
@@ -139,7 +139,15 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, p
                 <Logo uri={logo} title={title} size={logoSize} t={t} />
                 <View style={styles.identityText}>
                   <Text style={t.title} numberOfLines={1} maxFontSizeMultiplier={1.1}>{title}</Text>
-                  {subtitle ? <Text style={t.subtitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>{subtitle}</Text> : null}
+                  {isWatchlist && meta?.length ? (
+                    <View style={styles.meta}>
+                      {meta.map((part, index) => (
+                        <Text key={`${part}-${index}`} style={[t.meta, index === meta.length - 1 ? styles.metaEnd : styles.metaPart]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{part}</Text>
+                      ))}
+                    </View>
+                  ) : subtitle ? (
+                    <Text style={t.subtitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>{subtitle}</Text>
+                  ) : null}
                 </View>
               </View>
               <View style={styles.quote}>
@@ -162,8 +170,8 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, p
             {graph ? <View style={styles.graph}>{graph}</View> : null}
           </ScrollView>
           {actionLabel ? (
-            <View collapsable={false} accessibilityRole="button" accessibilityLabel={actionLabel} onTouchStart={() => setPressed(true)} onTouchCancel={() => setPressed(false)} onTouchEnd={() => { setPressed(false); onAction?.(); }} style={[styles.action, { marginHorizontal: padX, marginBottom: insets.bottom + 18 }, pressed ? styles.actionPressed : null, pointer]}>
-              <Text style={t.actionText} numberOfLines={1} maxFontSizeMultiplier={1.1}>{actionLabel}</Text>
+            <View collapsable={false} accessibilityRole="button" accessibilityLabel={actionLabel} onTouchStart={() => setPressed(true)} onTouchCancel={() => setPressed(false)} onTouchEnd={() => { setPressed(false); onAction?.(); }} style={[styles.action, isWatchlist ? styles.actionCompact : null, { marginHorizontal: padX, marginBottom: insets.bottom + 18 }, pressed ? styles.actionPressed : null, pointer]}>
+              <Text style={isWatchlist ? t.actionTextCompact : t.actionText} numberOfLines={1} maxFontSizeMultiplier={1.1}>{actionLabel}</Text>
             </View>
           ) : null}
         </Animated.View>
@@ -185,6 +193,9 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 14 },
   identity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
   identityText: { flex: 1, minWidth: 0, gap: 3 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' },
+  metaPart: { flexShrink: 0 },
+  metaEnd: { flexShrink: 1 },
   logo: { alignItems: 'center', justifyContent: 'center' },
   quote: { flexShrink: 0, maxWidth: '50%', alignItems: 'flex-end', gap: 3 },
   metrics: { paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: BORDER },
@@ -192,6 +203,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 0, flexShrink: 1 },
   graph: { marginTop: 12 },
   action: { marginTop: 8, height: 48, borderRadius: 10, backgroundColor: PRIMARY, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  actionCompact: { height: 38, borderRadius: 8, paddingHorizontal: 14 },
   actionPressed: { opacity: 0.85 },
   pointer: { cursor: 'pointer' },
   // Negative margin keeps the handle row at its original 28px height while the 20px button stays inside its bounds for Android hit-testing.
@@ -203,9 +215,11 @@ const textStyles = (fs) => ({
   logoText: { fontSize: fs(14), fontFamily: 'Inter_600SemiBold', color: MUTED },
   title: { fontSize: fs(17), lineHeight: fs(22), fontFamily: 'Inter_600SemiBold', color: TEXT },
   subtitle: { fontSize: fs(12), lineHeight: fs(16), fontFamily: 'Inter_500Medium', color: SUBTLE },
+  meta: { fontSize: fs(12), lineHeight: fs(16), fontFamily: 'Inter_400Regular', color: SUBTLE },
   price: { fontSize: fs(17), lineHeight: fs(22), fontFamily: 'Inter_600SemiBold', color: TEXT, fontVariant: ['tabular-nums'] },
   change: { fontSize: fs(12), lineHeight: fs(16), fontFamily: 'Inter_500Medium', fontVariant: ['tabular-nums'] },
   metricLabel: { flexShrink: 1, fontSize: fs(13), lineHeight: fs(18), fontFamily: 'Inter_400Regular', color: '#334155' },
   metricValue: { flexShrink: 0, fontSize: fs(13), lineHeight: fs(18), fontFamily: 'Inter_500Medium', color: TEXT, textAlign: 'right', fontVariant: ['tabular-nums'] },
   actionText: { fontSize: fs(15), lineHeight: fs(20), fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
+  actionTextCompact: { fontSize: fs(13), lineHeight: fs(18), fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
 });
