@@ -38,11 +38,6 @@ function AddWatchlistRowSkeleton({ pulse }) {
   );
 }
 
-function itemLabel(item) {
-  if (typeof item === 'string') return item;
-  return item?.symbol || item?.name || item?.script || item?.industry || '';
-}
-
 function toNumber(val) {
   if (val == null || val === '') return null;
   const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[₹,()%\s]/g, ''));
@@ -160,10 +155,10 @@ const InstrumentRow = memo(function InstrumentRow({ symbol, kind, info, expanded
 
 function AddWatchlistScreen({ type: typeProp, embedded = false, onClose }) {
   const params = useLocalSearchParams();
-  const type = typeProp || param(params.type) || 'futures';
-  const isIndustry = type === 'industry';
+  // Industry has no watchlist endpoint of its own, so anything added from there lands in futures.
+  const type = (typeProp || param(params.type)) === 'options' ? 'options' : 'futures';
   const snackbar = useSnackbar();
-  const { industries, strikePricesAndPrices, loading } = useCommonData();
+  const { strikePricesAndPrices } = useCommonData();
   const monthlyExpiry = useExpiryOptions(false);
   const weeklyExpiry = useExpiryOptions(true);
   const { height: windowHeight } = useWindowDimensions();
@@ -184,15 +179,14 @@ function AddWatchlistScreen({ type: typeProp, embedded = false, onClose }) {
   }, [navigation, transitionDone]);
 
   const strikeSymbols = useMemo(() => Object.keys(strikePricesAndPrices ?? {}).sort((a, b) => a.localeCompare(b)), [strikePricesAndPrices]);
-  const showLoading = !transitionDone || (isIndustry ? loading : strikeSymbols.length === 0);
+  const showLoading = !transitionDone || strikeSymbols.length === 0;
   const pulse = usePulse(showLoading);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const source = isIndustry ? (industries ?? []).map(itemLabel) : strikeSymbols;
-    const named = source.filter(Boolean);
+    const named = strikeSymbols.filter(Boolean);
     return q ? named.filter((label) => label.toLowerCase().startsWith(q)) : named;
-  }, [isIndustry, industries, strikeSymbols, query]);
+  }, [strikeSymbols, query]);
 
   const submit = useCallback(async (request) => {
     if (saving) return;
@@ -214,7 +208,6 @@ function AddWatchlistScreen({ type: typeProp, embedded = false, onClose }) {
     else router.replace('/watchlist');
   }, [embedded, onClose]);
 
-  const addIndustry = (symbol) => submit(() => watchlistApi.add({ symbol, script: symbol }));
   const addInstrument = useCallback((body) => submit(() => (type === 'options' ? watchlistApi.addOption(body) : watchlistApi.addFuture(body))), [submit, type]);
 
   const toggleRow = useCallback((symbol) => setExpandedSymbol((prev) => (prev === symbol ? null : symbol)), []);
@@ -265,12 +258,7 @@ function AddWatchlistScreen({ type: typeProp, embedded = false, onClose }) {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={rows.length === 0 ? styles.emptyList : styles.listContent}
           ListEmptyComponent={<View style={styles.center}><Text style={styles.emptyText}>No instruments to add.</Text></View>}
-          renderItem={({ item: label }) => (isIndustry ? (
-            <View style={styles.row}>
-              <Text style={styles.rowText}>{label}</Text>
-              <AddButton onPress={() => addIndustry(label)} disabled={saving} label={`Add ${label}`} />
-            </View>
-          ) : (
+          renderItem={({ item: label }) => (
             <InstrumentRow
               symbol={label}
               kind={type}
@@ -283,7 +271,7 @@ function AddWatchlistScreen({ type: typeProp, embedded = false, onClose }) {
               onAdd={addInstrument}
               saving={saving}
             />
-          ))}
+          )}
         />
       )}
 
@@ -338,7 +326,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
-  rowText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
   item: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, gap: 10 },
   logo: { width: LOGO_SIZE, height: LOGO_SIZE },

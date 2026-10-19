@@ -26,8 +26,13 @@ const LOGO_SIZE = 22;
 const TABS = [
   { key: 'futures', label: 'My Futures', load: watchlistApi.futures, profile: '/watchlist/futures-profile' },
   { key: 'options', label: 'My Options', load: watchlistApi.options, profile: '/watchlist/options-profile' },
-  { key: 'industry', label: 'Industry', load: watchlistApi.industry, profile: '/watchlist/industry-profile' },
+  { key: 'industry', label: 'Industry', profile: '/watchlist/industry-profile' },
 ];
+
+const EMPTY_COPY = {
+  futures: { title: 'Your futures watchlist is empty', body: 'Tap + to track a contract.', cta: 'Add Futures' },
+  options: { title: 'Your options watchlist is empty', body: 'Tap + to track a strike.', cta: 'Add Options' },
+};
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -118,11 +123,34 @@ function logoSymbol(item) {
   return String(item?.script ?? '').trim().split(/\s+/)[0] || '';
 }
 
-function PlusIcon({ size = 18, color = '#0F172A' }) {
+function PlusIcon({ size = 18, color = '#0F172A', weight = 1.8 }) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ position: 'absolute', width: size - 4, height: 1.8, borderRadius: 1, backgroundColor: color }} />
-      <View style={{ position: 'absolute', width: 1.8, height: size - 4, borderRadius: 1, backgroundColor: color }} />
+      <View style={{ position: 'absolute', width: size - 4, height: weight, borderRadius: weight, backgroundColor: color }} />
+      <View style={{ position: 'absolute', width: weight, height: size - 4, borderRadius: weight, backgroundColor: color }} />
+    </View>
+  );
+}
+
+function EmptyWatchlist({ kind, onAdd }) {
+  const copy = EMPTY_COPY[kind] ?? EMPTY_COPY.futures;
+  return (
+    <View style={emptyStyles.wrap}>
+      <Pressable
+        onPress={onAdd}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={copy.cta}
+        style={({ pressed }) => [emptyStyles.ring, pressed ? emptyStyles.pressed : null, Platform.OS === 'web' ? styles.pointer : null]}
+      >
+        <View style={emptyStyles.halo}>
+          <View style={emptyStyles.core}>
+            <PlusIcon size={20} color="#FFFFFF" weight={2.4} />
+          </View>
+        </View>
+      </Pressable>
+      <Text style={emptyStyles.title}>{copy.title}</Text>
+      <Text style={emptyStyles.body}>{copy.body}</Text>
     </View>
   );
 }
@@ -316,7 +344,7 @@ const reportStyles = StyleSheet.create({
   actionText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
 });
 
-const WatchlistRow = memo(function WatchlistRow({ item, kind, onRemove, onPress, isExpanded, reportState }) {
+const WatchlistRow = memo(function WatchlistRow({ item, kind, onRemove, onPress, isExpanded, reportState, isRemoving }) {
   const change = formatChange(item);
   const changeNum = parseSigned(item?.price_change_value) ?? parseSigned(item?.price_change);
   const changeColor = changeNum > 0 ? GREEN : changeNum < 0 ? RED : NEUTRAL;
@@ -324,7 +352,7 @@ const WatchlistRow = memo(function WatchlistRow({ item, kind, onRemove, onPress,
 
   return (
     <View>
-      <Pressable onPress={() => onPress?.(item)} style={[styles.row, Platform.OS === 'web' ? styles.pointer : null, isExpanded ? styles.rowExpanded : null]}>
+      <Pressable onPress={() => onPress?.(item)} disabled={isRemoving} style={[styles.row, Platform.OS === 'web' ? styles.pointer : null, isExpanded ? styles.rowExpanded : null, isRemoving ? styles.rowRemoving : null]}>
         <View style={[styles.symbolCol, kind === 'options' ? styles.symbolColOptions : null]}>
           <WatchlistLogo key={symbol || 'logo'} symbol={symbol} title={symbol || item.script} />
           <View style={styles.symbolText}>
@@ -340,7 +368,9 @@ const WatchlistRow = memo(function WatchlistRow({ item, kind, onRemove, onPress,
             <Text style={styles.price} numberOfLines={1}>{formatPrice(item.price)}</Text>
             {change ? <Text style={[styles.change, { color: changeColor }]} numberOfLines={1}>{change}</Text> : null}
           </View>
-          {kind === 'industry' ? null : (
+          {kind === 'industry' ? null : isRemoving ? (
+            <View style={styles.removeBtn}><ActivityIndicator size="small" color="#94A3B8" /></View>
+          ) : (
             <Pressable onPress={(e) => { e.stopPropagation?.(); onRemove(item); }} hitSlop={8} accessibilityRole="button" accessibilityLabel="Remove from watchlist" style={[styles.removeBtn, Platform.OS === 'web' ? styles.pointer : null]}>
               <CloseIcon />
             </Pressable>
@@ -405,9 +435,12 @@ export default function WatchlistScreen({ isSidebar = false }) {
   const filterRectsRef = useRef({ trigger: null, menu: null });
   const reportGenRef = useRef(0);
   const removingRef = useRef(new Set());
+  const [removingIds, setRemovingIds] = useState(() => new Set());
   const listsRef = useRef(lists);
   const genRef = useRef(0);
+  const tabRef = useRef(tab);
   listsRef.current = lists;
+  tabRef.current = tab;
   const industryReady = Object.keys(strikePricesAndPrices ?? {}).length > 0;
   const showLoading = tab === 'industry' ? !industryReady : loading;
   const pulse = usePulse(showLoading);
@@ -535,23 +568,29 @@ export default function WatchlistScreen({ isSidebar = false }) {
   }, [spec.profile]);
 
   const removeItem = useCallback(async (item) => {
+    const kind = tab;
+    if (kind === 'industry') return;
     if (!item?.id) { snackbar.show('Unable to remove this instrument.'); return; }
     if (removingRef.current.has(item.id)) return;
     removingRef.current.add(item.id);
+    setRemovingIds(new Set(removingRef.current));
     try {
-      await watchlistApi.remove(item.id);
-      setLists((prev) => ({ ...prev, [tab]: (prev[tab] ?? []).filter((row) => row.id !== item.id) }));
-      if (itemKey(item, tab) === expandedKeyRef.current) {
+      await (kind === 'options' ? watchlistApi.removeOption(item.id) : watchlistApi.removeFuture(item.id));
+      setLists((prev) => ({ ...prev, [kind]: (prev[kind] ?? []).filter((row) => row.id !== item.id) }));
+      if (itemKey(item, kind) === expandedKeyRef.current) {
         setExpandedKey(null);
         setReportResult(null);
         setReportItem(null);
       }
+      // Refreshing a tab the user already left would invalidate that tab's in-flight load.
+      if (tabRef.current === kind) load(kind, { silent: true });
     } catch (err) {
       snackbar.show(err.message);
     } finally {
       removingRef.current.delete(item.id);
+      setRemovingIds(new Set(removingRef.current));
     }
-  }, [snackbar.show, tab]);
+  }, [snackbar.show, tab, load]);
 
   // ─── Report fetch ──────────────────────────────────────────────────────────
   const fetchReport = useCallback(async (item, kind) => {
@@ -615,9 +654,13 @@ export default function WatchlistScreen({ isSidebar = false }) {
   }, [expandedKey, tab, reportLoading, reportError, reportResult, openProfile]);
 
   const openAdd = useCallback(() => {
-    if (isDesktopSidebar) { setFilterOpen(false); setAddingType(tab); return; }
-    router.push({ pathname: '/watchlist/add', params: { type: tab } });
+    const type = tab === 'options' ? 'options' : 'futures';
+    if (isDesktopSidebar) { setFilterOpen(false); setAddingType(type); return; }
+    router.push({ pathname: '/watchlist/add', params: { type } });
   }, [isDesktopSidebar, tab]);
+
+  const listExtra = useMemo(() => ({ expandedKey, removingIds }), [expandedKey, removingIds]);
+  const hasQuery = query.trim().length > 0;
 
   const closeAdd = useCallback(({ added } = {}) => {
     const type = addingType;
@@ -695,14 +738,18 @@ export default function WatchlistScreen({ isSidebar = false }) {
           keyExtractor={(item, index) => String(item?.id ?? `${item?.script ?? 'row'}-${index}`)}
           renderItem={({ item }) => {
             const key = itemKey(item, tab);
-            return <WatchlistRow item={item} kind={tab} onRemove={removeItem} onPress={handleRowPress} isExpanded={isDesktopSidebar && expandedKey === key} reportState={isDesktopSidebar ? getReportState(item) : null} />;
+            return <WatchlistRow item={item} kind={tab} onRemove={removeItem} onPress={handleRowPress} isExpanded={isDesktopSidebar && expandedKey === key} reportState={isDesktopSidebar ? getReportState(item) : null} isRemoving={removingIds.has(item?.id)} />;
           }}
-          extraData={expandedKey}
+          extraData={listExtra}
           style={styles.list}
           contentContainerStyle={visible.length === 0 ? styles.emptyList : styles.listContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={<View style={styles.center}><Text style={styles.emptyText}>{query.trim() ? 'No matching instruments.' : 'No instruments in this watchlist.'}</Text></View>}
+          ListEmptyComponent={hasQuery || tab === 'industry' ? (
+            <View style={styles.center}><Text style={styles.emptyText}>{hasQuery ? 'No matching instruments.' : 'No instruments in this industry.'}</Text></View>
+          ) : (
+            <EmptyWatchlist kind={tab} onAdd={openAdd} />
+          )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(tab, { silent: true }); }} tintColor={ACCENT} colors={[ACCENT]} />}
         />
       )}
@@ -800,6 +847,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
   rowExpanded: { backgroundColor: '#F8FAFC', borderBottomWidth: 0 },
+  rowRemoving: { opacity: 0.5 },
   symbolCol: { flex: 1.3, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: 12, gap: 14 },
   symbolColOptions: { flex: 1.5 },
   symbolText: { flex: 1, minWidth: 0 },
@@ -819,4 +867,14 @@ const styles = StyleSheet.create({
   price: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
   change: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_500Medium', marginTop: 1 },
   removeBtn: { width: 24, height: 32, alignItems: 'flex-end', justifyContent: 'center', marginLeft: 4 },
+});
+
+const emptyStyles = StyleSheet.create({
+  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, paddingTop: 24, paddingBottom: 48 },
+  ring: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', marginBottom: 28, borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(0, 113, 169, 0.28)' },
+  halo: { width: 68, height: 68, borderRadius: 34, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 113, 169, 0.08)' },
+  core: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: ACCENT, shadowColor: ACCENT, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
+  title: { fontSize: 15, lineHeight: 21, fontFamily: 'Inter_600SemiBold', color: '#0F172A', letterSpacing: -0.1, textAlign: 'center' },
+  body: { marginTop: 8, fontSize: 12.5, lineHeight: 17, fontFamily: 'Inter_400Regular', color: '#64748B', textAlign: 'center' },
+  pressed: { opacity: 0.8, transform: [{ scale: 0.95 }] },
 });

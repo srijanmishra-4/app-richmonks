@@ -43,11 +43,10 @@ export const apiRequest = (path, options) => request(`${config.api}${path}`, { m
 export const watchlistApi = {
   futures: () => request(`${config.watchlist}/futures/`, { method: 'GET', auth: true }),
   options: () => request(`${config.watchlist}/options/`, { method: 'GET', auth: true }),
-  industry: () => request(`${config.watchlist}/industry/`, { method: 'GET', auth: true }),
-  add: (body) => request(`${config.watchlist}/`, { method: 'POST', auth: true, body }),
   addFuture: (body) => request(`${config.watchlist}/futures/add`, { method: 'POST', auth: true, body }),
   addOption: (body) => request(`${config.watchlist}/options/add`, { method: 'POST', auth: true, body }),
-  remove: (id) => request(`${config.watchlist}/${id}/`, { method: 'DELETE', auth: true }),
+  removeFuture: (id) => request(`${config.watchlist}/futures/remove`, { method: 'POST', auth: true, body: { id } }),
+  removeOption: (id) => request(`${config.watchlist}/options/remove`, { method: 'POST', auth: true, body: { id } }),
 };
 
 // Returns the logo URL for <Image>; a JSON request cannot read a PNG.
