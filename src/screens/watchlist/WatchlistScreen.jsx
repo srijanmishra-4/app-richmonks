@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, TextInput, FlatList, Modal, Platform, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, Image, Pressable, TextInput, FlatList, Modal, Platform, RefreshControl, StyleSheet } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,13 +7,14 @@ import { SearchIcon } from '@/components/icons/NavIcons';
 import { SkeletonBar, SkeletonListRows, usePulse } from '@/components/skeleton/SkeletonBars';
 import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { useRegisterRefresh } from '@/context/RefreshContext';
-import { watchlistApi } from '@/utils/api';
+import { cdnApi, watchlistApi } from '@/utils/api';
 import WatchlistSparkline from '@/components/watchlist/WatchlistSparkline';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
 const NEUTRAL = '#64748B';
 const ACCENT = '#0071A9';
+const LOGO_SIZE = 22;
 
 const TABS = [
   { key: 'futures', label: 'My Futures', load: watchlistApi.futures, profile: '/watchlist/futures-profile' },
@@ -75,7 +76,22 @@ function parseResult(payload) {
 function matchesQuery(item, query) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  return String(item?.script ?? '').toLowerCase().startsWith(q);
+  const symbol = String(item?.symbol ?? '').toLowerCase();
+  const script = String(item?.script ?? '').toLowerCase();
+  return symbol.startsWith(q) || script.startsWith(q);
+}
+
+function formatStrike(value) {
+  if (value == null || value === '') return '';
+  const num = typeof value === 'number' ? value : parseFloat(String(value).replace(/,/g, ''));
+  if (!Number.isFinite(num) || num === 0) return '';
+  return Number.isInteger(num) ? String(num) : String(num);
+}
+
+function logoSymbol(item) {
+  const symbol = String(item?.symbol ?? '').trim();
+  if (symbol) return symbol;
+  return String(item?.script ?? '').trim().split(/\s+/)[0] || '';
 }
 
 function PlusIcon({ size = 18, color = '#0F172A' }) {
@@ -145,45 +161,106 @@ function WatchlistTabs({ active, onChange }) {
   );
 }
 
+function WatchlistLogo({ symbol, title }) {
+  const [failed, setFailed] = useState(false);
+  const label = String(title || symbol || '').trim();
+  if (!symbol || failed) {
+    return (
+      <View style={styles.logoFallback}>
+        <Text style={styles.logoInitials} allowFontScaling={false}>{label.slice(0, 2).toUpperCase()}</Text>
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri: cdnApi(symbol) }}
+      style={styles.logo}
+      resizeMode="contain"
+      onError={() => setFailed(true)}
+      accessibilityLabel={`${label} logo`}
+    />
+  );
+}
+
 function WatchlistRowSkeleton({ pulse }) {
   return (
     <View style={styles.row}>
       <View style={styles.symbolCol}>
-        <SkeletonBar pulse={pulse} width="72%" height={12} />
-        <SkeletonBar pulse={pulse} width={48} height={9} style={{ marginTop: 4 }} />
+        <SkeletonBar pulse={pulse} width={LOGO_SIZE} height={LOGO_SIZE} style={styles.logoSkeleton} />
+        <View style={styles.symbolText}>
+          <SkeletonBar pulse={pulse} width="72%" height={12} />
+          <SkeletonBar pulse={pulse} width={48} height={9} style={{ marginTop: 4 }} />
+        </View>
       </View>
-      <SkeletonBar pulse={pulse} width={64} height={24} />
-      <View style={styles.priceCol}>
-        <SkeletonBar pulse={pulse} width={72} height={12} />
-        <SkeletonBar pulse={pulse} width={56} height={9} style={{ marginTop: 4 }} />
+      <View style={styles.graphSlot}>
+        <SkeletonBar pulse={pulse} width={64} height={24} />
       </View>
-      <View style={styles.moreBtn}>
-        <SkeletonBar pulse={pulse} width={12} height={12} />
+      <View style={styles.priceWrap}>
+        <View style={styles.priceCol}>
+          <SkeletonBar pulse={pulse} width={72} height={12} />
+          <SkeletonBar pulse={pulse} width={56} height={9} style={{ marginTop: 4 }} />
+        </View>
+        <View style={styles.moreBtn}>
+          <SkeletonBar pulse={pulse} width={12} height={12} />
+        </View>
       </View>
     </View>
   );
 }
 
-const WatchlistRow = memo(function WatchlistRow({ item, onMore }) {
+function InstrumentMeta({ item, kind }) {
+  const expiry = formatExpiry(item.expiry_dt);
+  if (kind === 'futures') {
+    return (
+      <View style={styles.meta}>
+        <Text style={styles.date}>FUT</Text>
+        {expiry ? <Text style={styles.dateEnd} numberOfLines={1}>{expiry}</Text> : null}
+      </View>
+    );
+  }
+  if (kind === 'options') {
+    const strike = formatStrike(item.strike_pr);
+    const type = String(item.option_type ?? '').trim().toUpperCase();
+    const side = type && type !== 'XX' ? type : '';
+    if (!strike && !side && !expiry) return null;
+    return (
+      <View style={styles.meta}>
+        {strike ? <Text style={styles.date}>{strike}</Text> : null}
+        {side ? <Text style={styles.date}>{side}</Text> : null}
+        {expiry ? <Text style={styles.dateEnd} numberOfLines={1}>{expiry}</Text> : null}
+      </View>
+    );
+  }
+  return expiry ? <Text style={styles.dateStacked} numberOfLines={1}>{expiry}</Text> : null;
+}
+
+const WatchlistRow = memo(function WatchlistRow({ item, kind, onMore }) {
   const change = formatChange(item);
   const changeNum = parseSigned(item?.price_change_value) ?? parseSigned(item?.price_change);
   const changeColor = changeNum > 0 ? GREEN : changeNum < 0 ? RED : NEUTRAL;
-  const expiry = formatExpiry(item.expiry_dt);
+  const symbol = logoSymbol(item);
 
   return (
     <View style={styles.row}>
-      <View style={styles.symbolCol}>
-        <Text style={styles.script} numberOfLines={1}>{item.script || item.symbol || '—'}</Text>
-        {expiry ? <Text style={styles.date} numberOfLines={1}>{expiry}</Text> : null}
+      <View style={[styles.symbolCol, kind === 'options' ? styles.symbolColOptions : null]}>
+        <WatchlistLogo key={symbol || 'logo'} symbol={symbol} title={symbol || item.script} />
+        <View style={styles.symbolText}>
+          <Text style={styles.script} numberOfLines={1}>{symbol || '—'}</Text>
+          <InstrumentMeta item={item} kind={kind} />
+        </View>
       </View>
-      <WatchlistSparkline id={item.id || item.script} graph={item.graph} change={changeNum} />
-      <View style={styles.priceCol}>
-        <Text style={styles.price} numberOfLines={1}>{formatPrice(item.price)}</Text>
-        {change ? <Text style={[styles.change, { color: changeColor }]} numberOfLines={1}>{change}</Text> : null}
+      <View style={styles.graphSlot}>
+        <WatchlistSparkline id={item.id || item.script} graph={item.graph} change={changeNum} />
       </View>
-      <Pressable onPress={() => onMore(item)} hitSlop={8} accessibilityRole="button" accessibilityLabel="More" style={[styles.moreBtn, Platform.OS === 'web' ? styles.pointer : null]}>
-        <MoreIcon />
-      </Pressable>
+      <View style={[styles.priceWrap, kind === 'options' ? styles.priceWrapOptions : null]}>
+        <View style={styles.priceCol}>
+          <Text style={styles.price} numberOfLines={1}>{formatPrice(item.price)}</Text>
+          {change ? <Text style={[styles.change, { color: changeColor }]} numberOfLines={1}>{change}</Text> : null}
+        </View>
+        <Pressable onPress={() => onMore(item)} hitSlop={8} accessibilityRole="button" accessibilityLabel="More" style={[styles.moreBtn, Platform.OS === 'web' ? styles.pointer : null]}>
+          <MoreIcon />
+        </Pressable>
+      </View>
     </View>
   );
 });
@@ -240,8 +317,8 @@ export default function WatchlistScreen({ isSidebar = false }) {
     const sorted = [...filtered];
     sorted.sort((a, b) => {
       if (sortField === 'symbol') {
-        const sa = String(a.script || a.symbol || '').toLowerCase();
-        const sb = String(b.script || b.symbol || '').toLowerCase();
+        const sa = String(a.symbol || a.script || '').toLowerCase();
+        const sb = String(b.symbol || b.script || '').toLowerCase();
         return sortOrder === 'asc' ? sa.localeCompare(sb) : sb.localeCompare(sa);
       }
       if (sortField === 'price') {
@@ -345,7 +422,7 @@ export default function WatchlistScreen({ isSidebar = false }) {
         <FlatList
           data={visible}
           keyExtractor={(item, index) => String(item?.id ?? `${item?.script ?? 'row'}-${index}`)}
-          renderItem={({ item }) => <WatchlistRow item={item} onMore={setMenuItem} />}
+          renderItem={({ item }) => <WatchlistRow item={item} kind={tab} onMore={setMenuItem} />}
           style={styles.list}
           contentContainerStyle={visible.length === 0 ? styles.emptyList : styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -358,7 +435,7 @@ export default function WatchlistScreen({ isSidebar = false }) {
       <Modal visible={!!menuItem} transparent animationType="fade" onRequestClose={() => setMenuItem(null)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setMenuItem(null)}>
           <View style={styles.menuCard}>
-            <Text style={styles.menuTitle} numberOfLines={1}>{menuItem?.script || 'Instrument'}</Text>
+            <Text style={styles.menuTitle} numberOfLines={1}>{menuItem?.symbol || menuItem?.script || 'Instrument'}</Text>
             <Pressable onPress={() => openProfile(menuItem)} style={[styles.menuItem, Platform.OS === 'web' ? styles.pointer : null]}><Text style={styles.menuItemText}>Go to Profile</Text></Pressable>
             <Pressable onPress={() => removeItem(menuItem)} style={[styles.menuItem, Platform.OS === 'web' ? styles.pointer : null]}><Text style={styles.menuDanger}>Remove from Watchlist</Text></Pressable>
           </View>
@@ -399,13 +476,25 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
-  symbolCol: { flex: 1, minWidth: 100, paddingRight: 8 },
+  symbolCol: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: 12, gap: 14 },
+  symbolColOptions: { flex: 1.25 },
+  symbolText: { flex: 1, minWidth: 0 },
+  graphSlot: { width: 72, alignItems: 'center', justifyContent: 'center' },
+  priceWrap: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingLeft: 12 },
+  priceWrapOptions: { flex: 0.9, paddingLeft: 8 },
+  logo: { width: LOGO_SIZE, height: LOGO_SIZE },
+  logoFallback: { width: LOGO_SIZE, height: LOGO_SIZE, borderRadius: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F5F9' },
+  logoInitials: { fontSize: 8, fontFamily: 'Inter_600SemiBold', color: '#64748B' },
+  logoSkeleton: { borderRadius: 5 },
   script: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  date: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_400Regular', color: '#94A3B8', marginTop: 1 },
-  priceCol: { width: 112, alignItems: 'flex-end', paddingLeft: 6 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1, maxWidth: '100%' },
+  date: { flexShrink: 0, fontSize: 11, lineHeight: 15, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
+  dateEnd: { flexShrink: 1, fontSize: 11, lineHeight: 15, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
+  dateStacked: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_400Regular', color: '#94A3B8', marginTop: 1 },
+  priceCol: { flexShrink: 1, minWidth: 0, alignItems: 'flex-end' },
   price: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
   change: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_500Medium', marginTop: 1 },
-  moreBtn: { width: 24, height: 32, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
+  moreBtn: { width: 24, height: 32, alignItems: 'flex-end', justifyContent: 'center', marginLeft: 4 },
   menuBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.28)', justifyContent: 'flex-end' },
   menuCard: { marginHorizontal: 12, marginBottom: 18, backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: 8 },
   menuTitle: { paddingHorizontal: 16, paddingVertical: 8, fontSize: 12, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
