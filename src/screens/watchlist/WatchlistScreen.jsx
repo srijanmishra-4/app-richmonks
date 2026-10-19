@@ -128,7 +128,7 @@ function WatchlistHeader({ query, onQueryChange, onAdd }) {
             placeholderTextColor="#94A3B8"
             autoCorrect={false}
             autoCapitalize="characters"
-            style={styles.searchInput}
+            style={[styles.searchInput, Platform.OS === 'web' ? styles.searchInputWeb : null]}
           />
         </View>
         <Pressable
@@ -384,33 +384,29 @@ export default function WatchlistScreen({ isSidebar = false }) {
         onQueryChange={setQuery}
         onAdd={() => router.push({ pathname: '/watchlist/add', params: { type: tab } })}
       />
+      {cdates[tab] ? <Text style={styles.cdate}>{cdates[tab]}</Text> : null}
       <WatchlistTabs active={tab} onChange={setTab} />
 
-      {/* Table Headers for sorting (aligned with row content) */}
       <View style={styles.tableHeaderRow}>
         <Pressable
           onPress={() => toggleSort('symbol')}
-          style={[styles.sortHeaderBtn, Platform.OS === 'web' ? styles.pointer : null]}
+          style={[styles.symbolCol, tab === 'options' ? styles.symbolColOptions : null, styles.symbolHeader, Platform.OS === 'web' ? styles.pointer : null]}
           accessibilityRole="button"
           accessibilityLabel="Sort by Symbol"
         >
-          <Text style={[styles.tableHeaderText, sortField === 'symbol' && styles.tableHeaderTextActive]}>
-            Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '↑' : '↓') : '↕'}
-          </Text>
+          <Text style={[styles.tableHeaderText, sortField === 'symbol' && styles.tableHeaderTextActive]}>Symbol</Text>
         </Pressable>
+        <View style={styles.graphSlot} />
         <Pressable
           onPress={() => toggleSort('price')}
-          style={[styles.sortHeaderBtn, Platform.OS === 'web' ? styles.pointer : null]}
+          style={[styles.priceWrap, tab === 'options' ? styles.priceWrapOptions : null, Platform.OS === 'web' ? styles.pointer : null]}
           accessibilityRole="button"
-          accessibilityLabel="Sort by Price or Change"
+          accessibilityLabel="Sort by CMP"
         >
-          <Text style={[styles.tableHeaderText, sortField === 'price' && styles.tableHeaderTextActive]}>
-            Price / Change {sortField === 'price' ? (sortOrder === 'asc' ? '↑' : '↓') : '↕'}
-          </Text>
+          <Text style={[styles.tableHeaderText, sortField === 'price' && styles.tableHeaderTextActive]}>CMP</Text>
+          <View style={styles.headerMoreSpacer} />
         </Pressable>
       </View>
-
-      {cdates[tab] ? <Text style={styles.cdate}>{cdates[tab]}</Text> : null}
 
       {loading ? (
         <View style={styles.list} accessibilityState={{ busy: true }}>
@@ -450,26 +446,28 @@ export default function WatchlistScreen({ isSidebar = false }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FFFFFF' },
   sidebarRoot: { flex: 1, backgroundColor: '#FFFFFF', height: '100%' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 },
-  title: { fontSize: 20, lineHeight: 26, fontFamily: 'Inter_700Bold', color: '#0F172A', letterSpacing: -0.3 },
-  headerActions: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginLeft: 12 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', height: 34, maxWidth: 220, flexGrow: 1, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#F8FAFC', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
-  searchInput: { flex: 1, marginLeft: 6, padding: 0, fontSize: 13, fontFamily: 'Inter_400Regular', color: '#0F172A', outlineWidth: 0 },
-  addBtn: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, gap: 12 },
+  title: { flexShrink: 0, fontSize: 20, lineHeight: 26, fontFamily: 'Inter_700Bold', color: '#0F172A', letterSpacing: -0.3 },
+  headerActions: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchBox: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', height: 34, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#F8FAFC', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
+  searchInput: { flex: 1, minWidth: 0, marginLeft: 6, padding: 0, fontSize: 13, fontFamily: 'Inter_400Regular', color: '#0F172A', borderWidth: 0 },
+  searchInputWeb: { outlineStyle: 'none', outlineWidth: 0 },
+  addBtn: { width: 34, height: 34, flexShrink: 0, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
 
-  tableHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 44, paddingTop: 8, paddingBottom: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
-  sortHeaderBtn: { paddingVertical: 2 },
-  tableHeaderText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#64748B' },
+  tableHeaderRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F1F5F9' },
+  symbolHeader: { paddingLeft: LOGO_SIZE + 14 },
+  headerMoreSpacer: { width: 24, marginLeft: 4 },
+  tableHeaderText: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter_500Medium', color: '#64748B' },
   tableHeaderTextActive: { color: ACCENT, fontFamily: 'Inter_600SemiBold' },
 
   pointer: { cursor: 'pointer' },
-  tabs: { flexDirection: 'row', paddingHorizontal: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
+  tabs: { flexDirection: 'row', paddingHorizontal: 8, marginTop: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
   tab: { flex: 1, alignItems: 'center', paddingTop: 10 },
   tabLabel: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_500Medium', color: '#64748B' },
   tabLabelActive: { fontFamily: 'Inter_600SemiBold', color: ACCENT },
-  tabIndicator: { height: 2, width: '72%', marginTop: 8, borderRadius: 1, backgroundColor: ACCENT },
-  tabIndicatorSpacer: { height: 2, marginTop: 8 },
-  cdate: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 2, fontSize: 11, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  tabIndicator: { height: 2, width: '72%', marginTop: 10, borderRadius: 1, backgroundColor: ACCENT },
+  tabIndicatorSpacer: { height: 2, marginTop: 10 },
+  cdate: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
   list: { flex: 1 },
   listContent: { paddingBottom: 12 },
   emptyList: { flexGrow: 1 },
