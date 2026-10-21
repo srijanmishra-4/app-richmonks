@@ -2,9 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef } fr
 
 import { onSocketEvent } from '@/utils/socket';
 
-// One REC_DATA_UPDATED listener for the signed-in app. The focused tab is the
-// only screen refreshed. Mounted data components register a GET_* and drop it
-// on unmount, so a hidden screen never emits.
+// One REC_DATA_UPDATED listener for the signed-in app. Every screen that is
+// still mounted refreshes, whether or not its tab is focused. Components
+// register a GET_* and drop it on unmount, so a screen that has left the tree
+// is not in the map and is not requested.
 
 const RefreshContext = createContext(null);
 const ScopeContext = createContext(null);
@@ -53,8 +54,7 @@ export function RefreshProvider({ children }) {
   useEffect(() => onSocketEvent('REC_DATA_UPDATED', (result, error, raw) => {
     const payload = raw !== undefined ? raw : result;
     logDataUpdated(payload);
-    const id = activeRef.current;
-    if (id) refreshScreenRef.current(id);
+    Array.from(screensRef.current.keys()).forEach((id) => refreshScreenRef.current(id));
   }), []);
 
   const value = useMemo(

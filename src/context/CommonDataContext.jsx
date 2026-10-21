@@ -86,16 +86,17 @@ export function CommonDataProvider({ children }) {
   }, []);
 
   // ── Socket: strike prices ──
-  // Requested on app load and again after every reconnect, so any screen can read it from context.
+  // Requested on app load, after every reconnect, and on each REC_DATA_UPDATED.
   useEffect(() => {
     const socket = connectSocket();
     const unsub = onSocketEvent('REC_STRIKE_PR_AND_PRICES', (result, err) => {
       if (!err && result && typeof result === 'object') setStrikePricesAndPrices(result);
     });
     const request = () => socket.emit('GET_STRIKE_PR_AND_PRICES');
+    const unsubUpdated = onSocketEvent('REC_DATA_UPDATED', request);
     socket.on('connect', request);
     if (socket.connected) request();
-    return () => { unsub(); socket.off('connect', request); };
+    return () => { unsub(); unsubUpdated(); socket.off('connect', request); };
   }, []);
 
   const value = useMemo(() => ({
