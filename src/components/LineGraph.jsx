@@ -294,6 +294,10 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
     }
   }, [handleTouch]);
 
+  const handlePointerLeave = useCallback(() => {
+    if (Platform.OS === 'web') clearSelection();
+  }, [clearSelection]);
+
   const usablePlotH = Math.max(1, plotFloorY - padTop);
   const gradHeight = Math.max(22, Math.round(usablePlotH * 0.25));
 
@@ -371,6 +375,7 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
       onTouchEnd={onGraphTouchEnd}
       onTouchCancel={onGraphTouchCancel}
       onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
     >
       {layout.width > 0 && points.length > 0 && (
         <Svg width={layout.width} height={layout.height} style={StyleSheet.absoluteFill}>
