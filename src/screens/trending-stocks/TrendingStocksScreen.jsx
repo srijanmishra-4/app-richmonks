@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
+import { SYMBOL_LOGO_GAP, SYMBOL_LOGO_SIZE, SymbolWithLogo, useShowSymbolLogo } from '@/components/SymbolLogo';
 import { socketRequest } from '@/utils/socket';
 
 const GREEN = '#16A34A';
@@ -119,12 +120,15 @@ function sortNumber(val) {
 }
 
 const TrendingStocksRow = memo(function TrendingStocksRow({ data }) {
+  const showLogo = useShowSymbolLogo();
   const change = formatPriceChange(data?.price_change);
   const color = change.startsWith('+') ? GREEN : change.startsWith('-') ? RED : NEUTRAL;
   return (
     <>
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <Text style={styles.symbol} numberOfLines={1}>{data?.symbol || '—'}</Text>
+        <SymbolWithLogo symbol={data?.symbol} showLogo={showLogo}>
+          <Text style={styles.symbol} numberOfLines={1}>{data?.symbol || '—'}</Text>
+        </SymbolWithLogo>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.value }]}>
         <Text style={styles.value} numberOfLines={1}>{data?.value == null || data?.value === '' || data?.value === '—' ? '—' : `₹${formatGrouped(data.value)}`}</Text>
@@ -145,6 +149,7 @@ function TrendingStocksScreen() {
   const [loading, setLoading] = useState(true);
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
+  const showLogo = useShowSymbolLogo();
   const middleLabel = valueKey || KEY_FALLBACK[report] || 'Value';
   const title = REPORT_TITLES[report] || 'Trending Stocks';
 
@@ -187,11 +192,11 @@ function TrendingStocksScreen() {
 
   const HeaderComponent = useCallback(({ sort, onSort }) => (
     <>
-      <TableHeaderCell label="Symbol" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} />
+      <TableHeaderCell label="Symbol" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} style={showLogo ? styles.symbolHeader : null} />
       <TableHeaderCell label={middleLabel} flex={COL.value} align="right" sortKey="value" getValue={(row) => sortNumber(row?.value)} sort={sort} onSort={onSort} />
       <TableHeaderCell label="CMP" flex={COL.cmp} align="right" sortKey="price" getValue={(row) => sortNumber(row?.price)} sort={sort} onSort={onSort} style={styles.cmpCell} />
     </>
-  ), [middleLabel]);
+  ), [middleLabel, showLogo]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -211,6 +216,7 @@ const styles = StyleSheet.create({
   cell: { justifyContent: 'center', paddingRight: 4 },
   cellEnd: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: 4 },
   cmpCell: { marginLeft: 12 },
+  symbolHeader: { paddingLeft: SYMBOL_LOGO_SIZE + SYMBOL_LOGO_GAP },
   symbol: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
   value: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#1E293B', textAlign: 'right' },
   price: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },

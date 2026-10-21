@@ -2,6 +2,7 @@ import { memo, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet, Animated } from 'react-native';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useFluidStyles } from '@/utils/responsive';
+import { SYMBOL_LOGO_GAP, SYMBOL_LOGO_SIZE } from '@/components/SymbolLogo';
 
 const BLUE_ACCENT = '#0071A9';
 const BLUE_BG = '#F0F7FF';
@@ -10,7 +11,7 @@ const BLUE_BG = '#F0F7FF';
 // Reusable table layout for TrendingStocks & TrendingOptions.
 // Columns config: [{ key, header, flex, align, render(row, report) }]
 
-function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRowData, loading = false, isOption = false }) {
+function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRowData, loading = false, isOption = false, showSymbolLogo = false }) {
   const { isDesktop } = useBreakpoint();
   const styles = useFluidStyles(createStyles);
   const pulse = usePulse(loading);
@@ -22,7 +23,7 @@ function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRo
       <View style={styles.tableHeaderRow}>
         {columns.map((col, ci) => (
           <View key={col.key} style={colStyle(styles, col, ci, reportFlex)}>
-            <Text style={[styles.thText, isDesktop && styles.thTextDesktop, ci === 0 ? styles.reportHeaderText : null, textAlignStyle(styles, col, ci)]} numberOfLines={2}>{col.header}</Text>
+            <Text style={[styles.thText, isDesktop && styles.thTextDesktop, ci === 0 ? styles.reportHeaderText : null, ci === 1 && showSymbolLogo ? styles.symbolHeaderOffset : null, textAlignStyle(styles, col, ci)]} numberOfLines={2}>{col.header}</Text>
           </View>
         ))}
       </View>
@@ -41,7 +42,7 @@ function TrendingTable({ columns, reports, selectedReport, onSelectReport, getRo
                     <Text style={[styles.reportLabel, isDesktop && styles.reportLabelDesktop, isSelected ? styles.reportLabelSelected : styles.reportLabelUnselected]} numberOfLines={3}>{report.label}</Text>
                   </Pressable>
                 ) : loading ? (
-                  <CellSkeleton pulse={pulse} align={col.align} lines={ci === 2 ? 1 : 2} />
+                  <CellSkeleton pulse={pulse} align={col.align} lines={ci === 2 ? 1 : 2} logo={showSymbolLogo && ci === 1} />
                 ) : (
                   col.render ? col.render(row, report) : null
                 )}
@@ -88,13 +89,20 @@ function usePulse(active) {
   return opacity;
 }
 
-function CellSkeleton({ pulse, align, lines }) {
+function CellSkeleton({ pulse, align, lines, logo = false }) {
   const styles = useFluidStyles(createStyles);
   const right = align === 'right';
-  return (
-    <View style={[styles.skeletonCell, right ? styles.skeletonCellRight : null]}>
+  const bars = (
+    <View style={[styles.skeletonCell, right ? styles.skeletonCellRight : null, logo ? styles.skeletonLogoBars : null]}>
       <Animated.View style={[styles.skeletonBar, right ? styles.skeletonBarShort : styles.skeletonBarWide, { opacity: pulse }]} />
       {lines > 1 ? <Animated.View style={[styles.skeletonBar, styles.skeletonBarThin, right ? styles.skeletonBarTiny : styles.skeletonBarMid, { opacity: pulse }]} /> : null}
+    </View>
+  );
+  if (!logo) return bars;
+  return (
+    <View style={styles.skeletonLogoRow}>
+      <Animated.View style={[styles.skeletonLogo, { opacity: pulse }]} />
+      {bars}
     </View>
   );
 }
@@ -109,6 +117,7 @@ const createStyles = (f) => ({
   thText: { alignSelf: 'stretch', fontSize: f(12), fontFamily: 'Inter_700Bold', color: '#0F172A', lineHeight: f(15) },
   thTextDesktop: { fontSize: f(12, 15), lineHeight: f(15, 19) },
   reportHeaderText: { paddingLeft: 8, paddingRight: 4 },
+  symbolHeaderOffset: { paddingLeft: SYMBOL_LOGO_SIZE + SYMBOL_LOGO_GAP },
   textLeft: { textAlign: 'left' },
   textRight: { textAlign: 'right' },
   tableRow: { flexDirection: 'row', alignItems: 'stretch', width: '100%', minHeight: 64, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
@@ -132,4 +141,7 @@ const createStyles = (f) => ({
   skeletonBarMid: { width: '52%' },
   skeletonBarShort: { width: 56 },
   skeletonBarTiny: { width: 40 },
+  skeletonLogoRow: { flexDirection: 'row', alignItems: 'center', gap: SYMBOL_LOGO_GAP, width: '100%' },
+  skeletonLogoBars: { flex: 1, minWidth: 0 },
+  skeletonLogo: { width: SYMBOL_LOGO_SIZE, height: SYMBOL_LOGO_SIZE, borderRadius: 5, backgroundColor: '#E2E8F0' },
 });

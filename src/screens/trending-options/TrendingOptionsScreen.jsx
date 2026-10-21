@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
+import { SYMBOL_LOGO_GAP, SYMBOL_LOGO_SIZE, SymbolWithLogo, useShowSymbolLogo } from '@/components/SymbolLogo';
 import { socketRequest } from '@/utils/socket';
 
 const GREEN = '#16A34A';
@@ -139,12 +140,15 @@ function PriceStack({ price, change, type }) {
 
 const TrendingOptionsRow = memo(function TrendingOptionsRow({ data }) {
   const type = useOptionsType();
+  const showLogo = useShowSymbolLogo();
   const end = [styles.cell, styles.cellEnd, { paddingLeft: type.pad, marginLeft: type.gap }];
   return (
     <>
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <Text style={type.symbol} numberOfLines={1} ellipsizeMode="tail">{data?.symbol || '—'}</Text>
-        <Text style={type.strike} numberOfLines={1} ellipsizeMode="tail">{formatStrike(data?.strike_pr)}</Text>
+        <SymbolWithLogo symbol={data?.symbol} showLogo={showLogo}>
+          <Text style={type.symbol} numberOfLines={1} ellipsizeMode="tail">{data?.symbol || '—'}</Text>
+          <Text style={type.strike} numberOfLines={1} ellipsizeMode="tail">{formatStrike(data?.strike_pr)}</Text>
+        </SymbolWithLogo>
       </View>
       <View style={[end, { flex: COL.tp }]}>
         <Text style={type.value} numberOfLines={1}>{formatMoney(data?.tp)}</Text>
@@ -173,8 +177,10 @@ function TrendingOptionsScreen() {
   const genRef = useRef(0);
   const title = REPORT_TITLES[report] || 'Trending Options';
   const levelLabel = valueKey || KEY_FALLBACK[report] || 'WAP';
+  const showLogo = useShowSymbolLogo();
   const type = useOptionsType();
   const colGap = useMemo(() => ({ marginLeft: type.gap, minWidth: 0 }), [type.gap]);
+  const symbolHeader = useMemo(() => (showLogo ? [styles.shrink, styles.symbolHeader] : styles.shrink), [showLogo]);
 
   useEffect(() => {
     if (!report) {
@@ -215,13 +221,13 @@ function TrendingOptionsScreen() {
 
   const HeaderComponent = useCallback(({ sort, onSort }) => (
     <>
-      <TableHeaderCell label="Symbol" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} style={styles.shrink} />
+      <TableHeaderCell label="Symbol" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} style={symbolHeader} />
       <TableHeaderCell label="TP" flex={COL.tp} align="right" sortKey="tp" getValue={(row) => sortNumber(row?.tp)} sort={sort} onSort={onSort} style={colGap} />
       <TableHeaderCell label={levelLabel} flex={COL.wap} align="right" sortKey="value" getValue={(row) => sortNumber(levelValue(row))} sort={sort} onSort={onSort} style={colGap} />
       <TableHeaderCell label="Option" flex={COL.option} align="right" sortKey="option_price" getValue={(row) => sortNumber(row?.option_price)} sort={sort} onSort={onSort} style={colGap} />
       <TableHeaderCell label="Future" flex={COL.future} align="right" sortKey="future_price" getValue={(row) => sortNumber(row?.future_price)} sort={sort} onSort={onSort} style={colGap} />
     </>
-  ), [colGap, levelLabel]);
+  ), [colGap, levelLabel, symbolHeader]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -241,4 +247,5 @@ const styles = StyleSheet.create({
   cell: { justifyContent: 'center', minWidth: 0, overflow: 'hidden' },
   cellEnd: { alignItems: 'flex-end', paddingRight: 0 },
   shrink: { minWidth: 0 },
+  symbolHeader: { paddingLeft: SYMBOL_LOGO_SIZE + SYMBOL_LOGO_GAP },
 });

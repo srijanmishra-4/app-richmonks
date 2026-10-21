@@ -6,6 +6,7 @@ import { socketRequest } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import TrendingTable from '@/components/home/TrendingTable';
+import { SymbolWithLogo, useShowSymbolLogo } from '@/components/SymbolLogo';
 import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Constants & Configuration ──────────────────────────────────────────────────
@@ -158,6 +159,7 @@ function normalizeResponse(payload) {
 
 function TrendingStocks() {
   const { isDesktop } = useBreakpoint();
+  const showLogo = useShowSymbolLogo();
   const styles = useFluidStyles(createStyles);
   const [filter, setFilter] = useState('positive'); // 'positive' | 'negative'
   const [selectedReport, setSelectedReport] = useState('cr_2_day_low');
@@ -251,7 +253,11 @@ function TrendingStocks() {
   // Build columns config for the shared table
   const columns = [
     { key: 'report', header: 'Report', flex: 1.2, align: 'left' },
-    { key: 'symbol', header: 'Symbol', flex: 0.95, align: 'left', render: (row) => row ? <Text style={[styles.symbolText, isDesktop && styles.symbolTextDesktop]} numberOfLines={1}>{row.symbol}</Text> : null },
+    { key: 'symbol', header: 'Symbol', flex: 0.95, align: 'left', render: (row) => row ? (
+      <SymbolWithLogo symbol={row.symbol} showLogo={showLogo}>
+        <Text style={[styles.symbolText, isDesktop && styles.symbolTextDesktop]} numberOfLines={1}>{row.symbol}</Text>
+      </SymbolWithLogo>
+    ) : null },
     { key: 'dynamic', header: dynamicKey, flex: 0.82, align: 'right', render: (row) => row ? <Text style={[styles.levelText, isDesktop && styles.levelTextDesktop]} numberOfLines={1}>{formatIndianNumber(row.value)}</Text> : null },
     { key: 'cmp', header: 'CMP', flex: 0.88, align: 'right', render: (row) => {
       if (!row) return null;
@@ -300,7 +306,7 @@ function TrendingStocks() {
       </View>
 
       {/* ─── Table Structure ─────────────────────────────────────────────────── */}
-      <TrendingTable columns={columns} reports={reportsList} selectedReport={selectedReport} onSelectReport={handleSelectReport} getRowData={getRowData} loading={loading} isOption={false} />
+      <TrendingTable columns={columns} reports={reportsList} selectedReport={selectedReport} onSelectReport={handleSelectReport} getRowData={getRowData} loading={loading} isOption={false} showSymbolLogo={showLogo} />
 
       {/* ─── View More Action (Matches FnoProfitMeter View Report) ──────────── */}
       <Pressable onPress={handleViewMore} style={[styles.viewMoreBtn, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityLabel="View More Trending Stocks">

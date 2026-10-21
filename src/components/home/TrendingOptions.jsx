@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { socketRequest } from '@/utils/socket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import TrendingTable from '@/components/home/TrendingTable';
+import { SymbolWithLogo, useShowSymbolLogo } from '@/components/SymbolLogo';
 import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Constants & Configuration ──────────────────────────────────────────────────
@@ -86,6 +87,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 function TrendingOptions() {
   const { isDesktop } = useBreakpoint();
+  const showLogo = useShowSymbolLogo();
   const styles = useFluidStyles(createStyles);
   const [optionType, setOptionType] = useState('CE');
   const [selectedReport, setSelectedReport] = useState('abv_wap');
@@ -169,10 +171,10 @@ function TrendingOptions() {
       key: 'symbol', header: 'Symbol', flex: 0.95, align: 'left', render: (row) => {
         if (!row) return null;
         return (
-          <>
+          <SymbolWithLogo symbol={row.symbol} showLogo={showLogo}>
             <Text style={[styles.symbolText, isDesktop && styles.desktopSymbolText]} numberOfLines={1}>{row.symbol}</Text>
             <Text style={[styles.strikeText, isDesktop && styles.desktopStrikeText]} numberOfLines={1}>{`SP : ${Number(row.strike_pr).toLocaleString('en-IN')}`}</Text>
-          </>
+          </SymbolWithLogo>
         );
       }
     },
@@ -218,7 +220,7 @@ function TrendingOptions() {
       </View>
 
       {/* ─── Table ───────────────────────────────────────────────────────────── */}
-      <TrendingTable columns={columns} reports={OPTIONS_REPORTS} selectedReport={selectedReport} onSelectReport={handleSelectReport} getRowData={getRowData} loading={loading} isOption />
+      <TrendingTable columns={columns} reports={OPTIONS_REPORTS} selectedReport={selectedReport} onSelectReport={handleSelectReport} getRowData={getRowData} loading={loading} isOption showSymbolLogo={showLogo} />
 
       {/* ─── View More ───────────────────────────────────────────────────────── */}
       <Pressable onPress={handleViewMore} style={[styles.viewMoreBtn, Platform.OS === 'web' ? { cursor: 'pointer' } : null]} accessibilityRole="button" accessibilityLabel="View More Trending Options">
