@@ -10,23 +10,19 @@ import {
 
 // ─── Report Rows (exact reference order) ───────────────────────────────────────
 
-const ROWS = [
-  [
-    { label: 'Future', Icon: FutureReportIcon, href: '/home/reports/future' },
-    { label: 'OI Changes', Icon: OiChangesReportIcon, href: '/home/reports/oi-changes' },
-    { label: 'Market Internals', Icon: MarketInternalsReportIcon, href: '/home/reports/market-internals' },
-  ],
-  [
-    { label: 'Heat Map', Icon: HeatMapReportIcon, href: '/home/reports/heat-map' },
-    { label: 'Stock Rank', Icon: StockRankReportIcon, href: '/home/reports/stock-rank' },
-    { label: 'Shifting Gears', Icon: ShiftingGearsReportIcon, href: '/home/reports/shifting-gears' },
-  ],
-  [
-    { label: 'Indices Option', Icon: IndicesOptionReportIcon, href: '/home/reports/indices-option' },
-    { label: 'Most Active Options', Icon: MostActiveOptionsReportIcon, href: '/home/reports/most-active-options' },
-    { label: 'Call/Put value', Icon: CallPutValueReportIcon, href: '/home/reports/call-put-value' },
-  ],
+export const REPORT_ITEMS = [
+  { label: 'Future', Icon: FutureReportIcon, href: '/home/reports/future' },
+  { label: 'OI Changes', Icon: OiChangesReportIcon, href: '/home/reports/oi-changes' },
+  { label: 'Market Internals', Icon: MarketInternalsReportIcon, href: '/home/reports/market-internals' },
+  { label: 'Heat Map', Icon: HeatMapReportIcon, href: '/home/reports/heat-map' },
+  { label: 'Stock Rank', Icon: StockRankReportIcon, href: '/home/reports/stock-rank' },
+  { label: 'Shifting Gears', Icon: ShiftingGearsReportIcon, href: '/home/reports/shifting-gears' },
+  { label: 'Indices Option', Icon: IndicesOptionReportIcon, href: '/home/reports/indices-option' },
+  { label: 'Most Active Options', Icon: MostActiveOptionsReportIcon, href: '/home/reports/most-active-options' },
+  { label: 'Call/Put value', Icon: CallPutValueReportIcon, href: '/home/reports/call-put-value' },
 ];
+
+const ROWS = [REPORT_ITEMS.slice(0, 3), REPORT_ITEMS.slice(3, 6), REPORT_ITEMS.slice(6, 9)];
 
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useId } from 'react';
 import { Platform, View, useWindowDimensions } from 'react-native';
 import Svg, { Path, Rect, Circle, G, Defs, Mask, ClipPath, LinearGradient, Stop } from 'react-native-svg';
 
@@ -39,21 +39,26 @@ const OI_ARC_BOTTOM = 'M11.693 30.631C14.2187 32.4539 17.1987 33.5441 20.3045 33
 
 /** OI Changes report icon from assets/icons/home/reports/Oi-Changes.svg */
 export const OiChangesReportIcon = memo(function OiChangesReportIcon({ size }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const topMask = `oiArcTopMask${uid}`;
+  const bottomMask = `oiArcBottomMask${uid}`;
+  const topGrad = `oiArcTopGrad${uid}`;
+  const bottomGrad = `oiArcBottomGrad${uid}`;
   return (
     <IconFrame size={size} ratio={1.25}>
     <Svg width="100%" height="100%" viewBox="0 0 44 34" fill="none">
       <Defs>
-        <Mask id="oiArcTopMask" fill="white">
+        <Mask id={topMask} fill="white">
           <Path d={OI_ARC_TOP} fill="white" />
         </Mask>
-        <Mask id="oiArcBottomMask" fill="white">
+        <Mask id={bottomMask} fill="white">
           <Path d={OI_ARC_BOTTOM} fill="white" />
         </Mask>
-        <LinearGradient id="oiArcTopGrad" x1="21.5924" y1="0" x2="21.5924" y2="33.8303" gradientUnits="userSpaceOnUse">
+        <LinearGradient id={topGrad} x1="21.5924" y1="0" x2="21.5924" y2="33.8303" gradientUnits="userSpaceOnUse">
           <Stop stopColor="#A9A9E9" stopOpacity="0.6" />
           <Stop offset="1" stopColor="#C9C9F9" stopOpacity="0.7" />
         </LinearGradient>
-        <LinearGradient id="oiArcBottomGrad" x1="21.5924" y1="33.8303" x2="21.5924" y2="0" gradientUnits="userSpaceOnUse">
+        <LinearGradient id={bottomGrad} x1="21.5924" y1="33.8303" x2="21.5924" y2="0" gradientUnits="userSpaceOnUse">
           <Stop stopColor="#A9A9E9" stopOpacity="0.6" />
           <Stop offset="1" stopColor="#C9C9F9" stopOpacity="0.7" />
         </LinearGradient>
@@ -61,8 +66,8 @@ export const OiChangesReportIcon = memo(function OiChangesReportIcon({ size }) {
       <Rect x="25.8212" y="8.45752" width="3.38303" height="16.0694" rx="1" fill="#39D274" />
       <Rect x="19.0551" y="12.6863" width="3.38303" height="11.8406" rx="1" fill="#39D274" />
       <Rect x="12.289" y="16.915" width="3.38303" height="7.61182" rx="1" fill="#FF6D45" />
-      <Path d={OI_ARC_TOP} stroke="url(#oiArcTopGrad)" strokeWidth="3" mask="url(#oiArcTopMask)" />
-      <Path d={OI_ARC_BOTTOM} stroke="url(#oiArcBottomGrad)" strokeWidth="3" mask="url(#oiArcBottomMask)" />
+      <Path d={OI_ARC_TOP} stroke={`url(#${topGrad})`} strokeWidth="3" mask={`url(#${topMask})`} />
+      <Path d={OI_ARC_BOTTOM} stroke={`url(#${bottomGrad})`} strokeWidth="3" mask={`url(#${bottomMask})`} />
       <Path d="M38.1921 0.738469C37.8992 0.445576 37.4243 0.445576 37.1314 0.738469L32.3585 5.51144C32.0656 5.80433 32.0656 6.27921 32.3585 6.5721C32.6514 6.86499 33.1262 6.86499 33.4191 6.5721L37.6618 2.32946L41.9044 6.5721C42.1973 6.86499 42.6722 6.86499 42.9651 6.5721C43.258 6.27921 43.258 5.80433 42.9651 5.51144L38.1921 0.738469ZM37.6618 14.8009L38.4118 14.8009L38.4118 1.2688L37.6618 1.2688L36.9118 1.2688L36.9118 14.8009L37.6618 14.8009Z" fill="#27C669" />
       <Path d="M4.99265 33.5149C5.28554 33.8078 5.76042 33.8078 6.05331 33.5149L10.8263 28.742C11.1192 28.4491 11.1192 27.9742 10.8263 27.6813C10.5334 27.3884 10.0585 27.3884 9.76562 27.6813L5.52298 31.924L1.28034 27.6813C0.987446 27.3884 0.512572 27.3884 0.219679 27.6813C-0.0732147 27.9742 -0.0732147 28.4491 0.219679 28.742L4.99265 33.5149ZM5.52298 19.4525L4.77298 19.4525L4.77298 32.9846L5.52298 32.9846L6.27298 32.9846L6.27298 19.4525L5.52298 19.4525Z" fill="#FF6D45" />
     </Svg>
@@ -72,16 +77,17 @@ export const OiChangesReportIcon = memo(function OiChangesReportIcon({ size }) {
 
 /** Market Internals report icon from assets/icons/home/reports/Market-Internals.svg */
 export const MarketInternalsReportIcon = memo(function MarketInternalsReportIcon({ size }) {
+  const gradId = `marketInternalsGrad${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
     <IconFrame size={size} ratio={1.15}>
     <Svg width="100%" height="100%" viewBox="0 0 49 45" fill="none">
       <Defs>
-        <LinearGradient id="marketInternalsGrad" x1="0" y1="23.5" x2="49" y2="23.5" gradientUnits="userSpaceOnUse">
+        <LinearGradient id={gradId} x1="0" y1="23.5" x2="49" y2="23.5" gradientUnits="userSpaceOnUse">
           <Stop stopColor="#7690A3" />
           <Stop offset="1" stopColor="#364668" />
         </LinearGradient>
       </Defs>
-      <Path d="M16.9908 0C26.3742 0.000335349 33.9806 7.65256 33.9807 17.0916C33.9806 20.9181 32.7298 24.4504 30.618 27.2987L34.3492 30.6433C36.3596 29.4247 37.2659 29.7238 39.1505 31.5419L45.3076 37.484C47.5641 39.6611 49.5642 41.19 47.3076 43.367C45.0512 45.5444 43 45 41.1366 43.367L37 40C37 40 30.5 35.5 32.5305 32.6453L28.841 29.336C25.7801 32.334 21.6005 34.1821 16.9908 34.1823C7.60751 34.1821 0.000333363 26.5306 0 17.0916C0.000115203 7.65247 7.60737 0.00019982 16.9908 0ZM16.9908 2.34025C8.89238 2.34045 2.32656 8.9451 2.32645 17.0916C2.32678 25.238 8.89251 31.8418 16.9908 31.842C25.0891 31.8417 31.654 25.2379 31.6543 17.0916C31.6542 8.94518 25.0892 2.34058 16.9908 2.34025Z" fill="url(#marketInternalsGrad)" />
+      <Path d="M16.9908 0C26.3742 0.000335349 33.9806 7.65256 33.9807 17.0916C33.9806 20.9181 32.7298 24.4504 30.618 27.2987L34.3492 30.6433C36.3596 29.4247 37.2659 29.7238 39.1505 31.5419L45.3076 37.484C47.5641 39.6611 49.5642 41.19 47.3076 43.367C45.0512 45.5444 43 45 41.1366 43.367L37 40C37 40 30.5 35.5 32.5305 32.6453L28.841 29.336C25.7801 32.334 21.6005 34.1821 16.9908 34.1823C7.60751 34.1821 0.000333363 26.5306 0 17.0916C0.000115203 7.65247 7.60737 0.00019982 16.9908 0ZM16.9908 2.34025C8.89238 2.34045 2.32656 8.9451 2.32645 17.0916C2.32678 25.238 8.89251 31.8418 16.9908 31.842C25.0891 31.8417 31.654 25.2379 31.6543 17.0916C31.6542 8.94518 25.0892 2.34058 16.9908 2.34025Z" fill={`url(#${gradId})`} />
       <Path fillRule="evenodd" clipRule="evenodd" d="M13 13H14V8H15V13H16V19H15V23H14V19H13V13Z" fill="#00A32D" />
       <Path fillRule="evenodd" clipRule="evenodd" d="M23 16.2157H24V12.8823H25V16.2157H26V20.2157H25V22.8823H24V20.2157H23V16.2157Z" fill="#DF1E1E" />
       <Path fillRule="evenodd" clipRule="evenodd" d="M10 17.3684V15H9V17.3684H8V22.5789H9V24H10V22.5789H11V17.3684H10Z" fill="#00A32D" />
@@ -112,15 +118,16 @@ export const HeatMapReportIcon = memo(function HeatMapReportIcon({ size }) {
 
 /** Stock Rank report icon from assets/icons/home/reports/Stock-Ranks.svg */
 export const StockRankReportIcon = memo(function StockRankReportIcon({ size }) {
+  const clipId = `stockRankClip${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
     <IconFrame size={size}>
     <Svg width="100%" height="100%" viewBox="0 0 35 36" fill="none">
       <Defs>
-        <ClipPath id="stockRankClip">
+        <ClipPath id={clipId}>
           <Rect width="35" height="36" fill="white" />
         </ClipPath>
       </Defs>
-      <G clipPath="url(#stockRankClip)">
+      <G clipPath={`url(#${clipId})`}>
         <Path d="M24.5545 1.40303C24.2537 1.30881 23.9311 1.20334 23.8367 1.16959C23.7424 1.13514 23.3425 1.1042 22.9481 1.09998C22.3007 1.09366 22.153 1.11756 21.4442 1.34889C20.7565 1.57319 20.5726 1.60553 19.9744 1.60483C19.3708 1.60413 19.2033 1.57459 18.5389 1.34678C17.966 1.15061 17.6769 1.08944 17.3255 1.09084C16.9256 1.09225 16.8415 1.11545 16.5223 1.44381V12.3422H15.326C14.1413 12.3422 14.1283 12.3437 13.7879 12.6938V33.7172V34.8763H20.3504V33.7172V12.6938L20.1829 12.518C20.0161 12.3437 20.0045 12.3422 17.616 12.3422V7.91256L17.804 7.93787C17.9072 7.95194 18.2689 8.04967 18.6072 8.15584C19.1179 8.31545 19.3503 8.3485 19.9744 8.3485C20.4673 8.3492 20.8556 8.30983 21.1024 8.2353C21.3088 8.17272 21.7244 8.05459 22.0252 7.97233C22.4586 7.8542 22.6856 7.83241 23.119 7.86475C23.4197 7.88725 23.8812 7.98217 24.1443 8.07569C24.4075 8.1692 24.8457 8.2817 25.1185 8.3253C25.3912 8.36889 25.6906 8.40475 25.785 8.40475C25.8834 8.40475 26.0427 8.31545 26.366 7.98287V2.00631L26.2122 1.84319C26.094 1.71733 25.9484 1.66741 25.5799 1.62663C25.3167 1.5978 24.8553 1.49725 24.5545 1.40303Z" fill="#36D59D" />
         <Path d="M20.7481 34.9092H24.0294H30.5919H33.5313L33.7022 35.085C33.8088 35.1946 33.8731 35.3402 33.8731 35.4717C33.8731 35.6011 33.8082 35.7508 33.5375 36.0342H1.4024L1.23151 35.8584C1.12487 35.7487 1.06061 35.6032 1.06061 35.4717C1.06061 35.3423 1.12555 35.1925 1.39625 34.9092H4.34186H10.9044H14.1856H20.7481Z" fill="#5F5F5F" />
         <Path d="M30.0505 20.2331V34.9092H23.3333V20.2331L23.6769 19.6365H29.7006L30.0505 20.2331Z" fill="#FF6D45" />
@@ -189,24 +196,27 @@ export const MostActiveOptionsReportIcon = memo(function MostActiveOptionsReport
 
 /** Call/Put value report icon from assets/icons/home/reports/Call-Put-Value.svg */
 export const CallPutValueReportIcon = memo(function CallPutValueReportIcon({ size }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const callGrad = `callPinGrad${uid}`;
+  const putGrad = `putPinGrad${uid}`;
   return (
     <IconFrame size={size} ratio={1.3}>
     <Svg width="100%" height="100%" viewBox="0 0 49 36" fill="none">
       <Defs>
-        <LinearGradient id="callPinGrad" x1="8.99442" y1="0.75" x2="8.99442" y2="19.299" gradientUnits="userSpaceOnUse">
+        <LinearGradient id={callGrad} x1="8.99442" y1="0.75" x2="8.99442" y2="19.299" gradientUnits="userSpaceOnUse">
           <Stop stopColor="#0E964E" stopOpacity="0.3" />
           <Stop offset="1" stopColor="#0E964E" stopOpacity="0.1" />
         </LinearGradient>
-        <LinearGradient id="putPinGrad" x1="39.9053" y1="5.75" x2="39.9053" y2="24.3013" gradientUnits="userSpaceOnUse">
+        <LinearGradient id={putGrad} x1="39.9053" y1="5.75" x2="39.9053" y2="24.3013" gradientUnits="userSpaceOnUse">
           <Stop stopColor="#DD2320" stopOpacity="0.3" />
           <Stop offset="1" stopColor="#DD2320" stopOpacity="0.1" />
         </LinearGradient>
       </Defs>
       <Path d="M1.66034 18.75L45.6603 26.0833" stroke="#4A587B" strokeWidth="2" strokeLinecap="round" />
       <Path d="M22.2277 23.5C22.4202 23.1669 22.9005 23.1669 23.093 23.5L27.423 31C27.6155 31.3333 27.3753 31.75 26.9904 31.75H18.3303C17.9454 31.75 17.7052 31.3333 17.8976 31L22.2277 23.5Z" fill="#4A587B" stroke="#4A587B" />
-      <Path d="M10.4752 18.7119C10.0781 19.0885 9.54714 19.299 8.99458 19.299C8.44201 19.299 7.91115 19.0885 7.51393 18.7119C3.87643 15.2423 -0.998255 11.3664 1.37899 5.73936C2.66433 2.69687 5.74975 0.75 8.99458 0.75C12.2394 0.75 15.3249 2.69687 16.6102 5.73936C18.9844 11.3594 14.1217 15.2543 10.4752 18.7119Z" fill="url(#callPinGrad)" stroke="#0E964E" strokeWidth="1.5" />
+      <Path d="M10.4752 18.7119C10.0781 19.0885 9.54714 19.299 8.99458 19.299C8.44201 19.299 7.91115 19.0885 7.51393 18.7119C3.87643 15.2423 -0.998255 11.3664 1.37899 5.73936C2.66433 2.69687 5.74975 0.75 8.99458 0.75C12.2394 0.75 15.3249 2.69687 16.6102 5.73936C18.9844 11.3594 14.1217 15.2543 10.4752 18.7119Z" fill={`url(#${callGrad})`} stroke="#0E964E" strokeWidth="1.5" />
       <Path d="M11.8433 8.04022H10.956C10.9035 7.79565 10.8116 7.5808 10.6804 7.39566C10.5516 7.21053 10.3942 7.0551 10.2081 6.92939C10.0245 6.8014 9.8205 6.7054 9.59627 6.6414C9.37205 6.5774 9.13827 6.5454 8.89496 6.5454C8.45128 6.5454 8.04933 6.65283 7.68914 6.86768C7.33132 7.08253 7.04627 7.39909 6.83396 7.81737C6.62405 8.23564 6.51909 8.74877 6.51909 9.35675C6.51909 9.96473 6.62405 10.4779 6.83396 10.8961C7.04627 11.3144 7.33132 11.631 7.68914 11.8458C8.04933 12.0607 8.45128 12.1681 8.89496 12.1681C9.13827 12.1681 9.37205 12.1361 9.59627 12.0721C9.8205 12.0081 10.0245 11.9132 10.2081 11.7875C10.3942 11.6595 10.5516 11.503 10.6804 11.3178C10.8116 11.1304 10.9035 10.9156 10.956 10.6733H11.8433C11.7765 11.0321 11.6549 11.3533 11.4784 11.6367C11.3018 11.9201 11.0824 12.1612 10.82 12.3601C10.5576 12.5567 10.263 12.7064 9.9362 12.8092C9.61178 12.9121 9.2647 12.9635 8.89496 12.9635C8.26998 12.9635 7.71418 12.8172 7.22756 12.5247C6.74093 12.2321 6.35807 11.8161 6.07898 11.2767C5.79989 10.7373 5.66034 10.0973 5.66034 9.35675C5.66034 8.6162 5.79989 7.97622 6.07898 7.43681C6.35807 6.89739 6.74093 6.48141 7.22756 6.18884C7.71418 5.89628 8.26998 5.75 8.89496 5.75C9.2647 5.75 9.61178 5.80143 9.9362 5.90428C10.263 6.00714 10.5576 6.15799 10.82 6.35684C11.0824 6.5534 11.3018 6.7934 11.4784 7.07682C11.6549 7.35795 11.7765 7.67908 11.8433 8.04022Z" fill="#0E964E" />
-      <Path d="M41.3863 23.7141C40.9891 24.0907 40.4581 24.3013 39.9055 24.3013C39.3529 24.3013 38.8219 24.0907 38.4247 23.7141C34.7867 20.2441 29.9114 16.3677 32.289 10.74C33.5745 7.6971 36.6603 5.75 39.9055 5.75C43.1508 5.75 46.2365 7.6971 47.5221 10.74C49.8966 16.3607 45.0333 20.2561 41.3863 23.7141Z" fill="url(#putPinGrad)" stroke="#DD2320" strokeWidth="1.5" />
+      <Path d="M41.3863 23.7141C40.9891 24.0907 40.4581 24.3013 39.9055 24.3013C39.3529 24.3013 38.8219 24.0907 38.4247 23.7141C34.7867 20.2441 29.9114 16.3677 32.289 10.74C33.5745 7.6971 36.6603 5.75 39.9055 5.75C43.1508 5.75 46.2365 7.6971 47.5221 10.74C49.8966 16.3607 45.0333 20.2561 41.3863 23.7141Z" fill={`url(#${putGrad})`} stroke="#DD2320" strokeWidth="1.5" />
       <Path d="M37.6603 18.75V10.75H40.1531C40.7319 10.75 41.205 10.8633 41.5724 11.0898C41.9423 11.3138 42.2161 11.6172 42.3938 12C42.5715 12.3828 42.6603 12.8099 42.6603 13.2813C42.6603 13.7526 42.5715 14.181 42.3938 14.5664C42.2185 14.9518 41.9471 15.2591 41.5796 15.4883C41.2122 15.7148 40.7415 15.8281 40.1675 15.8281H38.3808V14.9688H40.1387C40.535 14.9688 40.8532 14.8945 41.0933 14.7461C41.3335 14.5977 41.5076 14.3971 41.6157 14.1445C41.7261 13.8893 41.7814 13.6016 41.7814 13.2813C41.7814 12.9609 41.7261 12.6745 41.6157 12.4219C41.5076 12.1693 41.3323 11.9714 41.0897 11.8281C40.8472 11.6823 40.5254 11.6094 40.1243 11.6094H38.5537V18.75H37.6603Z" fill="#DD2320" />
     </Svg>
     </IconFrame>
