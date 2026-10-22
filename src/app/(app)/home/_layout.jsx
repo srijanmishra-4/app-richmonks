@@ -27,6 +27,14 @@ export default function HomeStackLayout() {
       <View style={styles.desktopMain}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen
+            name="reports"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen
             name="fno-profit-per-lot"
             options={{
               presentation: 'transparentModal',
