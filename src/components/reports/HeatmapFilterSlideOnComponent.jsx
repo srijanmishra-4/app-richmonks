@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Modal, Pressable, ScrollView, Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFluidStyles } from '@/utils/responsive';
+import { useWideStyles } from '@/utils/responsive';
 
 const PRIMARY = '#0071A9';
 const TEXT = '#0F172A';
@@ -36,7 +36,7 @@ function HeatmapFilterSlideOnComponent({
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const styles = useFluidStyles(createStyles);
+  const styles = useWideStyles(createStyles);
   const t = styles;
 
   const [mounted, setMounted] = useState(false);
@@ -259,7 +259,7 @@ function HeatmapFilterSlideOnComponent({
 
 export default memo(HeatmapFilterSlideOnComponent);
 
-const createStyles = (f) => ({
+const createStyles = (f, s) => ({
   root: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   backdrop: { ...StyleSheet.absoluteFill },
   sheet: {
@@ -294,8 +294,8 @@ const createStyles = (f) => ({
   resetBtn: { backgroundColor: '#F1F5F9' },
   applyBtn: { backgroundColor: PRIMARY },
   pointer: { cursor: 'pointer' },
-  tabLabel: { fontSize: f(12, 14), fontFamily: 'Inter_500Medium', color: MUTED },
-  optLabel: { fontSize: f(13, 15), fontFamily: 'Inter_500Medium', color: TEXT },
-  resetText: { fontSize: f(13, 15), fontFamily: 'Inter_600SemiBold', color: MUTED },
-  applyText: { fontSize: f(13, 15), fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
+  tabLabel: { fontSize: f(12, 14, s(12)), fontFamily: 'Inter_500Medium', color: MUTED },
+  optLabel: { fontSize: f(13, 15, s(13)), fontFamily: 'Inter_500Medium', color: TEXT },
+  resetText: { fontSize: f(13, 15, s(13)), fontFamily: 'Inter_600SemiBold', color: MUTED },
+  applyText: { fontSize: f(13, 15, s(13)), fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
 });

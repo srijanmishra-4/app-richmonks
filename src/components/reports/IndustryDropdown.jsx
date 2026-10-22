@@ -1,10 +1,10 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, Modal, FlatList, Dimensions, Platform, StyleSheet } from 'react-native';
 import { useCommonData } from '@/context/CommonDataContext';
-import { useFluidStyles } from '@/utils/responsive';
+import { useWideStyles } from '@/utils/responsive';
 
 function IndustryDropdown({ value, onChange, style }) {
-  const styles = useFluidStyles(createStyles);
+  const styles = useWideStyles(createStyles);
   const { industries } = useCommonData();
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
@@ -91,7 +91,7 @@ function IndustryDropdown({ value, onChange, style }) {
 export default memo(IndustryDropdown);
 
 const createStyles = (f) => ({
-  wrap: { justifyContent: 'center', flexShrink: 1, maxWidth: f(130, 200) },
+  wrap: { justifyContent: 'center', flexShrink: 1, maxWidth: f(130, 200, 125) },
   pointer: { cursor: 'pointer' },
   btn: {
     flexDirection: 'row',
@@ -126,7 +126,7 @@ const createStyles = (f) => ({
     elevation: 4,
   },
   list: { maxHeight: 240 },
-  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(7, 10) },
+  menuItem: { paddingHorizontal: f(10, 14, 12), paddingVertical: f(7, 10, 8) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
   menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
   menuTextActive: { color: '#0071A9', fontFamily: 'Inter_600SemiBold' },

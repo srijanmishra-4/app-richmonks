@@ -9,7 +9,7 @@ import { SkeletonMetaRow, usePulse } from '@/components/skeleton/SkeletonBars';
 import { FUTURE_TABLE_COLUMNS, FutureHeader, FutureRow } from '@/components/reports/futureTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
-import { useFluidStyles } from '@/utils/responsive';
+import { useFluidStyles, useWideStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
 const TABS = [
@@ -40,7 +40,7 @@ const TAB_TONE = {
 };
 
 function ReportTabs({ active, onChange }) {
-  const styles = useFluidStyles(createStyles);
+  const styles = useWideStyles(createTabStyles);
   const wrapTone = TAB_TONE[active];
   return (
     <View style={styles.tabsWrap}>
@@ -163,16 +163,20 @@ function FutureReportScreen() {
 
 export default memo(FutureReportScreen);
 
-const createStyles = (f) => ({
-  root: { flex: 1, backgroundColor: '#F6F7F8' },
+const createTabStyles = (f, s, wide) => ({
   pointer: { cursor: 'pointer' },
-  tabsWrap: { alignItems: 'center', paddingHorizontal: f(16, 28), paddingTop: f(4, 10), paddingBottom: f(10, 16) },
-  tabs: { flexDirection: 'row', borderRadius: f(10, 12), overflow: 'hidden', backgroundColor: '#EEF2F6', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', alignSelf: 'center', width: '80%' },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: f(8, 12), paddingBottom: 0, paddingHorizontal: f(12, 18) },
+  tabsWrap: { ...(wide ? { alignItems: 'center' } : null), paddingHorizontal: f(16, 28), paddingTop: f(4, 10), paddingBottom: f(10, 16) },
+  tabs: { flexDirection: 'row', borderRadius: f(10, 12), overflow: 'hidden', backgroundColor: '#EEF2F6', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', ...(wide ? { alignSelf: 'center', width: '80%' } : null) },
+  tab: wide ? { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: f(8, 12), paddingBottom: 0, paddingHorizontal: f(12, 18) } : { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingTop: 8 },
   tabLabel: { fontSize: f(12.5, 14.5), lineHeight: f(17, 20), fontFamily: 'Inter_500Medium' },
   tabLabelActive: { fontFamily: 'Inter_600SemiBold' },
   tabLabelIdle: { color: '#94A3B8' },
   tabLine: { marginTop: f(7, 10), height: f(2, 3), alignSelf: 'stretch', backgroundColor: 'transparent' },
+});
+
+const createStyles = (f) => ({
+  root: { flex: 1, backgroundColor: '#F6F7F8' },
+  pointer: { cursor: 'pointer' },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: f(24, 32) },
   emptyText: { fontSize: f(13, 15), fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   content: { flex: 1, minHeight: 0 },

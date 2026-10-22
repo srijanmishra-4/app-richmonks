@@ -56,5 +56,19 @@ export function useFluidStyles(factory) {
   return styles;
 }
 
+const wideStyleCache = new WeakMap();
+
+// `factory(f, fs, wide)`: fluid on desktop (≥ lg); below that f(min, max, legacy = min) returns `legacy` as-is.
+export function useWideStyles(factory) {
+  const { width } = useWindowDimensions();
+  const cached = wideStyleCache.get(factory);
+  if (cached && cached.width === width) return cached.styles;
+  const wide = width >= BREAKPOINTS.lg;
+  const f = wide ? fluidFor(width) : (min, max, legacy = min) => legacy;
+  const styles = StyleSheet.create(factory(f, scaleFor(width), wide));
+  wideStyleCache.set(factory, { width, styles });
+  return styles;
+}
+
 // Watchlist column beside the home stack on laptops.
 export const SIDEBAR_WIDTH = { min: 340, max: 420 };

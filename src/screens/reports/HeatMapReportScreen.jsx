@@ -14,7 +14,7 @@ import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { MONTHLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
-import { useFluid, useFluidStyles } from '@/utils/responsive';
+import { useFluid, useFluidStyles, useWideStyles } from '@/utils/responsive';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { BREAKPOINTS } from '@/constants/breakpoints';
 
@@ -387,6 +387,7 @@ function HeatMapReportScreen() {
 
   const f = useFluid();
   const styles = useFluidStyles(createStyles);
+  const tabStyles = useWideStyles(createTabStyles);
   const numColumns = width >= 1024 ? 6 : width >= 640 ? 5 : 4;
 
   const allTiles = useMemo(() => {
@@ -425,8 +426,8 @@ function HeatMapReportScreen() {
   const gridData = useMemo(() => formatGridData(working, numColumns), [working, numColumns]);
 
   const tabLabelSizes = useMemo(() => {
-    const fontSize = createStyles(f).tabLabel.fontSize;
-    const buttonWidth = (width - f(8, 20) * 2 - TAB_GAP * (REPORT_TABS.length - 1)) / REPORT_TABS.length;
+    const fontSize = tabStyles.tabLabel.fontSize;
+    const buttonWidth = (width - tabStyles.tabsWrap.paddingHorizontal * 2 - TAB_GAP * (REPORT_TABS.length - 1)) / REPORT_TABS.length;
     const textWidth = Math.max(24, buttonWidth - 14);
     const longest = REPORT_TABS.reduce((best, tab) => (tab.label.length > best.label.length ? tab : best));
     const sharedSize = fittedSize(longest.label, fontSize, 0.78, textWidth, 0.5);
@@ -435,7 +436,7 @@ function HeatMapReportScreen() {
       sizes[tab.id] = sharedSize;
     });
     return sizes;
-  }, [f, width]);
+  }, [tabStyles, width]);
 
   const handleTileSelect = useCallback((item) => {
     setSelectedTile(item);
@@ -507,14 +508,14 @@ function HeatMapReportScreen() {
           <FlipIcon size={18} color={MUTED} />
         </ControlButton>
       </View>
-      <View style={styles.tabsWrap}>
-        <View style={styles.tabs}>
+      <View style={tabStyles.tabsWrap}>
+        <View style={tabStyles.tabs}>
           {REPORT_TABS.map((item) => {
             const selected = item.id === selected_report;
             const labelSize = tabLabelSizes[item.id];
             return (
-              <Pressable key={item.id} onPress={() => handleReportTab(item.id)} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={item.label} style={[styles.tab, selected ? styles.tabActive : null, Platform.OS === 'web' ? styles.pointer : null]}>
-                <Text style={[styles.tabLabel, selected ? styles.tabLabelActive : styles.tabLabelIdle, labelSize ? { fontSize: labelSize, lineHeight: Math.round(labelSize * 1.3 * 2) / 2 } : null]} numberOfLines={1} allowFontScaling={false}>{item.label}</Text>
+              <Pressable key={item.id} onPress={() => handleReportTab(item.id)} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={item.label} style={[tabStyles.tab, selected ? tabStyles.tabActive : null, Platform.OS === 'web' ? styles.pointer : null]}>
+                <Text style={[tabStyles.tabLabel, selected ? tabStyles.tabLabelActive : tabStyles.tabLabelIdle, labelSize ? { fontSize: labelSize, lineHeight: Math.round(labelSize * 1.3 * 2) / 2 } : null]} numberOfLines={1} allowFontScaling={false}>{item.label}</Text>
               </Pressable>
             );
           })}
@@ -571,16 +572,20 @@ function HeatMapReportScreen() {
 
 export default memo(HeatMapReportScreen);
 
-const createStyles = (f) => ({
-  root: { flex: 1, backgroundColor: '#F6F7F8' },
-  pointer: { cursor: 'pointer' },
-  noOutline: { outlineStyle: 'none', outlineWidth: 0 },
+const createTabStyles = (f, s) => ({
   tabsWrap: { paddingHorizontal: f(8, 20), paddingBottom: f(12, 16) },
   tabs: { flexDirection: 'row', gap: f(8, 12) },
   tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingVertical: f(8, 12), paddingHorizontal: f(7, 14), borderRadius: f(8, 10), backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER },
   tabActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
+  tabLabel: { alignSelf: 'stretch', textAlign: 'center', fontSize: f(10, 13, s(9, 10, 11)), lineHeight: f(13, 17, s(12, 13, 14)), fontFamily: 'Inter_500Medium', includeFontPadding: false },
   tabLabelActive: { fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
   tabLabelIdle: { color: MUTED },
+});
+
+const createStyles = (f) => ({
+  root: { flex: 1, backgroundColor: '#F6F7F8' },
+  pointer: { cursor: 'pointer' },
+  noOutline: { outlineStyle: 'none', outlineWidth: 0 },
   metaRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: f(16, 28), paddingTop: 2, paddingBottom: f(10, 14), gap: f(8, 14) },
   controlsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: f(8, 20), paddingBottom: f(10, 14), gap: f(8, 12) },
   searchBox: { flex: 1, flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', height: f(40, 46), backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, borderRadius: f(8, 10), paddingHorizontal: f(10, 14), gap: f(8, 12) },
@@ -595,7 +600,6 @@ const createStyles = (f) => ({
   tileEmpty: { backgroundColor: 'transparent' },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: f(24, 40), paddingVertical: f(40, 60) },
-  tabLabel: { alignSelf: 'stretch', textAlign: 'center', fontSize: f(10, 13), lineHeight: f(13, 17), fontFamily: 'Inter_500Medium', includeFontPadding: false },
   searchInput: { flex: 1, minWidth: 0, padding: 0, fontSize: f(13, 15), fontFamily: 'Inter_400Regular', color: TEXT },
   tileSymbol: { alignSelf: 'stretch', textAlign: 'center', fontSize: f(11, 14), lineHeight: f(15, 18), fontFamily: 'Inter_500Medium', includeFontPadding: false },
   tilePrice: { alignSelf: 'stretch', textAlign: 'center', fontSize: f(10, 13), lineHeight: f(12, 16), fontFamily: 'Inter_500Medium', includeFontPadding: false, fontVariant: ['tabular-nums'] },

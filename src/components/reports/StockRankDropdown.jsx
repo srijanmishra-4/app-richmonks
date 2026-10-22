@@ -1,6 +1,6 @@
 import { memo, useCallback, useRef, useState } from 'react';
 import { View, Text, Pressable, Modal, Dimensions, Platform, StyleSheet } from 'react-native';
-import { useFluidStyles } from '@/utils/responsive';
+import { useWideStyles } from '@/utils/responsive';
 
 export const STOCK_RANK_DROPDOWN_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -9,7 +9,7 @@ export const STOCK_RANK_DROPDOWN_OPTIONS = [
 ];
 
 function StockRankDropdown({ value, onChange }) {
-  const styles = useFluidStyles(createStyles);
+  const styles = useWideStyles(createStyles);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
   const anchorRef = useRef(null);
@@ -85,12 +85,12 @@ const createStyles = (f) => ({
     flexDirection: 'row',
     alignItems: 'center',
     height: f(30, 36),
-    paddingHorizontal: f(8, 12),
+    paddingHorizontal: f(8, 12, 10),
     borderRadius: f(8, 10),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
-    gap: f(4, 6),
+    gap: f(4, 6, 6),
   },
   btnOpen: { borderColor: '#0071A9' },
   btnText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
@@ -111,7 +111,7 @@ const createStyles = (f) => ({
     shadowRadius: 6,
     elevation: 4,
   },
-  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(7, 10) },
+  menuItem: { paddingHorizontal: f(10, 14, 12), paddingVertical: f(7, 10, 8) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
   menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
   menuTextActive: { color: '#0071A9', fontFamily: 'Inter_600SemiBold' },

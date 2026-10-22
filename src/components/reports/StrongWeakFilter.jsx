@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 
-import { useFluidStyles } from '@/utils/responsive';
+import { useWideStyles } from '@/utils/responsive';
 
 const STRONG = 'Strong';
 const WEAK = 'Weak';
@@ -90,7 +90,7 @@ const FilterButton = memo(function FilterButton({ label, selected, activeStyle, 
 });
 
 function StrongWeakFilter({ value, onChange, style }) {
-  const styles = useFluidStyles(createStyles);
+  const styles = useWideStyles(createStyles);
   const selectStrong = useCallback(() => {
     onChange(value === STRONG ? null : STRONG);
   }, [onChange, value]);
@@ -127,14 +127,14 @@ const createStyles = (f) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: f(6, 10),
+    gap: f(6, 10, 8),
   },
   pointer: { cursor: 'pointer' },
   button: {
     height: f(30, 36),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: f(12, 18),
+    paddingHorizontal: f(12, 18, 16),
     borderRadius: f(8, 10),
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
@@ -149,8 +149,8 @@ const createStyles = (f) => ({
     borderColor: '#DC2626',
   },
   label: {
-    fontSize: f(11.5, 13.5),
-    lineHeight: f(15, 18),
+    fontSize: f(11.5, 13.5, 12),
+    lineHeight: f(15, 18, 16),
     fontFamily: 'Inter_500Medium',
     color: '#64748B',
   },

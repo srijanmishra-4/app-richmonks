@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
-import { useFluidStyles } from '@/utils/responsive';
+import { useWideStyles } from '@/utils/responsive';
 
 export const CALL_PUT_FILTER_OPTIONS = ['Strong Call', 'Strong Put', 'Weak Call', 'Weak Put', 'Neutral'];
 
@@ -51,7 +51,7 @@ export function useCallPutStrengthFilter(rows) {
 }
 
 function CallPutStrongWeakFilterButton({ value, onChange, style, withNeutral = true }) {
-  const styles = useFluidStyles(createStyles);
+  const styles = useWideStyles(createStyles);
   const handlePress = useCallback((item) => {
     onChange?.(value === item ? null : item);
   }, [onChange, value]);
@@ -84,18 +84,15 @@ function CallPutStrongWeakFilterButton({ value, onChange, style, withNeutral = t
 export { CallPutStrongWeakFilterButton as CallPutStrongWeakFilter };
 export default memo(CallPutStrongWeakFilterButton);
 
-const createStyles = (f) => ({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', width: '100%' },
+const createStyles = (f, s, wide) => ({
+  row: wide ? { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', width: '100%' } : { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pointer: { cursor: 'pointer' },
   button: {
-    flexGrow: 0,
-    flexShrink: 1,
-    width: f(112, 152),
-    minWidth: 0,
-    height: f(32, 38),
+    ...(wide ? { flexGrow: 0, flexShrink: 1, width: f(112, 152), minWidth: 0 } : { flex: 1 }),
+    height: f(32, 38, 30),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: f(8, 12),
+    paddingHorizontal: f(8, 12, 2),
     borderRadius: f(8, 10),
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
@@ -104,7 +101,7 @@ const createStyles = (f) => ({
   buttonActive: { backgroundColor: '#1E60F6', borderColor: '#1E60F6' },
   strongButton: { backgroundColor: '#E5F6EA', borderColor: '#16A34A' },
   weakButton: { backgroundColor: '#FCE8EC', borderColor: '#DC2626' },
-  label: { fontSize: f(10.5, 13), lineHeight: f(14, 17), fontFamily: 'Inter_500Medium', color: '#64748B' },
+  label: { fontSize: f(10.5, 13, 9.5), lineHeight: f(14, 17, 13), fontFamily: 'Inter_500Medium', color: '#64748B' },
   labelActive: { fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
   strongLabel: { fontFamily: 'Inter_600SemiBold', color: '#16A34A' },
   weakLabel: { fontFamily: 'Inter_600SemiBold', color: '#DC2626' },

@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Modal, Dimensions, Platform, StyleSheet } from 'react-native';
 
-import { useFluidStyles } from '@/utils/responsive';
+import { useWideStyles } from '@/utils/responsive';
 
 export const CALL_PUT_OPTIONS = [
   { value: 'call', label: 'Call' },
@@ -9,7 +9,7 @@ export const CALL_PUT_OPTIONS = [
 ];
 
 function CallPutDropdown({ value, onChange }) {
-  const styles = useFluidStyles(createStyles);
+  const styles = useWideStyles(createStyles);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
   const anchorRef = useRef(null);
@@ -121,25 +121,25 @@ function nodeContains(node, target) {
 
 export default memo(CallPutDropdown);
 
-const createStyles = (f) => ({
-  wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: f(6, 10) },
+const createStyles = (f, s) => ({
+  wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: f(6, 10, 8) },
   pointer: { cursor: 'pointer' },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
     height: f(30, 36),
     minWidth: f(72, 90),
-    paddingHorizontal: f(8, 12),
+    paddingHorizontal: f(8, 12, 10),
     borderRadius: f(8, 10),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
     justifyContent: 'space-between',
-    gap: f(4, 6),
+    gap: f(4, 6, 6),
   },
   btnOpen: { borderColor: '#0071A9' },
   btnText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  label: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#64748B' },
+  label: { fontSize: f(11.5, 13.5, s(12)), lineHeight: f(16, 18, s(16)), fontFamily: 'Inter_500Medium', color: '#64748B' },
   caret: { fontSize: f(9, 11), lineHeight: f(12, 14), fontFamily: 'Inter_500Medium', color: '#64748B' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.01)' },
   menu: {
@@ -156,7 +156,7 @@ const createStyles = (f) => ({
     shadowOpacity: 0.08,
     shadowRadius: 6,
   },
-  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(7, 10) },
+  menuItem: { paddingHorizontal: f(10, 14, 12), paddingVertical: f(7, 10, 8) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
   menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
   menuTextActive: { color: '#0071A9', fontFamily: 'Inter_600SemiBold' },

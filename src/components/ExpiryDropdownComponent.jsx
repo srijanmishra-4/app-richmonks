@@ -3,7 +3,7 @@ import { View, Text, Pressable, Modal, Dimensions, Platform, StyleSheet } from '
 
 import { ChevronRightIcon } from '@/components/icons/HomeIcons';
 import { useCommonData } from '@/context/CommonDataContext';
-import { useFluidStyles } from '@/utils/responsive';
+import { useWideStyles } from '@/utils/responsive';
 
 const PRIMARY = '#0071A9';
 const TEXT = '#0F172A';
@@ -51,7 +51,7 @@ function ExpiryDropdownComponent({ value, onSelect, withWeekly = false }) {
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
-  const styles = useFluidStyles(createStyles);
+  const styles = useWideStyles(createStyles);
   const options = useExpiryOptions(withWeekly);
   const current = options.find((item) => item.value === value);
 
@@ -102,20 +102,20 @@ function ExpiryDropdownComponent({ value, onSelect, withWeekly = false }) {
 
 export default memo(ExpiryDropdownComponent);
 
-const createStyles = (f) => ({
+const createStyles = (f, s) => ({
   pointer: { cursor: 'pointer' },
-  wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: f(6, 10) },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: f(30, 36), minWidth: f(80, 100), paddingHorizontal: f(8, 12), borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF', gap: f(6, 8) },
+  wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: f(6, 10, 8) },
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: f(30, 36), minWidth: f(80, 100), paddingHorizontal: f(8, 12, 10), borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF', gap: f(6, 8) },
   btnOpen: { borderColor: PRIMARY },
   chevronDown: { transform: [{ rotate: '90deg' }] },
   chevronUp: { transform: [{ rotate: '-90deg' }] },
   menuRoot: { flex: 1 },
   menuBackdrop: { ...StyleSheet.absoluteFillObject },
   menu: { position: 'absolute', backgroundColor: '#FFFFFF', borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, paddingVertical: f(4, 6), shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
-  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(7, 10) },
+  menuItem: { paddingHorizontal: f(10, 14, 12), paddingVertical: f(7, 10, 9) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
   menuTextActive: { color: PRIMARY },
-  label: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: MUTED },
-  value: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_600SemiBold', color: TEXT },
-  menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: TEXT },
+  label: { fontSize: f(11.5, 13.5, s(12)), lineHeight: f(16, 18, s(16)), fontFamily: 'Inter_500Medium', color: MUTED },
+  value: { fontSize: f(12, 14, s(13)), lineHeight: f(16, 18, s(17)), fontFamily: 'Inter_600SemiBold', color: TEXT },
+  menuText: { fontSize: f(12, 14, s(12)), lineHeight: f(16, 18, s(16)), fontFamily: 'Inter_500Medium', color: TEXT },
 });
