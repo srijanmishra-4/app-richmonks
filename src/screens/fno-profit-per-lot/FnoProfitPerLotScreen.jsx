@@ -1,10 +1,12 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
+import CommonTable from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
 import { SkeletonMetaRow, SkeletonSummaryCard, usePulse } from '@/components/skeleton/SkeletonBars';
+import { SYMBOL_LOGO_GAP, SYMBOL_LOGO_SIZE, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────────
@@ -15,11 +17,16 @@ const NEUTRAL = '#64748B';
 
 // ─── Column Flex Weights ────────────────────────────────────────────────────────
 
-const COL = { symbol: 1.1, cmp: 1, today: 1, fiveDays: 1 };
+const COL = { symbol: 1.4, cmp: 1.05, today: 1, fiveDays: 1 };
 
-const TABLE_COLUMNS = [{ flex: COL.symbol, align: 'left', lines: 2 }, { flex: COL.cmp, align: 'right', lines: 2 }, { flex: COL.today, align: 'right', lines: 1 }, { flex: COL.fiveDays, align: 'right', lines: 1 }];
+const TABLE_COLUMNS = [
+  { flex: COL.symbol, align: 'left', lines: 2 },
+  { flex: COL.cmp, align: 'right', lines: 2 },
+  { flex: COL.today, align: 'right', lines: 1 },
+  { flex: COL.fiveDays, align: 'right', lines: 1 },
+];
 
-// ─── Formatting Utilities (project conventions — Indian comma grouping) ─────────
+// ─── Formatting Utilities (Indian comma grouping) ───────────────────────────────
 
 function groupDigits(intPart) {
   if (intPart.length <= 3) return intPart;
@@ -84,7 +91,10 @@ function sortNumber(val) {
 // ─── Row Component ──────────────────────────────────────────────────────────────
 
 const PPLRow = memo(function PPLRow({ data }) {
+  const styles = useFluidStyles(createStyles);
+  const showLogo = useShowReportSymbolLogo();
   if (!data) return null;
+
   const pc = formatPriceChangePct(data.price_change);
   const pcColor = pc.startsWith('+') ? GREEN : pc.startsWith('-') ? RED : NEUTRAL;
   const todayColor = valueColor(data.today);
@@ -92,9 +102,11 @@ const PPLRow = memo(function PPLRow({ data }) {
 
   return (
     <>
-      <View style={[styles.cell, { flex: COL.symbol }]}>
-        <Text style={styles.symbolText} numberOfLines={1}>{data.symbol || '—'}</Text>
-        <Text style={styles.lotText} numberOfLines={1}>({data.lot ?? '—'})</Text>
+      <View style={[styles.cell, styles.cellSymbol, { flex: COL.symbol }]}>
+        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+          <Text style={styles.symbolText} numberOfLines={1}>{data.symbol || '—'}</Text>
+          <Text style={styles.lotText} numberOfLines={1}>({data.lot ?? '—'})</Text>
+        </SymbolWithLogo>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.cmp }]}>
         <Text style={styles.cmpPrice} numberOfLines={1}>{formatCurrency(data.price)}</Text>
@@ -111,26 +123,88 @@ const PPLRow = memo(function PPLRow({ data }) {
 });
 
 // ─── Header Component ───────────────────────────────────────────────────────────
+// Same four flex columns as the row. The old group wrapper did not share those
+// widths, so Today / 5 Days sat off the amounts.
+
+function PPLHeaderCell({ label, flex, align = 'left', sortKey, getValue, sort, onSort, style, indent = 0 }) {
+  const styles = useFluidStyles(createStyles);
+  const active = sort?.key === sortKey;
+  const arrow = active ? (sort.dir === 'desc' ? '▾' : '▴') : null;
+
+  return (
+    <Pressable
+      onPress={() => onSort?.({ key: sortKey, getValue })}
+      style={[styles.headCell, { flex }, align === 'right' ? styles.headCellRight : null, style, Platform.OS === 'web' ? styles.pointer : null]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      {indent ? <View style={{ width: indent }} /> : null}
+      {align === 'right' && arrow ? <Text style={styles.headArrow}>{arrow}</Text> : null}
+      <Text style={[styles.headLabel, align === 'right' ? styles.headLabelRight : null, active ? styles.headLabelActive : null]} numberOfLines={align === 'right' ? 1 : 2}>{label}</Text>
+      {align !== 'right' && arrow ? <Text style={styles.headArrow}>{arrow}</Text> : null}
+    </Pressable>
+  );
+}
 
 function PPLHeader({ sort, onSort }) {
+  const styles = useFluidStyles(createStyles);
+  const showLogo = useShowReportSymbolLogo();
+
   return (
-    <>
-      <TableHeaderCell label={'SYMBOL\n(LOT)'} flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} />
-      <TableHeaderCell label="CMP" flex={COL.cmp} align="right" sortKey="price" getValue={(row) => sortNumber(row?.price)} sort={sort} onSort={onSort} />
-      <View style={[styles.pplHeaderGroup, { flex: COL.today + COL.fiveDays }]}>
-        <Text style={styles.pplGroupLabel}>PROFIT PER LOT</Text>
-        <View style={styles.pplSubRow}>
-          <TableHeaderCell label="Today" flex={COL.today} align="right" sortKey="today" getValue={(row) => sortNumber(row?.today)} sort={sort} onSort={onSort} />
-          <TableHeaderCell label="5 Days" flex={COL.fiveDays} align="right" sortKey="5_days" getValue={(row) => sortNumber(row?.['5_days'])} sort={sort} onSort={onSort} />
+    <View style={styles.headWrap}>
+      <View style={styles.headLine}>
+        <View style={{ flexGrow: COL.symbol + COL.cmp + COL.today / 2, flexShrink: 1, flexBasis: 0 }} />
+        <View style={[styles.pplGroupSlot, { flexGrow: COL.today / 2 + COL.fiveDays }]}>
+          <Text style={styles.pplGroupLabel} numberOfLines={1}>PROFIT PER LOT</Text>
         </View>
       </View>
-    </>
+      <View style={styles.headLine}>
+        <PPLHeaderCell
+          label={'SYMBOL\n(LOT)'}
+          flex={COL.symbol}
+          sortKey="symbol"
+          getValue={(row) => row?.symbol ?? ''}
+          sort={sort}
+          onSort={onSort}
+          style={styles.cellSymbol}
+          indent={showLogo ? SYMBOL_LOGO_SIZE + SYMBOL_LOGO_GAP : 0}
+        />
+        <PPLHeaderCell
+          label="CMP"
+          flex={COL.cmp}
+          align="right"
+          sortKey="price"
+          getValue={(row) => sortNumber(row?.price)}
+          sort={sort}
+          onSort={onSort}
+        />
+        <PPLHeaderCell
+          label="Today"
+          flex={COL.today}
+          align="right"
+          sortKey="today"
+          getValue={(row) => sortNumber(row?.today)}
+          sort={sort}
+          onSort={onSort}
+        />
+        <PPLHeaderCell
+          label="5 Days"
+          flex={COL.fiveDays}
+          align="right"
+          sortKey="5_days"
+          getValue={(row) => sortNumber(row?.['5_days'])}
+          sort={sort}
+          onSort={onSort}
+        />
+      </View>
+    </View>
   );
 }
 
 // ─── Screen Component ───────────────────────────────────────────────────────────
 
 function FnoProfitPerLotScreen() {
+  const styles = useFluidStyles(createStyles);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -181,7 +255,7 @@ function FnoProfitPerLotScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="FNO Profit Per Lot" />
+      <ScreenHeader label="FNO Profit Per Lot" timestamp={cdate} />
 
       {loading ? (
         <View style={styles.content}>
@@ -204,7 +278,6 @@ function FnoProfitPerLotScreen() {
               <View style={styles.metaDot} />
               <Text style={styles.metaValue}>{expiryDate || '—'}</Text>
             </View>
-            {cdate ? <Text style={styles.metaDate}>{cdate}</Text> : null}
           </View>
 
           {/* Summary Section */}
@@ -224,7 +297,14 @@ function FnoProfitPerLotScreen() {
 
           {/* Table */}
           <View style={styles.table}>
-            <CommonTable data={rows} columns={TABLE_COLUMNS} HeaderComponent={HeaderComponent} RowComponent={PPLRow} emptyText="No stocks to show" />
+            <CommonTable
+              data={rows}
+              columns={TABLE_COLUMNS}
+              HeaderComponent={HeaderComponent}
+              RowComponent={PPLRow}
+              emptyText="No stocks to show"
+              rowStyle={styles.tableRowStyle}
+            />
           </View>
         </View>
       )}
@@ -236,45 +316,83 @@ export default memo(FnoProfitPerLotScreen);
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
-
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
-
-  // Content
-  content: { flex: 1 },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: f(20, 28) },
+  emptyText: { fontSize: f(13, 15), fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
+  content: { flex: 1, minHeight: 0 },
 
   // Metadata Row
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 2, paddingBottom: 12 },
-  metaLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: f(16, 24),
+    paddingTop: f(2, 6),
+    paddingBottom: f(8, 12),
+  },
+  metaLeft: { flexDirection: 'row', alignItems: 'center', gap: f(6, 8) },
+  metaLabel: { fontSize: f(11, 12.5), fontFamily: 'Inter_400Regular', color: '#94A3B8' },
   metaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#CBD5E1' },
-  metaValue: { fontSize: 11, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  metaDate: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  metaValue: { fontSize: f(11.5, 13), fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
 
   // Summary
-  summaryRow: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: 12 },
+  summaryRow: {
+    flexDirection: 'row',
+    marginHorizontal: f(16, 24),
+    marginBottom: f(12, 16),
+    backgroundColor: '#FFFFFF',
+    borderRadius: f(10, 14),
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E2E8F0',
+    paddingVertical: f(10, 16),
+  },
   summaryItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  summaryLabel: { fontSize: 10, fontFamily: 'Inter_500Medium', color: '#94A3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 },
-  summaryValue: { fontSize: 18, fontFamily: 'Inter_700Bold', lineHeight: 24 },
-  summaryPct: { fontSize: 13, fontFamily: 'Inter_600SemiBold', marginTop: 4 },
+  summaryLabel: {
+    fontSize: f(10, 11),
+    fontFamily: 'Inter_500Medium',
+    color: '#94A3B8',
+    marginBottom: f(4, 6),
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  summaryValue: { fontSize: f(18, 22), fontFamily: 'Inter_700Bold', lineHeight: f(24, 28) },
+  summaryPct: { fontSize: f(12, 14), fontFamily: 'Inter_600SemiBold', marginTop: f(2, 4) },
   summaryDivider: { width: StyleSheet.hairlineWidth, backgroundColor: '#E2E8F0', alignSelf: 'stretch', marginVertical: 4 },
 
   // Table wrapper
   table: { flex: 1, minHeight: 0 },
+  tableRowStyle: { minHeight: f(50, 60), paddingVertical: f(6, 10) },
 
-  // Table cells (used by RowComponent)
-  cell: { justifyContent: 'center', paddingRight: 4 },
-  cellEnd: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: 4 },
-  symbolText: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  lotText: { fontSize: 10, lineHeight: 14, fontFamily: 'Inter_400Regular', color: '#94A3B8', marginTop: 1 },
-  cmpPrice: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  cmpChange: { fontSize: 10, lineHeight: 14, fontFamily: 'Inter_500Medium', marginTop: 4, textAlign: 'right' },
-  pplValue: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_600SemiBold', textAlign: 'right' },
+  // Table cells
+  cell: { justifyContent: 'center', minWidth: 0 },
+  cellSymbol: { minWidth: 0, paddingLeft: 0, paddingRight: f(4, 8) },
+  cellEnd: { alignItems: 'flex-end', minWidth: 0, paddingLeft: f(4, 8), paddingRight: 0 },
+  headWrap: { flex: 1, minWidth: 0, justifyContent: 'flex-end' },
+  headLine: { flexDirection: 'row', alignItems: 'flex-end', minWidth: 0 },
+  headCell: { flexDirection: 'row', alignItems: 'center', minWidth: 0, paddingRight: f(4, 8) },
+  headCellRight: { justifyContent: 'flex-end', paddingRight: 0, paddingLeft: f(4, 8) },
+  headLabel: { flexShrink: 1, fontSize: f(10, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.4, textTransform: 'uppercase' },
+  headLabelRight: { letterSpacing: 0 },
+  headLabelActive: { color: '#64748B' },
+  headArrow: { fontSize: f(8, 11), lineHeight: f(13, 16), color: '#64748B', marginRight: f(2, 3) },
+  pointer: { cursor: 'pointer' },
+
+  symbolText: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
+  lotText: { fontSize: f(10, 11.5), lineHeight: f(14, 16), fontFamily: 'Inter_400Regular', color: '#94A3B8', marginTop: 1 },
+  cmpPrice: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  cmpChange: { fontSize: f(10, 11.5), lineHeight: f(14, 16), fontFamily: 'Inter_500Medium', marginTop: 3, textAlign: 'right' },
+  pplValue: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_600SemiBold', textAlign: 'right' },
 
   // Multi-level header for "Profit Per Lot"
-  pplHeaderGroup: { alignItems: 'center' },
-  pplGroupLabel: { fontSize: 9, lineHeight: 12, fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 2 },
-  pplSubRow: { flexDirection: 'row', width: '100%' },
+  pplGroupSlot: { flexShrink: 1, flexBasis: 0, minWidth: 0, marginBottom: f(3, 5), flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  pplGroupLabel: {
+    fontSize: f(9, 10.5),
+    lineHeight: f(12, 14),
+    fontFamily: 'Inter_500Medium',
+    color: '#94A3B8',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
 });

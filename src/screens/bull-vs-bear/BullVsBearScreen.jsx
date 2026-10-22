@@ -6,6 +6,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { SkeletonBar, SkeletonMetaRow, usePulse } from '@/components/skeleton/SkeletonBars';
 import { connectSocket } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
+import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────────
 
@@ -13,19 +14,16 @@ const GREEN_TEXT = '#15803D';
 const RED_TEXT = '#B91C1C';
 const ACCENT = '#0071A9';
 
-// Column labels displayed to the user
+// Column definitions
 const COLUMNS = [
-  { key: 'lastdatatime', label: 'Time' },
-  { key: 'abv_wap',      label: 'Abv WAP' },
-  { key: 'abv_high',     label: 'Above Prev.\nDay High' },
-  { key: 'below_low',    label: 'Below Prev.\nDay Low' },
-  { key: 'pl1D',         label: 'Profit\nMeter' },
+  { key: 'lastdatatime', label: 'Time', flex: 0.8 },
+  { key: 'abv_wap',      label: 'Abv WAP', flex: 0.85 },
+  { key: 'abv_high',     label: 'Above Prev.\nDay High', flex: 1.1 },
+  { key: 'below_low',    label: 'Below Prev.\nDay Low', flex: 1.1 },
+  { key: 'pl1D',         label: 'Profit\nMeter', flex: 1.25 },
 ];
 
-// Column flex weights — Time narrowest, Profit Meter wider for values like 4,29,017
-const COL_FLEX = [0.72, 0.78, 1, 1, 1.2];
-
-// ─── Number formatting (Indian comma grouping, reused from project conventions) ─
+// ─── Number formatting (Indian comma grouping) ──────────────────────────────────
 
 function groupDigits(intPart) {
   if (intPart.length <= 3) return intPart;
@@ -69,6 +67,7 @@ function reportRows(result) {
 // ─── Component ──────────────────────────────────────────────────────────────────
 
 function BullVsBearScreen() {
+  const styles = useFluidStyles(createStyles);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -94,7 +93,6 @@ function BullVsBearScreen() {
       return;
     }
     if (result) {
-      console.log('[SOCKET] REC_APP_BULL_VS_BEAR_REPORT', result);
       setReport(result);
       setError(false);
     }
@@ -104,19 +102,19 @@ function BullVsBearScreen() {
   const data = reportRows(report);
   const cdate = report?.cdate ?? '';
   const expiryDate = report?.expiry_date ?? '';
-  const hasMeta = Boolean(cdate || expiryDate);
+  const hasMeta = Boolean(expiryDate);
   const pulse = usePulse(loading);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenHeader label="Bulls Vs Bears" />
+      <ScreenHeader label="Bulls Vs Bears" timestamp={cdate} />
 
       {loading ? (
         <View style={styles.content}>
           <SkeletonMetaRow pulse={pulse} />
           <View style={styles.tableHeader}>
-            {COLUMNS.map((col, i) => (
-              <View key={col.key} style={[styles.thCell, { flex: COL_FLEX[i] }]}>
+            {COLUMNS.map((col) => (
+              <View key={col.key} style={[styles.thCell, { flex: col.flex }]}>
                 <Text style={styles.thText}>{col.label}</Text>
               </View>
             ))}
@@ -125,9 +123,9 @@ function BullVsBearScreen() {
           <ScrollView style={styles.tableScroll} contentContainerStyle={styles.tableScrollContent} showsVerticalScrollIndicator={false}>
             {Array.from({ length: 12 }, (_, index) => (
               <View key={index} style={[styles.tableRow, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
-                {COL_FLEX.map((flex, cellIndex) => (
-                  <View key={cellIndex} style={[styles.tdCell, { flex }]}>
-                    <SkeletonBar pulse={pulse} width={cellIndex === 0 ? 36 : 44} height={10} />
+                {COLUMNS.map((col, cellIndex) => (
+                  <View key={cellIndex} style={[styles.tdCell, { flex: col.flex }]}>
+                    <SkeletonBar pulse={pulse} width={cellIndex === 0 ? 36 : 48} height={10} />
                   </View>
                 ))}
               </View>
@@ -149,14 +147,13 @@ function BullVsBearScreen() {
                 <View style={styles.metaDot} />
                 <Text style={styles.metaValue}>{expiryDate || '—'}</Text>
               </View>
-              {cdate ? <Text style={styles.metaDate}>{cdate}</Text> : null}
             </View>
           ) : null}
 
           {/* Table header */}
           <View style={styles.tableHeader}>
-            {COLUMNS.map((col, i) => (
-              <View key={col.key} style={[styles.thCell, { flex: COL_FLEX[i] }]}>
+            {COLUMNS.map((col) => (
+              <View key={col.key} style={[styles.thCell, { flex: col.flex }]}>
                 <Text style={styles.thText}>{col.label}</Text>
               </View>
             ))}
@@ -184,15 +181,15 @@ function BullVsBearScreen() {
 // ─── Table Row ──────────────────────────────────────────────────────────────────
 
 const TableRow = memo(function TableRow({ row, index }) {
+  const styles = useFluidStyles(createStyles);
   const isEOD = row.lastdatatime === 'EOD';
   const timeDisplay = row.lastdatatime ?? '—';
-
   const fields = ['abv_wap', 'abv_high', 'below_low', 'pl1D'];
 
   return (
     <View style={[styles.tableRow, index % 2 === 0 ? styles.rowEven : styles.rowOdd, isEOD ? styles.rowEOD : null]}>
       {/* Time cell */}
-      <View style={[styles.tdCell, { flex: COL_FLEX[0] }]}>
+      <View style={[styles.tdCell, { flex: COLUMNS[0].flex }]}>
         <Text style={[styles.tdTimeText, isEOD ? styles.tdTimeEOD : null]} numberOfLines={1}>
           {timeDisplay}
         </Text>
@@ -208,7 +205,7 @@ const TableRow = memo(function TableRow({ row, index }) {
         const isProfitMeter = field === 'pl1D';
 
         return (
-          <View key={field} style={[styles.tdCell, { flex: COL_FLEX[i + 1] }]}>
+          <View key={field} style={[styles.tdCell, { flex: COLUMNS[i + 1].flex }]}>
             <View style={styles.valueChip}>
               <Text
                 style={[
@@ -232,7 +229,7 @@ export default memo(BullVsBearScreen);
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -241,10 +238,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: f(20, 28),
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: f(13, 15),
     fontFamily: 'Inter_500Medium',
     color: '#94A3B8',
     textAlign: 'center',
@@ -259,8 +256,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: f(16, 24),
+    paddingVertical: f(8, 12),
     backgroundColor: '#F8FAFC',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#F1F5F9',
@@ -268,7 +265,7 @@ const styles = StyleSheet.create({
   metaLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: f(6, 8),
   },
   metaDot: {
     width: 3,
@@ -277,36 +274,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#CBD5E1',
   },
   metaLabel: {
-    fontSize: 12,
+    fontSize: f(11, 12.5),
     fontFamily: 'Inter_500Medium',
     color: '#94A3B8',
   },
   metaValue: {
-    fontSize: 12,
+    fontSize: f(11.5, 13),
     fontFamily: 'Inter_600SemiBold',
     color: '#334155',
-  },
-  metaDate: {
-    fontSize: 11,
-    fontFamily: 'Inter_500Medium',
-    color: '#94A3B8',
   },
 
   // ─── Table header ─────────────────────────────────────────────────────────
   tableHeader: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingTop: 14,
-    paddingBottom: 8,
+    paddingHorizontal: f(12, 20),
+    paddingTop: f(12, 16),
+    paddingBottom: f(8, 10),
   },
   thCell: {
     paddingHorizontal: 3,
     alignItems: 'center',
   },
   thText: {
-    fontSize: 9.5,
-    lineHeight: 13,
+    fontSize: f(9.5, 11),
+    lineHeight: f(13, 15),
     fontFamily: 'Inter_500Medium',
     color: '#94A3B8',
     letterSpacing: 0.4,
@@ -316,7 +308,7 @@ const styles = StyleSheet.create({
   headerSep: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: '#E2E8F0',
-    marginHorizontal: 16,
+    marginHorizontal: f(12, 20),
   },
 
   // ─── Scrollable body ──────────────────────────────────────────────────────
@@ -333,9 +325,9 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minHeight: 42,
+    paddingHorizontal: f(12, 20),
+    paddingVertical: f(6, 10),
+    minHeight: f(44, 52),
   },
   rowEven: {
     backgroundColor: '#FFFFFF',
@@ -354,7 +346,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tdTimeText: {
-    fontSize: 11,
+    fontSize: f(11, 13),
     fontFamily: 'Inter_500Medium',
     color: '#64748B',
   },
@@ -363,20 +355,20 @@ const styles = StyleSheet.create({
     color: ACCENT,
   },
   valueChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: f(5, 8),
+    paddingVertical: f(2, 4),
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tdValueText: {
-    fontSize: 11,
+    fontSize: f(11.5, 13.5),
     fontFamily: 'Inter_600SemiBold',
     color: '#0F172A',
     textAlign: 'center',
   },
   tdProfitText: {
-    fontSize: 11.5,
+    fontSize: f(12, 14),
     fontFamily: 'Inter_700Bold',
   },
 });

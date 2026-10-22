@@ -5,16 +5,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
-import { SYMBOL_LOGO_GAP, SYMBOL_LOGO_SIZE, SymbolWithLogo, useShowSymbolLogo } from '@/components/SymbolLogo';
+import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
 const NEUTRAL = '#64748B';
 
-const COL = { symbol: 1.32, value: 1.18, cmp: 0.86 };
+const COL = { symbol: 1.4, value: 1.15, cmp: 1.05 };
 
-const TABLE_COLUMNS = [{ flex: COL.symbol, align: 'left', lines: 1 }, { flex: COL.value, align: 'right', lines: 1 }, { flex: COL.cmp, align: 'right', lines: 2 }];
+const TABLE_COLUMNS = [
+  { flex: COL.symbol, align: 'left', lines: 1 },
+  { flex: COL.value, align: 'right', lines: 1 },
+  { flex: COL.cmp, align: 'right', lines: 2 },
+];
 
 const REPORT_TITLES = {
   abv_wap: 'Above WAP',
@@ -94,7 +99,7 @@ function formatGrouped(val) {
     sign = '-';
     str = str.slice(1).trim();
   } else if (str.startsWith('+')) {
-    str = str.slice(1).trim();
+    sign = '';
   }
   if (isNaN(parseFloat(str))) return String(val);
   const parts = str.split('.');
@@ -120,21 +125,27 @@ function sortNumber(val) {
 }
 
 const TrendingStocksRow = memo(function TrendingStocksRow({ data }) {
-  const showLogo = useShowSymbolLogo();
+  const styles = useFluidStyles(createStyles);
+  const showLogo = useShowReportSymbolLogo();
   const change = formatPriceChange(data?.price_change);
   const color = change.startsWith('+') ? GREEN : change.startsWith('-') ? RED : NEUTRAL;
+
   return (
     <>
-      <View style={[styles.cell, { flex: COL.symbol }]}>
+      <View style={[styles.cell, styles.cellSymbol, { flex: COL.symbol }]}>
         <SymbolWithLogo symbol={data?.symbol} showLogo={showLogo}>
           <Text style={styles.symbol} numberOfLines={1}>{data?.symbol || '—'}</Text>
         </SymbolWithLogo>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.value }]}>
-        <Text style={styles.value} numberOfLines={1}>{data?.value == null || data?.value === '' || data?.value === '—' ? '—' : `₹${formatGrouped(data.value)}`}</Text>
+        <Text style={styles.value} numberOfLines={1}>
+          {data?.value == null || data?.value === '' || data?.value === '—' ? '—' : `₹${formatGrouped(data.value)}`}
+        </Text>
       </View>
-      <View style={[styles.cell, styles.cellEnd, styles.cmpCell, { flex: COL.cmp }]}>
-        <Text style={styles.price} numberOfLines={1}>{data?.price == null || data?.price === '' || data?.price === '—' ? '—' : `₹${formatGrouped(data.price)}`}</Text>
+      <View style={[styles.cell, styles.cellEnd, { flex: COL.cmp }]}>
+        <Text style={styles.price} numberOfLines={1}>
+          {data?.price == null || data?.price === '' || data?.price === '—' ? '—' : `₹${formatGrouped(data.price)}`}
+        </Text>
         {change ? <Text style={[styles.change, { color }]} numberOfLines={1}>{change}</Text> : null}
       </View>
     </>
@@ -142,6 +153,7 @@ const TrendingStocksRow = memo(function TrendingStocksRow({ data }) {
 });
 
 function TrendingStocksScreen() {
+  const styles = useFluidStyles(createStyles);
   const params = useLocalSearchParams();
   const report = paramString(params.report);
   const [rows, setRows] = useState([]);
@@ -149,7 +161,6 @@ function TrendingStocksScreen() {
   const [loading, setLoading] = useState(true);
   const queueRef = useRef(Promise.resolve());
   const genRef = useRef(0);
-  const showLogo = useShowSymbolLogo();
   const middleLabel = valueKey || KEY_FALLBACK[report] || 'Value';
   const title = REPORT_TITLES[report] || 'Trending Stocks';
 
@@ -192,17 +203,52 @@ function TrendingStocksScreen() {
 
   const HeaderComponent = useCallback(({ sort, onSort }) => (
     <>
-      <TableHeaderCell label="Symbol" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} style={showLogo ? styles.symbolHeader : null} />
-      <TableHeaderCell label={middleLabel} flex={COL.value} align="right" sortKey="value" getValue={(row) => sortNumber(row?.value)} sort={sort} onSort={onSort} />
-      <TableHeaderCell label="CMP" flex={COL.cmp} align="right" sortKey="price" getValue={(row) => sortNumber(row?.price)} sort={sort} onSort={onSort} style={styles.cmpCell} />
+      <TableHeaderCell
+        label="Symbol"
+        flex={COL.symbol}
+        align="left"
+        sortKey="symbol"
+        getValue={(row) => row?.symbol ?? ''}
+        sort={sort}
+        onSort={onSort}
+        style={styles.cellSymbol}
+      />
+      <TableHeaderCell
+        label={middleLabel}
+        flex={COL.value}
+        align="right"
+        sortKey="value"
+        getValue={(row) => sortNumber(row?.value)}
+        sort={sort}
+        onSort={onSort}
+        style={styles.headerCell}
+      />
+      <TableHeaderCell
+        label="CMP"
+        flex={COL.cmp}
+        align="right"
+        sortKey="price"
+        getValue={(row) => sortNumber(row?.price)}
+        sort={sort}
+        onSort={onSort}
+        style={styles.headerCell}
+      />
     </>
-  ), [middleLabel, showLogo]);
+  ), [middleLabel, styles]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader label={title} />
       <View style={styles.table}>
-        <CommonTable data={rows} columns={TABLE_COLUMNS} loading={loading} HeaderComponent={HeaderComponent} RowComponent={TrendingStocksRow} emptyText="No stocks to show" />
+        <CommonTable
+          data={rows}
+          columns={TABLE_COLUMNS}
+          loading={loading}
+          HeaderComponent={HeaderComponent}
+          RowComponent={TrendingStocksRow}
+          emptyText="No stocks to show"
+          rowStyle={styles.tableRowStyle}
+        />
       </View>
     </SafeAreaView>
   );
@@ -210,15 +256,18 @@ function TrendingStocksScreen() {
 
 export default memo(TrendingStocksScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   table: { flex: 1, minHeight: 0 },
-  cell: { justifyContent: 'center', paddingRight: 4 },
-  cellEnd: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: 4 },
-  cmpCell: { marginLeft: 12 },
-  symbolHeader: { paddingLeft: SYMBOL_LOGO_SIZE + SYMBOL_LOGO_GAP },
-  symbol: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  value: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#1E293B', textAlign: 'right' },
-  price: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  change: { fontSize: 10, lineHeight: 14, fontFamily: 'Inter_500Medium', marginTop: 6, textAlign: 'right' },
+  tableRowStyle: { minHeight: f(50, 62), paddingVertical: f(6, 10) },
+
+  cell: { justifyContent: 'center', minWidth: 0 },
+  cellSymbol: { minWidth: 0, paddingLeft: 0, paddingRight: f(4, 8) },
+  cellEnd: { alignItems: 'flex-end', minWidth: 0, paddingLeft: f(4, 8), paddingRight: 0 },
+  headerCell: { minWidth: 0, paddingLeft: f(4, 8), paddingRight: 0 },
+
+  symbol: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
+  value: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#1E293B', textAlign: 'right' },
+  price: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  change: { fontSize: f(10, 11.5), lineHeight: f(14, 16), fontFamily: 'Inter_500Medium', marginTop: 4, textAlign: 'right' },
 });
