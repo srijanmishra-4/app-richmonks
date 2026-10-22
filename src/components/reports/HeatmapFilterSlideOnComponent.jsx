@@ -1,8 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Modal, Pressable, ScrollView, Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { useScaledStyles } from '@/utils/responsive';
+import { useFluidStyles } from '@/utils/responsive';
 
 const PRIMARY = '#0071A9';
 const TEXT = '#0F172A';
@@ -37,7 +36,8 @@ function HeatmapFilterSlideOnComponent({
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const t = useScaledStyles(textStyles);
+  const styles = useFluidStyles(createStyles);
+  const t = styles;
 
   const [mounted, setMounted] = useState(false);
   const [sliding, setSliding] = useState(false);
@@ -259,7 +259,7 @@ function HeatmapFilterSlideOnComponent({
 
 export default memo(HeatmapFilterSlideOnComponent);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   backdrop: { ...StyleSheet.absoluteFill },
   sheet: {
@@ -275,30 +275,27 @@ const styles = StyleSheet.create({
   },
   handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 10 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#CBD5E1' },
-  body: { flexDirection: 'row', height: 360 },
-  sidebar: { width: 90, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: BORDER, paddingTop: 4 },
-  sideTab: { paddingVertical: 12, paddingHorizontal: 10, borderRightWidth: 2, borderRightColor: 'transparent' },
+  body: { flexDirection: 'row', height: f(360, 440) },
+  sidebar: { width: f(90, 120), borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: BORDER, paddingTop: 4 },
+  sideTab: { paddingVertical: f(12, 16), paddingHorizontal: f(10, 16), borderRightWidth: 2, borderRightColor: 'transparent' },
   sideTabActive: { backgroundColor: '#F0F9FF', borderRightColor: PRIMARY },
   sideTabTextActive: { color: PRIMARY },
   content: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { paddingVertical: 4 },
-  optRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, gap: 10 },
+  optRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: f(10, 14), paddingHorizontal: f(14, 20), gap: f(10, 14) },
   optRowActive: { backgroundColor: '#F0F9FF' },
-  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: SUBTLE, alignItems: 'center', justifyContent: 'center' },
+  radio: { width: f(18, 22), height: f(18, 22), borderRadius: f(9, 11), borderWidth: 1.5, borderColor: SUBTLE, alignItems: 'center', justifyContent: 'center' },
   radioActive: { borderColor: PRIMARY },
-  radioDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: PRIMARY },
+  radioDot: { width: f(9, 11), height: f(9, 11), borderRadius: f(4.5, 5.5), backgroundColor: PRIMARY },
   optTextActive: { color: PRIMARY },
-  actions: { flexDirection: 'row', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: BORDER },
-  actionBtn: { flex: 1, height: 38, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  actions: { flexDirection: 'row', gap: f(10, 14), paddingHorizontal: f(14, 20), paddingVertical: f(12, 16), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: BORDER },
+  actionBtn: { flex: 1, height: f(38, 46), borderRadius: f(8, 10), alignItems: 'center', justifyContent: 'center' },
   resetBtn: { backgroundColor: '#F1F5F9' },
   applyBtn: { backgroundColor: PRIMARY },
   pointer: { cursor: 'pointer' },
-});
-
-const textStyles = (fs) => ({
-  tabLabel: { fontSize: fs(12), fontFamily: 'Inter_500Medium', color: MUTED },
-  optLabel: { fontSize: fs(13), fontFamily: 'Inter_500Medium', color: TEXT },
-  resetText: { fontSize: fs(13), fontFamily: 'Inter_600SemiBold', color: MUTED },
-  applyText: { fontSize: fs(13), fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
+  tabLabel: { fontSize: f(12, 14), fontFamily: 'Inter_500Medium', color: MUTED },
+  optLabel: { fontSize: f(13, 15), fontFamily: 'Inter_500Medium', color: TEXT },
+  resetText: { fontSize: f(13, 15), fontFamily: 'Inter_600SemiBold', color: MUTED },
+  applyText: { fontSize: f(13, 15), fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
 });

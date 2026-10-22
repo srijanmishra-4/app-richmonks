@@ -17,6 +17,9 @@ import {
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { MONTHLY_EXPIRY_OPTIONS, industryIdFromParam, paramString, queryKey, resolveChoice, useCanonicalIndustryId, useReportQuery } from '@/utils/reportParams';
+import { useFluidStyles } from '@/utils/responsive';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { BREAKPOINTS } from '@/constants/breakpoints';
 import { socketRequest } from '@/utils/socket';
 
 function callPutParams(expiry, industryId) {
@@ -31,6 +34,9 @@ function parseCallPut(raw) {
   return { filters, serialized: callPutParams(filters.expiry_state, filters.industry_id) };
 }
 function CallPutValueReportScreen() {
+  const styles = useFluidStyles(createStyles);
+  const { width } = useBreakpoint();
+  const isWide = width >= BREAKPOINTS.lg;
   const { industries } = useCommonData();
   const routeParams = useLocalSearchParams();
   const rawParams = {
@@ -157,11 +163,11 @@ function CallPutValueReportScreen() {
 
       <View style={styles.metaRow}>
         <ExpiryDropdownComponent value={expiry} onSelect={handleExpiry} />
-        <IndustryDropdown value={industryId} onChange={handleIndustry} style={styles.industry} />
+        <IndustryDropdown value={industryId} onChange={handleIndustry} style={!isWide ? styles.industry : null} />
       </View>
 
       <View style={styles.filterRow}>
-        <CallPutStrongWeakFilterButton value={strengthFilter} onChange={setStrengthFilter} />
+        <CallPutStrongWeakFilterButton value={strengthFilter} onChange={setStrengthFilter} style={styles.filterButton} />
       </View>
 
       <View style={styles.infoRow}>
@@ -187,31 +193,29 @@ function CallPutValueReportScreen() {
 
 export default memo(CallPutValueReportScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 14,
-    gap: 8,
+    paddingHorizontal: f(16, 28),
+    paddingTop: f(8, 14),
+    paddingBottom: f(10, 16),
+    gap: f(8, 14),
   },
   industry: { flex: 1, maxWidth: undefined },
-  filterRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-  },
+  filterRow: { paddingHorizontal: f(16, 28), paddingBottom: f(10, 16) },
+  filterButton: { width: '100%' },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: f(16, 28),
+    paddingBottom: f(8, 12),
   },
   infoText: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: f(11, 13),
+    lineHeight: f(15, 17),
     fontFamily: 'Inter_500Medium',
     color: '#64748B',
     flexShrink: 1,

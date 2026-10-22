@@ -1,7 +1,9 @@
 import { memo, useMemo } from 'react';
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 
 import { TableHeaderCell } from '@/components/CommonTable';
+import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { useFluid, useFluidStyles } from '@/utils/responsive';
 
 export const GREEN = '#16A34A';
 export const RED = '#DC2626';
@@ -19,30 +21,22 @@ export const MOST_ACTIVE_OPTIONS_COLUMNS = [
   { flex: COL.oi, align: 'right', lines: 2 },
 ];
 
-const NARROW_PHONE = 360;
-const WIDE_PHONE = 440;
-
 function useMostActiveType() {
-  const { width } = useWindowDimensions();
+  const f = useFluid();
   return useMemo(() => {
-    const t = Math.min(1, Math.max(0, (width - NARROW_PHONE) / (WIDE_PHONE - NARROW_PHONE)));
-    const symbolSize = 10 + t * 1.5;
-    const strikeSize = 8.5 + t * 1.5;
-    const valueSize = 9.5 + t * 1.5;
-    const subSize = 8.5 + t;
     const text = { fontFamily: 'Inter_500Medium' };
     return {
-      gap: 8 + t * 8,
-      stackGap: 5 + t,
-      symbol: { ...text, fontFamily: 'Inter_600SemiBold', fontSize: symbolSize, lineHeight: symbolSize + 3, color: '#0F172A' },
-      strike: { ...text, fontSize: strikeSize, lineHeight: strikeSize + 3, color: '#64748B' },
-      center: { ...text, fontFamily: 'Inter_600SemiBold', fontSize: valueSize, lineHeight: valueSize + 3, color: '#0F172A', textAlign: 'center' },
-      oi: { ...text, fontSize: valueSize, lineHeight: valueSize + 3, color: '#0F172A', textAlign: 'right' },
-      sub: { ...text, fontSize: subSize, lineHeight: subSize + 3, color: '#64748B', textAlign: 'right' },
-      centerSub: { ...text, fontSize: subSize, lineHeight: subSize + 3, color: '#64748B', textAlign: 'center' },
-      hl: { ...text, fontFamily: 'Inter_600SemiBold', fontSize: valueSize, lineHeight: valueSize + 3, color: '#1E293B', textAlign: 'center' },
+      gap: f(8, 16),
+      stackGap: f(4, 6),
+      symbol: { ...text, fontFamily: 'Inter_600SemiBold', fontSize: f(10.5, 14.5), lineHeight: f(14, 19), color: '#0F172A' },
+      strike: { ...text, fontSize: f(9, 12), lineHeight: f(12, 16), color: '#64748B' },
+      center: { ...text, fontFamily: 'Inter_600SemiBold', fontSize: f(10, 14), lineHeight: f(14, 18), color: '#0F172A', textAlign: 'center' },
+      oi: { ...text, fontSize: f(10, 14), lineHeight: f(14, 18), color: '#0F172A', textAlign: 'right' },
+      sub: { ...text, fontSize: f(9, 12), lineHeight: f(12, 16), color: '#64748B', textAlign: 'right' },
+      centerSub: { ...text, fontSize: f(9, 12), lineHeight: f(12, 16), color: '#64748B', textAlign: 'center' },
+      hl: { ...text, fontFamily: 'Inter_600SemiBold', fontSize: f(10, 14), lineHeight: f(14, 18), color: '#1E293B', textAlign: 'center' },
     };
-  }, [width]);
+  }, [f]);
 }
 
 function groupDigits(intPart) {
@@ -118,7 +112,9 @@ function highLowLines(lowVal, highVal) {
 }
 
 export const MostActiveOptionsRow = memo(function MostActiveOptionsRow({ data, optionType }) {
+  const styles = useFluidStyles(createStyles);
   const type = useMostActiveType();
+  const showLogo = useShowReportSymbolLogo();
   if (!data) return null;
 
   const priceChangeNum = parseNumber(data.price_change);
@@ -137,13 +133,17 @@ export const MostActiveOptionsRow = memo(function MostActiveOptionsRow({ data, o
   return (
     <>
       {newColor ? <View style={[styles.newMark, { backgroundColor: newColor }]} /> : null}
-      <View style={[styles.cell, stack, { flex: COL.symbol }]}>
-        <Text style={type.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
-        {data.strike != null && data.strike !== '' ? (
-          <Text style={type.strike} numberOfLines={1}>
-            {`SP: ${formatGrouped(data.strike)} ${optSuffix}`}
-          </Text>
-        ) : null}
+      <View style={[styles.cell, { flex: COL.symbol }]}>
+        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+          <View style={stack}>
+            <Text style={type.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+            {data.strike != null && data.strike !== '' ? (
+              <Text style={type.strike} numberOfLines={1}>
+                {`SP: ${formatGrouped(data.strike)} ${optSuffix}`}
+              </Text>
+            ) : null}
+          </View>
+        </SymbolWithLogo>
       </View>
       <View style={[mid, styles.cellTop, { flex: COL.tp }]}>
         <Text style={type.center} numberOfLines={1}>{formatMoney(data.trigger_point)}</Text>
@@ -171,6 +171,7 @@ export const MostActiveOptionsRow = memo(function MostActiveOptionsRow({ data, o
 });
 
 export function MostActiveOptionsHeader({ sort, onSort }) {
+  const styles = useFluidStyles(createStyles);
   const type = useMostActiveType();
   const colGap = { marginLeft: type.gap, minWidth: 0 };
 
@@ -230,18 +231,17 @@ export function MostActiveOptionsHeader({ sort, onSort }) {
   );
 }
 
-const styles = StyleSheet.create({
-  // Sits on the left edge of the shared table row (8px horizontal, 6px vertical padding).
+const createStyles = (f) => ({
   newMark: {
-    width: 3.5,
+    width: f(3.5, 4.5),
     alignSelf: 'stretch',
     marginLeft: -8,
     marginVertical: -6,
-    marginRight: 4,
+    marginRight: f(4, 6),
     borderTopLeftRadius: 4,
     borderBottomLeftRadius: 4,
   },
-  cell: { minWidth: 0, justifyContent: 'center', overflow: 'hidden', paddingVertical: 4 },
+  cell: { minWidth: 0, justifyContent: 'center', overflow: 'hidden', paddingVertical: f(4, 8) },
   cellEnd: { alignItems: 'flex-end', paddingLeft: 0, paddingRight: 0 },
   cellCenter: { alignItems: 'center', paddingLeft: 0, paddingRight: 0 },
   cellTop: { alignSelf: 'stretch', justifyContent: 'flex-start' },

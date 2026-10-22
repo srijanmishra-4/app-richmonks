@@ -2,6 +2,8 @@ import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { TableHeaderCell } from '@/components/CommonTable';
+import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { useFluidStyles } from '@/utils/responsive';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -65,7 +67,8 @@ function sortNumber(val) {
 
 export const ShiftingGearsRow = memo(function ShiftingGearsRow({ data, levelField }) {
   if (!data) return null;
-
+  const styles = useFluidStyles(createStyles);
+  const showLogo = useShowReportSymbolLogo();
   const priceChangeText = formatPct(data.price_change);
   const priceChangeNum = sortNumber(data.price_change);
   const priceChangeColor = priceChangeNum > 0 ? GREEN : priceChangeNum < 0 ? RED : NEUTRAL;
@@ -73,7 +76,9 @@ export const ShiftingGearsRow = memo(function ShiftingGearsRow({ data, levelFiel
   return (
     <>
       <View style={[styles.cell, styles.symbolCell, { flex: COL.symbol }]}>
-        <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+          <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+        </SymbolWithLogo>
       </View>
       <View style={[styles.cell, styles.cmpCell, { flex: COL.cmp }]}>
         <Text style={styles.cmp} numberOfLines={1}>{formatMoney(data.price)}</Text>
@@ -92,6 +97,7 @@ export const ShiftingGearsRow = memo(function ShiftingGearsRow({ data, levelFiel
 });
 
 export function ShiftingGearsHeader({ sort, onSort, levelField, levelLabel }) {
+  const styles = useFluidStyles(createStyles);
   return (
     <>
       <TableHeaderCell label="SYMBOL" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} style={styles.symbolHeader} />
@@ -102,19 +108,19 @@ export function ShiftingGearsHeader({ sort, onSort, levelField, levelLabel }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   cell: { minWidth: 0, justifyContent: 'center' },
-  symbolCell: { paddingRight: 8 },
-  cmpCell: { alignItems: 'flex-end', paddingLeft: 8, paddingRight: 12 },
-  levelCell: { alignItems: 'flex-end', paddingLeft: 8, paddingRight: 12 },
-  rankCell: { alignItems: 'flex-end', paddingLeft: 8, paddingRight: 8 },
-  symbolHeader: { paddingRight: 8 },
-  cmpHeader: { paddingLeft: 8, paddingRight: 12 },
-  levelHeader: { paddingLeft: 8, paddingRight: 12 },
-  rankHeader: { paddingLeft: 8, paddingRight: 8 },
-  symbol: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  cmp: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  change: { marginTop: 2, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', textAlign: 'right' },
-  levelValue: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  rank: { alignSelf: 'stretch', fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  symbolCell: { paddingRight: f(8, 16) },
+  cmpCell: { alignItems: 'flex-end', paddingLeft: f(8, 16), paddingRight: f(10, 18) },
+  levelCell: { alignItems: 'flex-end', paddingLeft: f(8, 16), paddingRight: f(10, 18) },
+  rankCell: { alignItems: 'flex-end', paddingLeft: f(8, 16), paddingRight: f(8, 16) },
+  symbolHeader: { paddingRight: f(8, 16) },
+  cmpHeader: { paddingLeft: f(8, 16), paddingRight: f(10, 18) },
+  levelHeader: { paddingLeft: f(8, 16), paddingRight: f(10, 18) },
+  rankHeader: { paddingLeft: f(8, 16), paddingRight: f(8, 16) },
+  symbol: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
+  cmp: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  change: { marginTop: f(2, 3), fontSize: f(10, 12.5), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', textAlign: 'right' },
+  levelValue: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  rank: { alignSelf: 'stretch', fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
 });

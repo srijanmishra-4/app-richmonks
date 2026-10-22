@@ -10,6 +10,7 @@ import IndexDropdown, { INDEX_OPTIONS } from '@/components/reports/IndexDropdown
 import IndicesOptionTable from '@/components/reports/indicesOptionTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { MONTHLY_EXPIRY_OPTIONS, WEEKLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
+import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
 const WEEKLY_STATES = ['weeklyNear', 'weeklyNext', 'weeklyFar'];
@@ -25,6 +26,7 @@ function parseIndices(raw) {
 }
 
 function IndicesOptionReportScreen() {
+  const styles = useFluidStyles(createStyles);
   const insets = useSafeAreaInsets();
   const routeParams = useLocalSearchParams();
   const rawParams = {
@@ -131,7 +133,7 @@ function IndicesOptionReportScreen() {
         <ExpiryDropdownComponent value={expiry} onSelect={handleExpiryChange} withWeekly={symbol === 'NIFTY'} />
       </View>
       <View style={styles.filterRow}>
-        <CallPutStrongWeakFilterButton value={strengthFilter} onChange={setStrengthFilter} withNeutral={false} />
+        <CallPutStrongWeakFilterButton value={strengthFilter} onChange={setStrengthFilter} withNeutral={false} style={styles.filterButton} />
       </View>
       <View style={styles.table}>
         <IndicesOptionTable data={rows} filter={strengthFilter} loading={loading} symbol={symbol} expiry={expiry} onPositioned={handlePositioned} emptyText={error ? 'Failed to load report. Please try again.' : 'No data to show'} />
@@ -142,9 +144,10 @@ function IndicesOptionReportScreen() {
 
 export default memo(IndicesOptionReportScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
-  controlsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 },
-  filterRow: { paddingHorizontal: 16, paddingBottom: 12 },
+  controlsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: f(16, 28), paddingTop: f(8, 14), paddingBottom: f(10, 14) },
+  filterRow: { paddingHorizontal: f(16, 28), paddingBottom: f(10, 14) },
+  filterButton: { width: '100%', justifyContent: 'space-between' },
   table: { flex: 1, minHeight: 0 },
 });

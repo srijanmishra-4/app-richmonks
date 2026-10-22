@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Animated, Platform } from 'react-native';
-
+import { useFluidStyles, useFluid } from '@/utils/responsive';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons/HomeIcons';
 
 const GREEN = '#16A34A';
@@ -10,9 +10,6 @@ const TEXT_DARK = '#0F172A';
 const BORDER = '#E4E8EE';
 
 export const COL = { oi: 1.15, cmp: 1.0, strike: 0.95 };
-const ROW_HEIGHT = 44;
-const ROW_GAP = 4;
-const TOTAL_ITEM_HEIGHT = ROW_HEIGHT + ROW_GAP;
 const SKELETON_ITEMS = Array.from({ length: 12 }, (_, i) => ({ id: `skel-${i}` }));
 
 function groupDigits(p) {
@@ -73,6 +70,7 @@ function useSkeletonPulse(active) {
 }
 
 function IndicesOptionHeader({ filter }) {
+  const styles = useFluidStyles(createStyles);
   const isStrong = filter === 'Strong Call' || filter === 'Strong Put';
   const isWeak = filter === 'Weak Call' || filter === 'Weak Put';
 
@@ -105,6 +103,7 @@ function IndicesOptionHeader({ filter }) {
 }
 
 const IndicesOptionRow = memo(function IndicesOptionRow({ data, filter }) {
+  const styles = useFluidStyles(createStyles);
   if (!data) return null;
   const isCallHidden = filter === 'Strong Put' || filter === 'Weak Put';
   const isPutHidden = filter === 'Strong Call' || filter === 'Weak Call';
@@ -175,6 +174,7 @@ const IndicesOptionRow = memo(function IndicesOptionRow({ data, filter }) {
 });
 
 function SkeletonRow({ pulse }) {
+  const styles = useFluidStyles(createStyles);
   return (
     <View style={styles.row}>
       <View style={[styles.cellCenter, { flex: COL.oi }]}><Animated.View style={[styles.skelBar, { width: 52, opacity: pulse }]} /><Animated.View style={[styles.skelBar, { width: 38, height: 8, marginTop: 4, opacity: pulse }]} /></View>
@@ -187,6 +187,12 @@ function SkeletonRow({ pulse }) {
 }
 
 function IndicesOptionTable({ data, filter, loading = false, symbol, expiry, onPositioned, emptyText = 'No data to show' }) {
+  const f = useFluid();
+  const styles = useFluidStyles(createStyles);
+  const rowHeight = f(44, 56);
+  const rowGap = f(4, 6);
+  const totalItemHeight = rowHeight + rowGap;
+
   const [viewportHeight, setViewportHeight] = useState(0);
   const listRef = useRef(null);
   const centeredDatasetRef = useRef(null);
@@ -207,8 +213,6 @@ function IndicesOptionTable({ data, filter, loading = false, symbol, expiry, onP
       loadedDatasetRef.current = datasetId;
       return undefined;
     }
-    // Symbol/expiry updates one render before the fetch sets loading.
-    // Those rows still belong to the previous index, so wait for this fetch.
     if (loadedDatasetRef.current !== datasetId) return undefined;
     if (!viewportHeight || !data?.length) return undefined;
     if (centeredDatasetRef.current === datasetId) return undefined;
@@ -216,9 +220,9 @@ function IndicesOptionTable({ data, filter, loading = false, symbol, expiry, onP
     const bIdx = findAtmBoundaryIndex(data);
     if (bIdx < 0) return undefined;
 
-    const boundaryY = (bIdx + 0.5) * TOTAL_ITEM_HEIGHT - (ROW_GAP / 2);
+    const boundaryY = (bIdx + 0.5) * totalItemHeight - (rowGap / 2);
     const targetOffset = boundaryY - (viewportHeight / 2);
-    const maxOffset = Math.max(0, data.length * TOTAL_ITEM_HEIGHT - viewportHeight);
+    const maxOffset = Math.max(0, data.length * totalItemHeight - viewportHeight);
     const clampedOffset = Math.max(0, Math.min(targetOffset, maxOffset));
 
     let cancelled = false;
@@ -237,9 +241,9 @@ function IndicesOptionTable({ data, filter, loading = false, symbol, expiry, onP
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [viewportHeight, data, datasetId, loading, onPositioned]);
+  }, [viewportHeight, data, datasetId, loading, onPositioned, totalItemHeight, rowGap]);
 
-  const getItemLayout = useCallback((_, index) => ({ length: TOTAL_ITEM_HEIGHT, offset: TOTAL_ITEM_HEIGHT * index, index }), []);
+  const getItemLayout = useCallback((_, index) => ({ length: totalItemHeight, offset: totalItemHeight * index, index }), [totalItemHeight]);
   const renderItem = useCallback(({ item }) => (hasRows ? <IndicesOptionRow data={item} filter={filter} /> : <SkeletonRow pulse={pulse} />), [hasRows, pulse, filter]);
   const keyExtractor = useCallback((item, index) => (hasRows ? String(item?.strike ?? index) : item.id), [hasRows]);
 
@@ -272,33 +276,33 @@ function IndicesOptionTable({ data, filter, loading = false, symbol, expiry, onP
 
 export default memo(IndicesOptionTable);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, minHeight: 0 },
   listWrap: { flex: 1, minHeight: 0 },
-  skeletonOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: '#F6F7F8', paddingTop: 2, gap: ROW_GAP },
-  header: { flexDirection: 'row', alignItems: 'flex-end', marginHorizontal: 8, paddingHorizontal: 6, paddingTop: 4, paddingBottom: 6, overflow: 'visible', zIndex: 1 },
-  hCol: { minWidth: 0, alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: 2, overflow: 'visible' },
-  hSortRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
-  hLabel: { fontSize: 9.5, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.2, textAlign: 'center' },
-  hArrow: { fontSize: 8, lineHeight: 13, color: '#CBD5E1' },
-  hSubLabel: { marginTop: 2, fontSize: 8.5, lineHeight: 12, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
-  hSubLabelSpacer: { marginTop: 2, fontSize: 8.5, lineHeight: 12 },
-  hSubheadingWrap: { height: 13, marginTop: 2, width: 72, alignSelf: 'center', justifyContent: 'center', alignItems: 'center', overflow: 'visible' },
-  hSubheadingText: { fontSize: 8.5, lineHeight: 13, fontFamily: 'Inter_600SemiBold', textAlign: 'center', includeFontPadding: false },
+  skeletonOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: '#F6F7F8', paddingTop: 2, gap: f(4, 6) },
+  header: { flexDirection: 'row', alignItems: 'flex-end', marginHorizontal: f(8, 20), paddingHorizontal: f(6, 12), paddingTop: f(4, 8), paddingBottom: f(6, 10), overflow: 'visible', zIndex: 1 },
+  hCol: { minWidth: 0, alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: f(2, 6), overflow: 'visible' },
+  hSortRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: f(2, 4) },
+  hLabel: { fontSize: f(9.5, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.2, textAlign: 'center' },
+  hArrow: { fontSize: f(8, 10), lineHeight: f(13, 16), color: '#CBD5E1' },
+  hSubLabel: { marginTop: 2, fontSize: f(8.5, 11), lineHeight: f(12, 14), fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
+  hSubLabelSpacer: { marginTop: 2, fontSize: f(8.5, 11), lineHeight: f(12, 14) },
+  hSubheadingWrap: { height: f(13, 16), marginTop: 2, width: f(72, 100), alignSelf: 'center', justifyContent: 'center', alignItems: 'center', overflow: 'visible' },
+  hSubheadingText: { fontSize: f(8.5, 11), lineHeight: f(13, 16), fontFamily: 'Inter_600SemiBold', textAlign: 'center', includeFontPadding: false },
   list: { flex: 1, minHeight: 0 },
-  listContent: { flexGrow: 1, paddingTop: 2, paddingBottom: 12, gap: ROW_GAP },
-  row: { flexDirection: 'row', alignItems: 'center', height: ROW_HEIGHT, marginHorizontal: 8, paddingHorizontal: 6, borderRadius: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF' },
+  listContent: { flexGrow: 1, paddingTop: 2, paddingBottom: f(12, 20), gap: f(4, 6) },
+  row: { flexDirection: 'row', alignItems: 'center', height: f(44, 56), marginHorizontal: f(8, 20), paddingHorizontal: f(6, 12), borderRadius: f(4, 6), borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF' },
   remarkLeft: { position: 'absolute', left: 2, top: 7, bottom: 7, width: 3, borderRadius: 1.5 },
   remarkRight: { position: 'absolute', right: 2, top: 7, bottom: 7, width: 3, borderRadius: 1.5 },
-  cellCenter: { minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
-  oiText: { fontSize: 11.5, lineHeight: 15, fontFamily: 'Inter_500Medium', color: TEXT_DARK, textAlign: 'center' },
-  cmpText: { fontSize: 11.5, lineHeight: 15, fontFamily: 'Inter_500Medium', textAlign: 'center' },
-  subText: { marginTop: 2, fontSize: 9.5, lineHeight: 12, fontFamily: 'Inter_500Medium', color: NEUTRAL, textAlign: 'center' },
-  strikeText: { fontSize: 12, lineHeight: 15, fontFamily: 'Inter_600SemiBold', color: TEXT_DARK, textAlign: 'center' },
-  tpRow: { height: 12, marginTop: 2, width: '100%', flexDirection: 'row', alignItems: 'center' },
-  tpSide: { width: 8, height: 12, alignItems: 'center', justifyContent: 'center' },
-  tpText: { flex: 1, fontSize: 8.5, lineHeight: 12, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
-  emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
-  skelBar: { borderRadius: 4, height: 10, backgroundColor: '#E2E8F0' },
+  cellCenter: { minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: f(2, 6) },
+  oiText: { fontSize: f(11.5, 14), lineHeight: f(15, 18), fontFamily: 'Inter_500Medium', color: TEXT_DARK, textAlign: 'center' },
+  cmpText: { fontSize: f(11.5, 14), lineHeight: f(15, 18), fontFamily: 'Inter_500Medium', textAlign: 'center' },
+  subText: { marginTop: 2, fontSize: f(9.5, 12), lineHeight: f(12, 15), fontFamily: 'Inter_500Medium', color: NEUTRAL, textAlign: 'center' },
+  strikeText: { fontSize: f(12, 14.5), lineHeight: f(15, 18), fontFamily: 'Inter_600SemiBold', color: TEXT_DARK, textAlign: 'center' },
+  tpRow: { height: f(12, 15), marginTop: 2, width: '100%', flexDirection: 'row', alignItems: 'center' },
+  tpSide: { width: f(8, 12), height: f(12, 15), alignItems: 'center', justifyContent: 'center' },
+  tpText: { flex: 1, fontSize: f(8.5, 11), lineHeight: f(12, 15), fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: f(40, 60) },
+  emptyText: { fontSize: f(13, 15), fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  skelBar: { borderRadius: 4, height: f(10, 14), backgroundColor: '#E2E8F0' },
 });

@@ -1,9 +1,11 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Modal, Dimensions, Platform, StyleSheet } from 'react-native';
+import { useFluidStyles } from '@/utils/responsive';
 
 export const INDEX_OPTIONS = ['NIFTY', 'BANKNIFTY', 'FINNIFTY'];
 
 function IndexDropdown({ value, onChange }) {
+  const styles = useFluidStyles(createStyles);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
   const anchorRef = useRef(null);
@@ -68,17 +70,17 @@ function nodeContains(node, target) {
 
 export default memo(IndexDropdown);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   wrap: { justifyContent: 'center' },
   pointer: { cursor: 'pointer' },
-  btn: { flexDirection: 'row', alignItems: 'center', height: 30, minWidth: 92, paddingHorizontal: 10, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', justifyContent: 'space-between', gap: 6 },
+  btn: { flexDirection: 'row', alignItems: 'center', height: f(30, 36), minWidth: f(92, 110), paddingHorizontal: f(8, 12), borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', justifyContent: 'space-between', gap: f(4, 6) },
   btnOpen: { borderColor: '#0071A9' },
-  btnText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  caret: { fontSize: 9, lineHeight: 12, fontFamily: 'Inter_500Medium', color: '#64748B' },
+  btnText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  caret: { fontSize: f(9, 11), lineHeight: f(12, 14), fontFamily: 'Inter_500Medium', color: '#64748B' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.01)' },
-  menu: { position: 'absolute', zIndex: 2, elevation: 4, backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 },
-  menuItem: { paddingHorizontal: 12, paddingVertical: 8 },
+  menu: { position: 'absolute', zIndex: 2, elevation: 4, backgroundColor: '#FFFFFF', borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: f(4, 6), shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 },
+  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(7, 10) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
-  menuText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
   menuTextActive: { color: '#0071A9', fontFamily: 'Inter_600SemiBold' },
 });

@@ -9,6 +9,7 @@ import StockRankDropdown from '@/components/reports/StockRankDropdown';
 import { STOCK_RANK_COLUMNS, StockRankHeader, StockRankRow } from '@/components/reports/stockRankTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
+import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
 const SOCKET_EVENTS = {
@@ -29,6 +30,7 @@ function rowKey(item, index) {
 }
 
 function StockRankReportScreen() {
+  const styles = useFluidStyles(createStyles);
   const routeParams = useLocalSearchParams();
   const rawParams = { filter: paramString(routeParams.filter).trim() };
   const [filter, setFilter] = useState(() => parseStockRank(rawParams).filters.filter);
@@ -122,16 +124,16 @@ function StockRankReportScreen() {
 
 export default memo(StockRankReportScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 2,
-    paddingBottom: 6,
+    paddingHorizontal: f(16, 28),
+    paddingTop: f(2, 6),
+    paddingBottom: f(6, 12),
   },
   table: { flex: 1, minHeight: 0 },
-  row: { paddingVertical: 8 },
+  row: { paddingVertical: f(8, 12) },
 });

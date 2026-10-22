@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { useFluidStyles } from '@/utils/responsive';
 
 export const CALL_PUT_FILTER_OPTIONS = ['Strong Call', 'Strong Put', 'Weak Call', 'Weak Put', 'Neutral'];
 
@@ -50,6 +51,7 @@ export function useCallPutStrengthFilter(rows) {
 }
 
 function CallPutStrongWeakFilterButton({ value, onChange, style, withNeutral = true }) {
+  const styles = useFluidStyles(createStyles);
   const handlePress = useCallback((item) => {
     onChange?.(value === item ? null : item);
   }, [onChange, value]);
@@ -60,6 +62,8 @@ function CallPutStrongWeakFilterButton({ value, onChange, style, withNeutral = t
       {options.map((item) => {
         const selected = value === item;
         const tone = item.startsWith('Strong') ? 'strong' : item.startsWith('Weak') ? 'weak' : 'neutral';
+        const buttonActiveStyle = tone === 'strong' ? styles.strongButton : tone === 'weak' ? styles.weakButton : styles.buttonActive;
+        const labelActiveStyle = tone === 'strong' ? styles.strongLabel : tone === 'weak' ? styles.weakLabel : styles.labelActive;
         return (
           <Pressable
             key={item}
@@ -67,9 +71,9 @@ function CallPutStrongWeakFilterButton({ value, onChange, style, withNeutral = t
             accessibilityRole="button"
             accessibilityState={{ selected }}
             accessibilityLabel={item}
-            style={[styles.button, selected ? ACTIVE_BUTTON[tone] : null, Platform.OS === 'web' ? styles.pointer : null]}
+            style={[styles.button, selected ? buttonActiveStyle : null, Platform.OS === 'web' ? styles.pointer : null]}
           >
-            <Text style={[styles.label, selected ? ACTIVE_LABEL[tone] : null]} numberOfLines={1}>{item}</Text>
+            <Text style={[styles.label, selected ? labelActiveStyle : null]} numberOfLines={1}>{item}</Text>
           </Pressable>
         );
       })}
@@ -80,16 +84,19 @@ function CallPutStrongWeakFilterButton({ value, onChange, style, withNeutral = t
 export { CallPutStrongWeakFilterButton as CallPutStrongWeakFilter };
 export default memo(CallPutStrongWeakFilterButton);
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+const createStyles = (f) => ({
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', width: '100%' },
   pointer: { cursor: 'pointer' },
   button: {
-    flex: 1,
-    height: 30,
+    flexGrow: 0,
+    flexShrink: 1,
+    width: f(112, 152),
+    minWidth: 0,
+    height: f(32, 38),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 2,
-    borderRadius: 8,
+    paddingHorizontal: f(8, 12),
+    borderRadius: f(8, 10),
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
@@ -97,11 +104,8 @@ const styles = StyleSheet.create({
   buttonActive: { backgroundColor: '#1E60F6', borderColor: '#1E60F6' },
   strongButton: { backgroundColor: '#E5F6EA', borderColor: '#16A34A' },
   weakButton: { backgroundColor: '#FCE8EC', borderColor: '#DC2626' },
-  label: { fontSize: 9.5, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#64748B' },
+  label: { fontSize: f(10.5, 13), lineHeight: f(14, 17), fontFamily: 'Inter_500Medium', color: '#64748B' },
   labelActive: { fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
   strongLabel: { fontFamily: 'Inter_600SemiBold', color: '#16A34A' },
   weakLabel: { fontFamily: 'Inter_600SemiBold', color: '#DC2626' },
 });
-
-const ACTIVE_BUTTON = { strong: styles.strongButton, weak: styles.weakButton, neutral: styles.buttonActive };
-const ACTIVE_LABEL = { strong: styles.strongLabel, weak: styles.weakLabel, neutral: styles.labelActive };

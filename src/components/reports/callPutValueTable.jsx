@@ -1,5 +1,7 @@
 import { createContext, memo, useContext } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { useFluidStyles } from '@/utils/responsive';
 
 export const GREEN = '#16A34A';
 export const RED = '#DC2626';
@@ -59,6 +61,7 @@ export function sortNumber(val) {
 export const CallPutFilterContext = createContext(null);
 
 function NewMark({ isCallNew, isPutNew }) {
+  const styles = useFluidStyles(createStyles);
   const activeFilter = useContext(CallPutFilterContext);
   let newColor = null;
   if (activeFilter === 'Strong Call' && isCallNew) newColor = GREEN;
@@ -70,6 +73,8 @@ function NewMark({ isCallNew, isPutNew }) {
 
 export const CallPutValueRow = memo(function CallPutValueRow({ data }) {
   if (!data) return null;
+  const styles = useFluidStyles(createStyles);
+  const showLogo = useShowReportSymbolLogo();
   const isCallNew = !!data.is_call_remark_new;
   const isPutNew = !!data.is_put_remark_new;
 
@@ -80,7 +85,9 @@ export const CallPutValueRow = memo(function CallPutValueRow({ data }) {
     <>
       {isCallNew || isPutNew ? <NewMark isCallNew={isCallNew} isPutNew={isPutNew} /> : null}
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+          <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+        </SymbolWithLogo>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.price }]}>
         <Text style={styles.price} numberOfLines={1}>{formatIndianMoney(data.price)}</Text>
@@ -99,6 +106,7 @@ export const CallPutValueRow = memo(function CallPutValueRow({ data }) {
 }, (prev, next) => prev.data === next.data);
 
 export function CallPutValueHeader({ sort, onSort }) {
+  const styles = useFluidStyles(createStyles);
   const isSym = sort?.key === 'symbol';
   const isPrice = sort?.key === 'price';
   const isPriceChg = sort?.key === 'price_change';
@@ -130,10 +138,6 @@ export function CallPutValueHeader({ sort, onSort }) {
           <Text style={[styles.hLabel, isPrice && styles.hLabelActive]}>CMP</Text>
         </Pressable>
         <Text style={styles.hSubLabelSpacer}> </Text>
-        {/* <Pressable onPress={() => onSort({ key: 'price_change', getValue: (r) => sortNumber(r?.price_change) })} style={[styles.hLine, Platform.OS === 'web' && styles.pointer]}>
-          {isPriceChg ? <Text style={[styles.hArrow, styles.hArrowActive]}>{priceChgArrow}</Text> : null}
-          <Text style={[styles.hSubLabel, isPriceChg && styles.hLabelActive]}>Price Chg</Text>
-        </Pressable> */}
       </View>
       <View style={[styles.hCol, { flex: COL.callValue }]}>
         <Pressable onPress={() => onSort({ key: 'call_value', getValue: (r) => sortNumber(r?.call_value) })} style={[styles.hLine, Platform.OS === 'web' && styles.pointer]}>
@@ -159,25 +163,25 @@ export function CallPutValueHeader({ sort, onSort }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   pointer: { cursor: 'pointer' },
   headerWrap: { flex: 1, flexDirection: 'row', alignItems: 'stretch' },
-  hCol: { minWidth: 0, justifyContent: 'flex-end', paddingLeft: 10, paddingRight: 2 },
+  hCol: { minWidth: 0, justifyContent: 'flex-end', paddingLeft: f(8, 16), paddingRight: f(2, 6) },
   hColLeft: { justifyContent: 'flex-start', paddingLeft: 0 },
-  hLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 2 },
-  hLineLeft: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 2 },
-  hLabel: { fontSize: 9.5, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.2, textTransform: 'uppercase' },
-  hSubLabel: { marginTop: 4, fontSize: 8.5, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
-  hSubLabelSpacer: { marginTop: 4, fontSize: 9.5, lineHeight: 13 },
+  hLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: f(2, 4) },
+  hLineLeft: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: f(2, 4) },
+  hLabel: { fontSize: f(9.5, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.2, textTransform: 'uppercase' },
+  hSubLabel: { marginTop: f(2, 4), fontSize: f(8.5, 11), lineHeight: f(13, 15), fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  hSubLabelSpacer: { marginTop: f(2, 4), fontSize: f(9.5, 12), lineHeight: f(13, 16) },
   hLabelActive: { color: '#0F172A', fontFamily: 'Inter_600SemiBold' },
-  hArrow: { fontSize: 8, lineHeight: 13, color: '#CBD5E1' },
+  hArrow: { fontSize: f(8, 11), lineHeight: f(13, 16), color: '#CBD5E1' },
   hArrowActive: { color: '#0F172A', fontWeight: 'bold' },
-  newMark: { width: 3.5, alignSelf: 'stretch', marginLeft: -8, marginVertical: -6, marginRight: 4, borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
-  cell: { minWidth: 0, justifyContent: 'center', paddingLeft: 2, paddingRight: 2 },
-  cellEnd: { alignItems: 'flex-end', paddingLeft: 10, paddingRight: 2 },
-  symbol: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  price: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  priceChange: { marginTop: 5, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', textAlign: 'right' },
-  valText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  addText: { marginTop: 5, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#64748B', textAlign: 'right' },
+  newMark: { width: f(3.5, 4.5), alignSelf: 'stretch', marginLeft: -8, marginVertical: -6, marginRight: f(4, 6), borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
+  cell: { minWidth: 0, justifyContent: 'center', paddingLeft: f(2, 6), paddingRight: f(2, 6) },
+  cellEnd: { alignItems: 'flex-end', paddingLeft: f(8, 16), paddingRight: f(2, 6) },
+  symbol: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
+  price: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  priceChange: { marginTop: f(3, 5), fontSize: f(10, 12.5), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', textAlign: 'right' },
+  valText: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  addText: { marginTop: f(3, 5), fontSize: f(10, 12.5), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#64748B', textAlign: 'right' },
 });

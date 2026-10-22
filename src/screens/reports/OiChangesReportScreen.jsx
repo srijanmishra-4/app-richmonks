@@ -2,12 +2,16 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet, Modal, Dimensions } from 'react-native';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFluidStyles } from '@/utils/responsive';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ExpiryDropdownComponent from '@/components/ExpiryDropdownComponent';
 import ScreenHeader from '@/components/ScreenHeader';
+import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
 import StrongWeakFilter, { useStrongWeakFilter } from '@/components/reports/StrongWeakFilter';
+import { BREAKPOINTS } from '@/constants/breakpoints';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { socketRequest } from '@/utils/socket';
 
 const GREEN = '#16A34A';
@@ -125,6 +129,7 @@ function oiPayload(filters) {
 }
 
 const Dropdown = memo(function Dropdown({ label, value, options, onSelect }) {
+  const styles = useFluidStyles(createStyles);
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
@@ -176,6 +181,7 @@ const Dropdown = memo(function Dropdown({ label, value, options, onSelect }) {
 });
 
 function OiChangesHeader({ sort, onSort, fields, periodLabel }) {
+  const styles = useFluidStyles(createStyles);
   return (
     <>
       <TableHeaderCell label="Symbol" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} />
@@ -196,6 +202,8 @@ function OiChangesHeader({ sort, onSort, fields, periodLabel }) {
 }
 
 const OiChangesRow = memo(function OiChangesRow({ data, fields, showStrike }) {
+  const styles = useFluidStyles(createStyles);
+  const showLogo = useShowReportSymbolLogo();
   if (!data) return null;
   const priceChange = formatPct(data.price_change);
   const periodChange = formatPct(data?.[fields.price_change]);
@@ -203,8 +211,10 @@ const OiChangesRow = memo(function OiChangesRow({ data, fields, showStrike }) {
   return (
     <>
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
-        {showStrike ? <Text style={styles.strike} numberOfLines={1}>{formatStrike(data.strike_pr)}</Text> : null}
+        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+          <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+          {showStrike ? <Text style={styles.strike} numberOfLines={1}>{formatStrike(data.strike_pr)}</Text> : null}
+        </SymbolWithLogo>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.price }]}>
         <Text style={styles.price} numberOfLines={1}>{formatMoney(data.price)}</Text>
@@ -237,6 +247,9 @@ function filtersKey(filters) {
 }
 
 function OiChangesReportScreen() {
+  const styles = useFluidStyles(createStyles);
+  const { width } = useBreakpoint();
+  const isWide = width >= BREAKPOINTS.md;
   const params = useLocalSearchParams();
   const navigation = useNavigation();
   const optionParam = paramString(params.option_type).trim();
@@ -367,13 +380,22 @@ function OiChangesReportScreen() {
         <Dropdown label="Option Type" value={option_type} options={OPTION_TYPES} onSelect={onOptionType} />
         <Dropdown label="OI Type" value={oi_type} options={oiOptions} onSelect={onOiType} />
         <Dropdown label="Period" value={period} options={PERIODS} onSelect={onPeriod} />
+        {isWide ? (
+          <View style={styles.expiryWrap}>
+            <ExpiryDropdownComponent value={expiry_state} onSelect={onExpiry} />
+          </View>
+        ) : null}
       </View>
-      <View style={styles.metaRow}>
-        <View style={styles.metaLeft}>
-          <ExpiryDropdownComponent value={expiry_state} onSelect={onExpiry} />
+      {!isWide || showStrike ? (
+        <View style={styles.metaRow}>
+          {!isWide ? (
+            <View style={styles.metaLeft}>
+              <ExpiryDropdownComponent value={expiry_state} onSelect={onExpiry} />
+            </View>
+          ) : null}
+          {showStrike ? <StrongWeakFilter value={remark} onChange={setRemark} style={isWide ? styles.filterAlignRight : null} /> : null}
         </View>
-        {showStrike ? <StrongWeakFilter value={remark} onChange={setRemark} /> : null}
-      </View>
+      ) : null}
       <View style={styles.table}>
         <CommonTable data={visibleRows} columns={columns} loading={loading} HeaderComponent={HeaderComponent} RowComponent={RowComponent} keyExtractor={rowKey} emptyText={error ? 'Failed to load report. Please try again.' : 'No data to show'} rowStyle={styles.row} />
       </View>
@@ -383,34 +405,36 @@ function OiChangesReportScreen() {
 
 export default memo(OiChangesReportScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   pointer: { cursor: 'pointer' },
-  controls: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
+  controls: { flexDirection: 'row', alignItems: 'flex-start', gap: f(8, 14), paddingHorizontal: f(16, 28), paddingBottom: f(10, 14) },
+  expiryWrap: { alignSelf: 'flex-end', paddingBottom: 2 },
+  filterAlignRight: { marginLeft: 'auto' },
   selectWrap: { flex: 1, minWidth: 0 },
-  selectLabel: { marginBottom: 4, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
-  selectBtn: { flexDirection: 'row', alignItems: 'center', height: 34, paddingHorizontal: 8, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', gap: 4 },
+  selectLabel: { marginBottom: 4, fontSize: f(10, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  selectBtn: { flexDirection: 'row', alignItems: 'center', height: f(34, 42), paddingHorizontal: f(8, 14), borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', gap: f(4, 6) },
   selectOpen: { borderColor: '#0071A9' },
-  selectValue: { flex: 1, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  caret: { fontSize: 9, lineHeight: 12, fontFamily: 'Inter_500Medium', color: '#64748B' },
+  selectValue: { flex: 1, fontSize: f(12, 14), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  caret: { fontSize: f(9, 11), lineHeight: f(12, 15), fontFamily: 'Inter_500Medium', color: '#64748B' },
   menuRoot: { flex: 1 },
   menuBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
-  menu: { position: 'absolute', zIndex: 2, backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: 4 },
-  menuItem: { paddingHorizontal: 10, paddingVertical: 9 },
+  menu: { position: 'absolute', zIndex: 2, backgroundColor: '#FFFFFF', borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', paddingVertical: f(4, 8) },
+  menuItem: { paddingHorizontal: f(10, 16), paddingVertical: f(9, 12) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
-  menuText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  menuText: { fontSize: f(12, 14), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A' },
   menuTextActive: { color: '#0071A9' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, gap: 8 },
-  metaLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, gap: 6 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: f(16, 28), paddingTop: 2, paddingBottom: f(10, 14), gap: f(8, 14) },
+  metaLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, gap: f(6, 10) },
   table: { flex: 1, minHeight: 0 },
-  row: { alignItems: 'flex-start', paddingVertical: 8 },
+  row: { alignItems: 'flex-start', paddingVertical: f(8, 14) },
   headStack: { minWidth: 0, justifyContent: 'flex-end' },
   headLine: { flex: 0, alignSelf: 'stretch' },
-  cell: { minWidth: 0, justifyContent: 'center', paddingRight: 4 },
-  cellEnd: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: 4 },
-  symbol: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_700Bold', color: '#0F172A' },
-  strike: { marginTop: 4, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#64748B' },
-  price: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  oi: { fontSize: 10, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  change: { marginTop: 4, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', textAlign: 'right' },
+  cell: { minWidth: 0, justifyContent: 'center', paddingRight: f(4, 8) },
+  cellEnd: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: f(4, 8) },
+  symbol: { fontSize: f(12, 14.5), lineHeight: f(16, 20), fontFamily: 'Inter_700Bold', color: '#0F172A' },
+  strike: { marginTop: 4, fontSize: f(10, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#64748B' },
+  price: { fontSize: f(12, 14.5), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  oi: { fontSize: f(11.5, 14), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  change: { marginTop: 4, fontSize: f(10, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', textAlign: 'right' },
 });

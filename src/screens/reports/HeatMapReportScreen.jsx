@@ -14,7 +14,9 @@ import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { MONTHLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
-import { useFs, useScaledStyles } from '@/utils/responsive';
+import { useFluid, useFluidStyles } from '@/utils/responsive';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { BREAKPOINTS } from '@/constants/breakpoints';
 
 const PRIMARY = '#0071A9';
 const TEXT = '#0F172A';
@@ -164,6 +166,7 @@ function buildHeatTiles(list, metrics) {
 }
 
 const ControlButton = memo(function ControlButton({ onPress, label, active, flash, children }) {
+  const styles = useFluidStyles(createStyles);
   const [pressed, setPressed] = useState(false);
   const releaseTimer = useRef(null);
   useEffect(() => () => clearTimeout(releaseTimer.current), []);
@@ -194,12 +197,14 @@ const ControlButton = memo(function ControlButton({ onPress, label, active, flas
   );
 });
 
-const HeatMapTile = memo(function HeatMapTile({ item, text, onSelect }) {
+const HeatMapTile = memo(function HeatMapTile({ item, text, numColumns = 4, onSelect }) {
+  const styles = useFluidStyles(createStyles);
+  const outerStyle = useMemo(() => [styles.tileOuter, { width: `${100 / numColumns}%` }], [styles.tileOuter, numColumns]);
   if (item._empty) {
-    return <View style={styles.tileOuter}><View style={[styles.tile, styles.tileEmpty]} /></View>;
+    return <View style={outerStyle}><View style={[styles.tile, styles.tileEmpty]} /></View>;
   }
   return (
-    <Pressable onPress={() => onSelect(item.data)} accessibilityRole="button" accessibilityLabel={item.label} style={[styles.tileOuter, Platform.OS === 'web' ? styles.pointer : null]}>
+    <Pressable onPress={() => onSelect(item.data)} accessibilityRole="button" accessibilityLabel={item.label} style={[outerStyle, Platform.OS === 'web' ? styles.pointer : null]}>
       <View style={[styles.tile, { backgroundColor: item.bg }]}>
         <Text style={sizedText(text.tileSymbol, item.symbolSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.symbol}</Text>
         <Text style={sizedText(text.tilePrice, item.priceSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.price}</Text>
@@ -247,6 +252,8 @@ function buildTileDetail(item, expiry) {
 const noop = () => {};
 
 function HeatMapReportScreen() {
+  const { width } = useBreakpoint();
+  const isWide = width >= BREAKPOINTS.md;
   const { industries } = useCommonData();
   const navigation = useNavigation();
   const routeParams = useLocalSearchParams();
@@ -378,20 +385,20 @@ function HeatMapReportScreen() {
     return new Set(ind.symbols);
   }, [industry_id, industries]);
 
-  const scale = useFs();
-  const t = useScaledStyles(textStyles);
+  const f = useFluid();
+  const styles = useFluidStyles(createStyles);
+  const numColumns = width >= 1024 ? 6 : width >= 640 ? 5 : 4;
 
   const allTiles = useMemo(() => {
-    const width = Dimensions.get('window').width;
-    const raw = textStyles(scale);
-    const textWidth = Math.max(40, (width - 2 * (GRID_H_PAD - TILE_GAP / 2)) / NUM_COLUMNS - TILE_GAP - 8);
+    const raw = createStyles(f);
+    const textWidth = Math.max(40, (width - 2 * (f(10, 20) - TILE_GAP / 2)) / numColumns - TILE_GAP - 8);
     return buildHeatTiles(original, {
       textWidth,
       symbol: raw.tileSymbol.fontSize,
       price: raw.tilePrice.fontSize,
       change: raw.tileChange.fontSize,
     });
-  }, [original, scale]);
+  }, [original, f, width, numColumns]);
 
   const filtered = useMemo(() => {
     const q = search_query.trim().toLowerCase();
@@ -415,14 +422,11 @@ function HeatMapReportScreen() {
     return is_flipped ? [...list].reverse() : list;
   }, [filtered, sort_key, is_flipped]);
 
-  const gridData = useMemo(() => formatGridData(working, NUM_COLUMNS), [working]);
-
-
+  const gridData = useMemo(() => formatGridData(working, numColumns), [working, numColumns]);
 
   const tabLabelSizes = useMemo(() => {
-    const width = Dimensions.get('window').width;
-    const fontSize = textStyles(scale).tabLabel.fontSize;
-    const buttonWidth = (width - TAB_H_PAD * 2 - TAB_GAP * (REPORT_TABS.length - 1)) / REPORT_TABS.length;
+    const fontSize = createStyles(f).tabLabel.fontSize;
+    const buttonWidth = (width - f(8, 20) * 2 - TAB_GAP * (REPORT_TABS.length - 1)) / REPORT_TABS.length;
     const textWidth = Math.max(24, buttonWidth - 14);
     const longest = REPORT_TABS.reduce((best, tab) => (tab.label.length > best.label.length ? tab : best));
     const sharedSize = fittedSize(longest.label, fontSize, 0.78, textWidth, 0.5);
@@ -431,7 +435,7 @@ function HeatMapReportScreen() {
       sizes[tab.id] = sharedSize;
     });
     return sizes;
-  }, [scale]);
+  }, [f, width]);
 
   const handleTileSelect = useCallback((item) => {
     setSelectedTile(item);
@@ -476,20 +480,25 @@ function HeatMapReportScreen() {
   const queryActive = search_query.trim().length > 0;
   const emptyList = useMemo(() => (
     <View style={styles.emptyContainer}>
-      <Text style={t.emptyText} maxFontSizeMultiplier={1.1}>{queryActive ? 'No matching stocks found.' : 'No data available.'}</Text>
+      <Text style={styles.emptyText} maxFontSizeMultiplier={1.1}>{queryActive ? 'No matching stocks found.' : 'No data available.'}</Text>
     </View>
-  ), [queryActive, t]);
+  ), [queryActive, styles]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader label="Heat Map Report" timestamp={timestamp} />
-      <View style={styles.metaRow}>
-        <ExpiryDropdownComponent value={selected_expiry} onSelect={handleExpiryChange} />
-      </View>
+      {!isWide ? (
+        <View style={styles.metaRow}>
+          <ExpiryDropdownComponent value={selected_expiry} onSelect={handleExpiryChange} />
+        </View>
+      ) : null}
       <View style={styles.controlsRow}>
+        {isWide ? (
+          <ExpiryDropdownComponent value={selected_expiry} onSelect={handleExpiryChange} />
+        ) : null}
         <View style={styles.searchBox}>
           <SearchIcon size={16} color={SUBTLE} />
-          <TextInput style={[t.searchInput, Platform.OS === 'web' ? styles.noOutline : null]} maxFontSizeMultiplier={1.1} placeholder="Search symbol" placeholderTextColor={SUBTLE} value={search_query} onChangeText={handleSearch} autoCapitalize="characters" autoCorrect={false} />
+          <TextInput style={[styles.searchInput, Platform.OS === 'web' ? styles.noOutline : null]} maxFontSizeMultiplier={1.1} placeholder="Search symbol" placeholderTextColor={SUBTLE} value={search_query} onChangeText={handleSearch} autoCapitalize="characters" autoCorrect={false} />
         </View>
         <ControlButton onPress={openFilterSheet} label="Filter" active={filterActive}>
           <FilterIcon size={18} color={filterActive ? PRIMARY : MUTED} />
@@ -505,7 +514,7 @@ function HeatMapReportScreen() {
             const labelSize = tabLabelSizes[item.id];
             return (
               <Pressable key={item.id} onPress={() => handleReportTab(item.id)} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={item.label} style={[styles.tab, selected ? styles.tabActive : null, Platform.OS === 'web' ? styles.pointer : null]}>
-                <Text style={[t.tabLabel, selected ? styles.tabLabelActive : styles.tabLabelIdle, labelSize ? { fontSize: labelSize, lineHeight: Math.round(labelSize * 1.3 * 2) / 2 } : null]} numberOfLines={1} allowFontScaling={false}>{item.label}</Text>
+                <Text style={[styles.tabLabel, selected ? styles.tabLabelActive : styles.tabLabelIdle, labelSize ? { fontSize: labelSize, lineHeight: Math.round(labelSize * 1.3 * 2) / 2 } : null]} numberOfLines={1} allowFontScaling={false}>{item.label}</Text>
               </Pressable>
             );
           })}
@@ -517,19 +526,14 @@ function HeatMapReportScreen() {
         </View>
       ) : error ? (
         <View style={styles.emptyContainer}>
-          <Text style={t.emptyText} maxFontSizeMultiplier={1.1}>Failed to load heat map. Please try again.</Text>
+          <Text style={styles.emptyText} maxFontSizeMultiplier={1.1}>Failed to load heat map. Please try again.</Text>
         </View>
       ) : (
         gridData.length === 0 ? emptyList : (
-        <ScrollView
-          style={styles.grid}
-          contentContainerStyle={styles.gridContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView style={styles.grid} contentContainerStyle={styles.gridContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.gridWrap}>
             {gridData.map((item) => (
-              <HeatMapTile key={item.key ?? item._key} item={item} text={t} onSelect={handleTileSelect} />
+              <HeatMapTile key={item.key ?? item._key} item={item} text={styles} numColumns={numColumns} onSelect={handleTileSelect} />
             ))}
           </View>
         </ScrollView>
@@ -567,37 +571,34 @@ function HeatMapReportScreen() {
 
 export default memo(HeatMapReportScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   pointer: { cursor: 'pointer' },
   noOutline: { outlineStyle: 'none', outlineWidth: 0 },
-  tabsWrap: { paddingHorizontal: TAB_H_PAD, paddingBottom: 12 },
-  tabs: { flexDirection: 'row', gap: TAB_GAP },
-  tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingVertical: 8, paddingHorizontal: 7, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER },
+  tabsWrap: { paddingHorizontal: f(8, 20), paddingBottom: f(12, 16) },
+  tabs: { flexDirection: 'row', gap: f(8, 12) },
+  tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingVertical: f(8, 12), paddingHorizontal: f(7, 14), borderRadius: f(8, 10), backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER },
   tabActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
   tabLabelActive: { fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
   tabLabelIdle: { color: MUTED },
-  metaRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, gap: 8 },
-  controlsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 10, gap: 8 },
-  searchBox: { flex: 1, flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', height: 40, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, borderRadius: 8, paddingHorizontal: 10, gap: 8 },
-  ctrlBtn: { width: 40, height: 40, flexShrink: 0, flexGrow: 0, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: f(16, 28), paddingTop: 2, paddingBottom: f(10, 14), gap: f(8, 14) },
+  controlsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: f(8, 20), paddingBottom: f(10, 14), gap: f(8, 12) },
+  searchBox: { flex: 1, flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', height: f(40, 46), backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, borderRadius: f(8, 10), paddingHorizontal: f(10, 14), gap: f(8, 12) },
+  ctrlBtn: { width: f(40, 46), height: f(40, 46), flexShrink: 0, flexGrow: 0, borderRadius: f(8, 10), backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
   ctrlBtnActive: { backgroundColor: '#E0F2FE', borderColor: PRIMARY },
   grid: { flex: 1 },
-  gridContent: { paddingHorizontal: GRID_H_PAD - TILE_GAP / 2, paddingBottom: 16 },
+  gridContent: { paddingHorizontal: f(10, 20) - TILE_GAP / 2, paddingBottom: f(16, 24) },
   gridWrap: { flexDirection: 'row', flexWrap: 'wrap' },
   tileOuter: { width: '25%', padding: TILE_GAP / 2 },
-  tile: { alignSelf: 'stretch', height: TILE_HEIGHT, borderRadius: 4, paddingVertical: 6, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', gap: 4 },
+  tile: { alignSelf: 'stretch', height: f(74, 92), borderRadius: f(4, 6), paddingVertical: f(6, 8), paddingHorizontal: f(4, 6), alignItems: 'center', justifyContent: 'center', overflow: 'hidden', gap: f(4, 6) },
   tilePressed: { opacity: 0.8 },
   tileEmpty: { backgroundColor: 'transparent' },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
-});
-
-const textStyles = (fs) => ({
-  tabLabel: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(9, 10, 11), lineHeight: fs(12, 13, 14), fontFamily: 'Inter_500Medium', includeFontPadding: false },
-  searchInput: { flex: 1, minWidth: 0, padding: 0, fontSize: fs(13), fontFamily: 'Inter_400Regular', color: TEXT },
-  tileSymbol: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(11, 10, 12), lineHeight: fs(15, 13, 17), fontFamily: 'Inter_500Medium', includeFontPadding: false },
-  tilePrice: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(10, 9, 11), lineHeight: fs(12, 11, 14), fontFamily: 'Inter_500Medium', includeFontPadding: false, fontVariant: ['tabular-nums'] },
-  tileChange: { alignSelf: 'stretch', textAlign: 'center', fontSize: fs(9.5, 8.5, 10), lineHeight: fs(12, 11, 13), fontFamily: 'Inter_500Medium', includeFontPadding: false, fontVariant: ['tabular-nums'] },
-  emptyText: { fontSize: fs(13), fontFamily: 'Inter_500Medium', color: SUBTLE, textAlign: 'center' },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: f(24, 40), paddingVertical: f(40, 60) },
+  tabLabel: { alignSelf: 'stretch', textAlign: 'center', fontSize: f(10, 13), lineHeight: f(13, 17), fontFamily: 'Inter_500Medium', includeFontPadding: false },
+  searchInput: { flex: 1, minWidth: 0, padding: 0, fontSize: f(13, 15), fontFamily: 'Inter_400Regular', color: TEXT },
+  tileSymbol: { alignSelf: 'stretch', textAlign: 'center', fontSize: f(11, 14), lineHeight: f(15, 18), fontFamily: 'Inter_500Medium', includeFontPadding: false },
+  tilePrice: { alignSelf: 'stretch', textAlign: 'center', fontSize: f(10, 13), lineHeight: f(12, 16), fontFamily: 'Inter_500Medium', includeFontPadding: false, fontVariant: ['tabular-nums'] },
+  tileChange: { alignSelf: 'stretch', textAlign: 'center', fontSize: f(9.5, 12), lineHeight: f(12, 15), fontFamily: 'Inter_500Medium', includeFontPadding: false, fontVariant: ['tabular-nums'] },
+  emptyText: { fontSize: f(13, 15), fontFamily: 'Inter_500Medium', color: SUBTLE, textAlign: 'center' },
 });

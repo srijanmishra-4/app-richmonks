@@ -1,5 +1,6 @@
 import { memo, useCallback, useRef, useState } from 'react';
 import { View, Text, Pressable, Modal, Dimensions, Platform, StyleSheet } from 'react-native';
+import { useFluidStyles } from '@/utils/responsive';
 
 export const STOCK_RANK_DROPDOWN_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -8,6 +9,7 @@ export const STOCK_RANK_DROPDOWN_OPTIONS = [
 ];
 
 function StockRankDropdown({ value, onChange }) {
+  const styles = useFluidStyles(createStyles);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
   const anchorRef = useRef(null);
@@ -76,41 +78,41 @@ function StockRankDropdown({ value, onChange }) {
 
 export default memo(StockRankDropdown);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   wrap: { justifyContent: 'center' },
   pointer: { cursor: 'pointer' },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 30,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    height: f(30, 36),
+    paddingHorizontal: f(8, 12),
+    borderRadius: f(8, 10),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
-    gap: 6,
+    gap: f(4, 6),
   },
   btnOpen: { borderColor: '#0071A9' },
-  btnText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  caret: { fontSize: 9, lineHeight: 12, fontFamily: 'Inter_500Medium', color: '#64748B' },
+  btnText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  caret: { fontSize: f(9, 11), lineHeight: f(12, 14), fontFamily: 'Inter_500Medium', color: '#64748B' },
   menuRoot: { flex: 1 },
   menuBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
   menu: {
     position: 'absolute',
     zIndex: 2,
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: f(8, 10),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
-    paddingVertical: 4,
+    paddingVertical: f(4, 6),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 4,
   },
-  menuItem: { paddingHorizontal: 12, paddingVertical: 8 },
+  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(7, 10) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
-  menuText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
   menuTextActive: { color: '#0071A9', fontFamily: 'Inter_600SemiBold' },
 });

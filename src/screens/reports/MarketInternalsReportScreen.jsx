@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFluidStyles } from '@/utils/responsive';
 
 import CommonTable from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -17,6 +18,7 @@ function rowKey(item, index) {
 }
 
 function MarketInternalsReportScreen() {
+  const styles = useFluidStyles(createStyles);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -96,8 +98,8 @@ function MarketInternalsReportScreen() {
 
 export default memo(MarketInternalsReportScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   table: { flex: 1, minHeight: 0 },
-  row: { paddingVertical: 8 },
+  row: { paddingVertical: f(8, 14) },
 });

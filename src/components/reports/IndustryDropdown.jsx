@@ -1,8 +1,10 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, Modal, FlatList, Dimensions, Platform, StyleSheet } from 'react-native';
 import { useCommonData } from '@/context/CommonDataContext';
+import { useFluidStyles } from '@/utils/responsive';
 
 function IndustryDropdown({ value, onChange, style }) {
+  const styles = useFluidStyles(createStyles);
   const { industries } = useCommonData();
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
@@ -88,34 +90,34 @@ function IndustryDropdown({ value, onChange, style }) {
 
 export default memo(IndustryDropdown);
 
-const styles = StyleSheet.create({
-  wrap: { justifyContent: 'center', flexShrink: 1, maxWidth: 125 },
+const createStyles = (f) => ({
+  wrap: { justifyContent: 'center', flexShrink: 1, maxWidth: f(130, 200) },
   pointer: { cursor: 'pointer' },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 30,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    height: f(30, 36),
+    paddingHorizontal: f(8, 12),
+    borderRadius: f(8, 10),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
-    gap: 4,
-    minWidth: 78,
+    gap: f(4, 6),
+    minWidth: f(78, 100),
   },
   btnOpen: { borderColor: '#0071A9' },
-  btnText: { flexShrink: 1, fontSize: 11.5, lineHeight: 15, fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  caret: { fontSize: 8.5, lineHeight: 12, fontFamily: 'Inter_500Medium', color: '#64748B' },
+  btnText: { flexShrink: 1, fontSize: f(11.5, 13.5), lineHeight: f(15, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  caret: { fontSize: f(8.5, 11), lineHeight: f(12, 14), fontFamily: 'Inter_500Medium', color: '#64748B' },
   menuRoot: { flex: 1 },
   menuBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
   menu: {
     position: 'absolute',
     zIndex: 2,
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: f(8, 10),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
-    paddingVertical: 4,
+    paddingVertical: f(4, 6),
     maxHeight: 250,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -124,8 +126,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   list: { maxHeight: 240 },
-  menuItem: { paddingHorizontal: 12, paddingVertical: 8 },
+  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(7, 10) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
-  menuText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
   menuTextActive: { color: '#0071A9', fontFamily: 'Inter_600SemiBold' },
 });

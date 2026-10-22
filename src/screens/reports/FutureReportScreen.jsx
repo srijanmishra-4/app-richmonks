@@ -9,6 +9,7 @@ import { SkeletonMetaRow, usePulse } from '@/components/skeleton/SkeletonBars';
 import { FUTURE_TABLE_COLUMNS, FutureHeader, FutureRow } from '@/components/reports/futureTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
+import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
 const TABS = [
@@ -39,6 +40,7 @@ const TAB_TONE = {
 };
 
 function ReportTabs({ active, onChange }) {
+  const styles = useFluidStyles(createStyles);
   const wrapTone = TAB_TONE[active];
   return (
     <View style={styles.tabsWrap}>
@@ -59,6 +61,7 @@ function ReportTabs({ active, onChange }) {
 }
 
 function FutureReportScreen() {
+  const styles = useFluidStyles(createStyles);
   const routeParams = useLocalSearchParams();
   const rawParams = { report_type: paramString(routeParams.report_type).trim() };
   const [tab, setTab] = useState(() => parseFuture(rawParams).filters.report_type);
@@ -132,7 +135,7 @@ function FutureReportScreen() {
       <ReportTabs active={tab} onChange={handleTab} />
       {loading ? (
         <View style={styles.content}>
-          <SkeletonMetaRow pulse={pulse} showRight={false} />
+          <SkeletonMetaRow pulse={pulse} showRight={false} style={styles.metaRow} />
           <View style={styles.table}>
             <CommonTable data={[]} loading columns={FUTURE_TABLE_COLUMNS} HeaderComponent={FutureHeader} rowStyle={styles.row} />
           </View>
@@ -160,23 +163,23 @@ function FutureReportScreen() {
 
 export default memo(FutureReportScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   pointer: { cursor: 'pointer' },
-  tabsWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 10 },
-  tabs: { flexDirection: 'row', borderRadius: 10, overflow: 'hidden', backgroundColor: '#EEF2F6', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingTop: 8 },
-  tabLabel: { fontSize: 12.5, lineHeight: 17, fontFamily: 'Inter_500Medium' },
+  tabsWrap: { alignItems: 'center', paddingHorizontal: f(16, 28), paddingTop: f(4, 10), paddingBottom: f(10, 16) },
+  tabs: { flexDirection: 'row', borderRadius: f(10, 12), overflow: 'hidden', backgroundColor: '#EEF2F6', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', alignSelf: 'center', width: '80%' },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: f(8, 12), paddingBottom: 0, paddingHorizontal: f(12, 18) },
+  tabLabel: { fontSize: f(12.5, 14.5), lineHeight: f(17, 20), fontFamily: 'Inter_500Medium' },
   tabLabelActive: { fontFamily: 'Inter_600SemiBold' },
   tabLabelIdle: { color: '#94A3B8' },
-  tabLine: { marginTop: 7, height: 2, alignSelf: 'stretch', backgroundColor: 'transparent' },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
+  tabLine: { marginTop: f(7, 10), height: f(2, 3), alignSelf: 'stretch', backgroundColor: 'transparent' },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: f(24, 32) },
+  emptyText: { fontSize: f(13, 15), fontFamily: 'Inter_500Medium', color: '#94A3B8', textAlign: 'center' },
   content: { flex: 1, minHeight: 0 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10 },
-  metaLeft: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  metaLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: '#94A3B8' },
-  metaValue: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: f(16, 28), paddingTop: f(2, 6), paddingBottom: f(10, 16) },
+  metaLeft: { flexDirection: 'row', alignItems: 'center', gap: f(16, 24) },
+  metaLabel: { fontSize: f(11, 13), lineHeight: f(15, 17), fontFamily: 'Inter_400Regular', color: '#94A3B8' },
+  metaValue: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
   table: { flex: 1, minHeight: 0 },
-  row: { paddingVertical: 8 },
+  row: { minHeight: f(50, 64), paddingVertical: f(8, 12) },
 });

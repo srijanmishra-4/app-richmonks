@@ -1,6 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 
+import { useFluidStyles } from '@/utils/responsive';
+
 const STRONG = 'Strong';
 const WEAK = 'Weak';
 const EMPTY_ROWS = [];
@@ -69,7 +71,7 @@ export function useStrongWeakFilter(rows, { enabled = true } = {}) {
   };
 }
 
-const FilterButton = memo(function FilterButton({ label, selected, activeStyle, activeTextStyle, onPress }) {
+const FilterButton = memo(function FilterButton({ label, selected, activeStyle, activeTextStyle, onPress, styles }) {
   return (
     <Pressable
       onPress={onPress}
@@ -88,6 +90,7 @@ const FilterButton = memo(function FilterButton({ label, selected, activeStyle, 
 });
 
 function StrongWeakFilter({ value, onChange, style }) {
+  const styles = useFluidStyles(createStyles);
   const selectStrong = useCallback(() => {
     onChange(value === STRONG ? null : STRONG);
   }, [onChange, value]);
@@ -104,6 +107,7 @@ function StrongWeakFilter({ value, onChange, style }) {
         activeStyle={styles.strongButton}
         activeTextStyle={styles.strongLabel}
         onPress={selectStrong}
+        styles={styles}
       />
       <FilterButton
         label={WEAK}
@@ -111,6 +115,7 @@ function StrongWeakFilter({ value, onChange, style }) {
         activeStyle={styles.weakButton}
         activeTextStyle={styles.weakLabel}
         onPress={selectWeak}
+        styles={styles}
       />
     </View>
   );
@@ -118,19 +123,19 @@ function StrongWeakFilter({ value, onChange, style }) {
 
 export default memo(StrongWeakFilter);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: f(6, 10),
   },
   pointer: { cursor: 'pointer' },
   button: {
-    height: 30,
+    height: f(30, 36),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: f(12, 18),
+    borderRadius: f(8, 10),
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
@@ -144,8 +149,8 @@ const styles = StyleSheet.create({
     borderColor: '#DC2626',
   },
   label: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: f(11.5, 13.5),
+    lineHeight: f(15, 18),
     fontFamily: 'Inter_500Medium',
     color: '#64748B',
   },

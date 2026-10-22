@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
+import { useFluidStyles } from '@/utils/responsive';
 
 export const GREEN = '#16A34A';
 export const RED = '#DC2626';
@@ -59,6 +60,7 @@ export function renderMetricValue(val) {
 }
 
 export const MarketInternalsRow = memo(function MarketInternalsRow({ data }) {
+  const styles = useFluidStyles(createStyles);
   if (!data) return null;
   const isPct = isPercentageMetric(data.title);
   const todayColor = getValueColor(data.today, isPct);
@@ -80,6 +82,7 @@ export const MarketInternalsRow = memo(function MarketInternalsRow({ data }) {
 });
 
 export function MarketInternalsHeader() {
+  const styles = useFluidStyles(createStyles);
   return (
     <>
       <View style={[styles.hCell, { flex: COL.metric }]}>
@@ -95,12 +98,12 @@ export function MarketInternalsHeader() {
   );
 }
 
-const styles = StyleSheet.create({
-  cell: { minWidth: 0, justifyContent: 'center', paddingRight: 6 },
-  hCell: { minWidth: 0, justifyContent: 'center', paddingRight: 6 },
-  cellEnd: { alignItems: 'flex-end', paddingRight: 2, paddingLeft: 6 },
-  metricText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  valueText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', textAlign: 'right' },
-  hLabel: { fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.4, textTransform: 'uppercase' },
+const createStyles = (f) => ({
+  cell: { minWidth: 0, justifyContent: 'center', paddingRight: f(6, 12) },
+  hCell: { minWidth: 0, justifyContent: 'center', paddingRight: f(6, 12) },
+  cellEnd: { alignItems: 'flex-end', paddingRight: f(2, 6), paddingLeft: f(6, 12) },
+  metricText: { fontSize: f(12, 14.5), lineHeight: f(16, 19), fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  valueText: { fontSize: f(12, 14.5), lineHeight: f(16, 19), fontFamily: 'Inter_500Medium', textAlign: 'right' },
+  hLabel: { fontSize: f(10, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.4, textTransform: 'uppercase' },
   hLabelRight: { textAlign: 'right' },
 });

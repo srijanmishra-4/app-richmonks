@@ -3,7 +3,7 @@ import { View, Text, Pressable, Modal, Dimensions, Platform, StyleSheet } from '
 
 import { ChevronRightIcon } from '@/components/icons/HomeIcons';
 import { useCommonData } from '@/context/CommonDataContext';
-import { useScaledStyles } from '@/utils/responsive';
+import { useFluidStyles } from '@/utils/responsive';
 
 const PRIMARY = '#0071A9';
 const TEXT = '#0F172A';
@@ -51,7 +51,7 @@ function ExpiryDropdownComponent({ value, onSelect, withWeekly = false }) {
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
-  const t = useScaledStyles(textStyles);
+  const styles = useFluidStyles(createStyles);
   const options = useExpiryOptions(withWeekly);
   const current = options.find((item) => item.value === value);
 
@@ -72,10 +72,10 @@ function ExpiryDropdownComponent({ value, onSelect, withWeekly = false }) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={t.label} maxFontSizeMultiplier={1.1}>Expiry Date</Text>
+      <Text style={styles.label} maxFontSizeMultiplier={1.1}>Expiry Date</Text>
       <View ref={anchorRef} collapsable={false}>
         <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="Expiry Date" accessibilityState={{ expanded: open }} style={[styles.btn, open ? styles.btnOpen : null, Platform.OS === 'web' ? styles.pointer : null]}>
-          <Text style={t.value} numberOfLines={1} maxFontSizeMultiplier={1.1}>{current?.label ?? '—'}</Text>
+          <Text style={styles.value} numberOfLines={1} maxFontSizeMultiplier={1.1}>{current?.label ?? '—'}</Text>
           <View style={open ? styles.chevronUp : styles.chevronDown}><ChevronRightIcon size={12} color={MUTED} /></View>
         </Pressable>
       </View>
@@ -88,7 +88,7 @@ function ExpiryDropdownComponent({ value, onSelect, withWeekly = false }) {
                 const active = item.value === value;
                 return (
                   <Pressable key={`${item.value}-${index}`} onPress={() => { setOpen(false); onSelect(item.value); }} accessibilityRole="button" accessibilityState={{ selected: active }} style={[styles.menuItem, active ? styles.menuItemActive : null, Platform.OS === 'web' ? styles.pointer : null]}>
-                    <Text style={[t.menuText, active ? styles.menuTextActive : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{item.label}</Text>
+                    <Text style={[styles.menuText, active ? styles.menuTextActive : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{item.label}</Text>
                   </Pressable>
                 );
               })}
@@ -102,23 +102,20 @@ function ExpiryDropdownComponent({ value, onSelect, withWeekly = false }) {
 
 export default memo(ExpiryDropdownComponent);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   pointer: { cursor: 'pointer' },
-  wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 30, minWidth: 80, paddingHorizontal: 10, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF', gap: 6 },
+  wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: f(6, 10) },
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: f(30, 36), minWidth: f(80, 100), paddingHorizontal: f(8, 12), borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF', gap: f(6, 8) },
   btnOpen: { borderColor: PRIMARY },
   chevronDown: { transform: [{ rotate: '90deg' }] },
   chevronUp: { transform: [{ rotate: '-90deg' }] },
   menuRoot: { flex: 1 },
   menuBackdrop: { ...StyleSheet.absoluteFillObject },
-  menu: { position: 'absolute', backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, paddingVertical: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
-  menuItem: { paddingHorizontal: 12, paddingVertical: 9 },
+  menu: { position: 'absolute', backgroundColor: '#FFFFFF', borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, paddingVertical: f(4, 6), shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
+  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(7, 10) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
   menuTextActive: { color: PRIMARY },
-});
-
-const textStyles = (fs) => ({
-  label: { fontSize: fs(12), lineHeight: fs(16), fontFamily: 'Inter_500Medium', color: MUTED },
-  value: { fontSize: fs(13), lineHeight: fs(17), fontFamily: 'Inter_600SemiBold', color: TEXT },
-  menuText: { fontSize: fs(12), lineHeight: fs(16), fontFamily: 'Inter_500Medium', color: TEXT },
+  label: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: MUTED },
+  value: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_600SemiBold', color: TEXT },
+  menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: TEXT },
 });

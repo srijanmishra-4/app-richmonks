@@ -15,6 +15,7 @@ import {
 } from '@/components/reports/mostActiveOptionsTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { MONTHLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
+import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
 const SOCKET_EVENTS = {
@@ -37,6 +38,7 @@ function rowKey(item, index) {
 }
 
 function MostActiveOptionsReportScreen() {
+  const styles = useFluidStyles(createStyles);
   const routeParams = useLocalSearchParams();
   const rawParams = {
     option_type: paramString(routeParams.option_type).trim(),
@@ -135,16 +137,10 @@ function MostActiveOptionsReportScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScreenHeader label="Most Active Options" timestamp={cdate} />
 
-      <View style={styles.firstRow}>
+      <View style={styles.controlsRow}>
         <ExpiryDropdownComponent value={expiry} onSelect={handleExpiryChange} />
-      </View>
-
-      <View style={styles.secondRow}>
-        <CallPutDropdown
-          value={optionType}
-          onChange={handleOptionTypeChange}
-        />
-        <StrongWeakFilter value={strength} onChange={setStrength} />
+        <CallPutDropdown value={optionType} onChange={handleOptionTypeChange} />
+        <StrongWeakFilter value={strength} onChange={setStrength} style={styles.strengthFilter} />
       </View>
 
       <View style={styles.table}>
@@ -164,23 +160,17 @@ function MostActiveOptionsReportScreen() {
 
 export default memo(MostActiveOptionsReportScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
-  firstRow: {
+  controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
-    gap: 8,
+    flexWrap: 'wrap',
+    paddingHorizontal: f(16, 28),
+    paddingTop: f(4, 10),
+    paddingBottom: f(10, 16),
+    gap: f(8, 14),
   },
-  secondRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    gap: 8,
-  },
+  strengthFilter: { marginLeft: 'auto' },
   table: { flex: 1, minHeight: 0 },
 });

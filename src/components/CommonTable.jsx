@@ -1,9 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, FlatList, ScrollView, Platform, StyleSheet, Animated } from 'react-native';
 
-const ROW_GAP = 4;
-const PAD_H = 8;
-const INSET = 8;
+import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Common Table ───────────────────────────────────────────────────────────────
 //   <CommonTable data={rows} columns={cols} HeaderComponent={H} RowComponent={R} loading={loading} />
@@ -56,11 +54,11 @@ function skeletonBarsForColumn(column) {
   return lines <= 1 ? ['62%'] : ['68%', 52];
 }
 
-function TableSkeletonBar({ pulse, width, height = 10 }) {
+function TableSkeletonBar({ pulse, width, height = 10, skeletonStyles }) {
   return <Animated.View style={[skeletonStyles.bar, { height, opacity: pulse }, typeof width === 'number' ? { width } : { width }]} />;
 }
 
-function TableSkeletonRow({ pulse, columns }) {
+function TableSkeletonRow({ pulse, columns, skeletonStyles }) {
   if (!columns?.length) return null;
   return (
     <>
@@ -73,7 +71,7 @@ function TableSkeletonRow({ pulse, columns }) {
             {bars.map((bar, barIndex) => {
               const w = typeof bar === 'object' ? bar.width : bar;
               const h = typeof bar === 'object' ? (bar.height ?? (barIndex > 0 ? 8 : 10)) : (barIndex > 0 ? 8 : 10);
-              return <TableSkeletonBar key={barIndex} pulse={pulse} width={w} height={h} />;
+              return <TableSkeletonBar key={barIndex} pulse={pulse} width={w} height={h} skeletonStyles={skeletonStyles} />;
             })}
           </View>
         );
@@ -83,6 +81,8 @@ function TableSkeletonRow({ pulse, columns }) {
 }
 
 function CommonTable({ data, columns, HeaderComponent, RowComponent, loading = false, skeletonRowCount = 10, keyExtractor = defaultKeyExtractor, initialSort = null, minWidth, emptyText = 'No data to show', style, rowStyle }) {
+  const styles = useFluidStyles(createStyles);
+  const skeletonStyles = useFluidStyles(createSkeletonStyles);
   const [sort, setSort] = useState(initialSort);
   const pulse = useSkeletonPulse(loading);
   const showSkeleton = loading && columns?.length > 0;
@@ -100,12 +100,12 @@ function CommonTable({ data, columns, HeaderComponent, RowComponent, loading = f
   const renderItem = useCallback(({ item, index }) => (
     showSkeleton ? (
       <View style={[styles.row, rowStyle]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <TableSkeletonRow pulse={pulse} columns={columns} />
+        <TableSkeletonRow pulse={pulse} columns={columns} skeletonStyles={skeletonStyles} />
       </View>
     ) : (
       <View style={[styles.row, rowStyle]}><RowComponent data={item} index={index} /></View>
     )
-  ), [RowComponent, showSkeleton, pulse, columns, rowStyle]);
+  ), [RowComponent, showSkeleton, pulse, columns, rowStyle, styles, skeletonStyles]);
 
   const table = (
     <View style={[styles.table, minWidth ? { minWidth } : null]}>
@@ -134,6 +134,7 @@ function CommonTable({ data, columns, HeaderComponent, RowComponent, loading = f
 export default memo(CommonTable);
 
 export function TableHeaderCell({ label, flex = 1, align = 'left', sortKey, getValue, sort, onSort, style }) {
+  const styles = useFluidStyles(createStyles);
   const sortable = !!sortKey && typeof getValue === 'function' && typeof onSort === 'function';
   const active = sortable && sort?.key === sortKey;
   const alignStyle = align === 'right' ? styles.cellRight : align === 'center' ? styles.cellCenter : null;
@@ -149,31 +150,31 @@ export function TableHeaderCell({ label, flex = 1, align = 'left', sortKey, getV
   );
 }
 
-const skeletonStyles = StyleSheet.create({
-  cell: { minWidth: 0, justifyContent: 'center', paddingRight: 4, gap: 4 },
-  cellRight: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: 4 },
+const createSkeletonStyles = (f) => ({
+  cell: { minWidth: 0, justifyContent: 'center', paddingRight: f(4, 8), gap: f(4, 6) },
+  cellRight: { alignItems: 'flex-end', paddingRight: 0, paddingLeft: f(4, 8) },
   cellCenter: { alignItems: 'center' },
-  bar: { borderRadius: 4, backgroundColor: '#E2E8F0' },
+  bar: { borderRadius: f(4, 6), backgroundColor: '#E2E8F0' },
 });
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, minHeight: 0 },
   hContent: { flexGrow: 1, alignItems: 'stretch', minHeight: '100%' },
   table: { flex: 1, minHeight: 0 },
-  header: { flexDirection: 'row', alignItems: 'flex-end', marginHorizontal: INSET, paddingHorizontal: PAD_H, paddingTop: 4, paddingBottom: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: 'transparent', zIndex: 1 },
+  header: { flexDirection: 'row', alignItems: 'flex-end', marginHorizontal: f(8, 20), paddingHorizontal: f(8, 16), paddingTop: f(4, 8), paddingBottom: f(6, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: 'transparent', zIndex: 1 },
   list: { flex: 1, minHeight: 0 },
-  listContent: { flexGrow: 1, paddingTop: 2, paddingBottom: 12, gap: ROW_GAP },
-  row: { flexDirection: 'row', alignItems: 'center', marginHorizontal: INSET, paddingHorizontal: PAD_H, paddingVertical: 6, borderRadius: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E4E8EE', backgroundColor: '#FFFFFF' },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
-  emptyText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
-  hCell: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingRight: 4 },
-  cellRight: { justifyContent: 'flex-end', paddingRight: 0, paddingLeft: 4 },
+  listContent: { flexGrow: 1, paddingTop: f(2, 6), paddingBottom: f(12, 24), gap: f(4, 8) },
+  row: { flexDirection: 'row', alignItems: 'center', marginHorizontal: f(8, 20), paddingHorizontal: f(8, 16), paddingVertical: f(6, 10), minHeight: f(48, 62), borderRadius: f(4, 8), borderWidth: StyleSheet.hairlineWidth, borderColor: '#E4E8EE', backgroundColor: '#FFFFFF' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: f(40, 60) },
+  emptyText: { fontSize: f(13, 15), fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  hCell: { flexDirection: 'row', alignItems: 'center', gap: f(3, 5), paddingRight: f(4, 8) },
+  cellRight: { justifyContent: 'flex-end', paddingRight: 0, paddingLeft: f(4, 8) },
   cellCenter: { justifyContent: 'center' },
-  hLabel: { flexShrink: 1, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.4, textTransform: 'uppercase' },
+  hLabel: { flexShrink: 1, fontSize: f(10, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#94A3B8', letterSpacing: 0.4, textTransform: 'uppercase' },
   hLabelActive: { color: '#64748B' },
   hLabelRight: { flex: 1, textAlign: 'right', letterSpacing: 0 },
   textCenter: { textAlign: 'center' },
-  hArrow: { fontSize: 8, lineHeight: 13, color: '#CBD5E1' },
+  hArrow: { fontSize: f(8, 11), lineHeight: f(13, 16), color: '#CBD5E1' },
   hArrowActive: { color: '#64748B' },
   pointer: { cursor: 'pointer' },
 });

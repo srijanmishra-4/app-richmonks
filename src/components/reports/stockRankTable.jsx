@@ -2,6 +2,8 @@ import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { TableHeaderCell } from '@/components/CommonTable';
+import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { useFluidStyles } from '@/utils/responsive';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -91,7 +93,8 @@ export function sortNumber(val) {
 
 export const StockRankRow = memo(function StockRankRow({ data }) {
   if (!data) return null;
-
+  const styles = useFluidStyles(createStyles);
+  const showLogo = useShowReportSymbolLogo();
   const priceChangeText = formatPct(data.price_change);
   const priceChangeNum = sortNumber(data.price_change);
   const priceChangeColor = priceChangeNum > 0 ? GREEN : priceChangeNum < 0 ? RED : NEUTRAL;
@@ -107,7 +110,9 @@ export const StockRankRow = memo(function StockRankRow({ data }) {
   return (
     <>
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+          <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+        </SymbolWithLogo>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.rank }]}>
         <Text style={styles.rank} numberOfLines={1}>{data.rank != null ? data.rank : '—'}</Text>
@@ -127,6 +132,7 @@ export const StockRankRow = memo(function StockRankRow({ data }) {
 });
 
 export function StockRankHeader({ sort, onSort }) {
+  const styles = useFluidStyles(createStyles);
   return (
     <>
       <TableHeaderCell label="SYMBOL" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} style={styles.symbolHeader} />
@@ -137,15 +143,15 @@ export function StockRankHeader({ sort, onSort }) {
   );
 }
 
-const styles = StyleSheet.create({
-  cell: { minWidth: 0, justifyContent: 'center', paddingLeft: 2, paddingRight: 2 },
+const createStyles = (f) => ({
+  cell: { minWidth: 0, justifyContent: 'center', paddingLeft: f(2, 6), paddingRight: f(2, 6) },
   cellEnd: { alignItems: 'flex-end', paddingLeft: 0, paddingRight: 0 },
-  symbolHeader: { paddingLeft: 2, paddingRight: 2 },
+  symbolHeader: { paddingLeft: f(2, 6), paddingRight: f(2, 6) },
   endHeader: { paddingLeft: 0, paddingRight: 0 },
-  symbol: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  rank: { alignSelf: 'stretch', fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  rankDelta: { alignSelf: 'stretch', marginTop: 2, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', textAlign: 'right' },
-  cmp: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  change: { marginTop: 2, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', textAlign: 'right' },
-  ppl: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', textAlign: 'right' },
+  symbol: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
+  rank: { alignSelf: 'stretch', fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  rankDelta: { alignSelf: 'stretch', marginTop: f(2, 3), fontSize: f(10, 12.5), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', textAlign: 'right' },
+  cmp: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  change: { marginTop: f(2, 3), fontSize: f(10, 12.5), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', textAlign: 'right' },
+  ppl: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', textAlign: 'right' },
 });

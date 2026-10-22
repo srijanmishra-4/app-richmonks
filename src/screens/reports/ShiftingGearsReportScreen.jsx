@@ -9,6 +9,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { SHIFTING_GEARS_COLUMNS, ShiftingGearsHeader, ShiftingGearsRow } from '@/components/reports/shiftingGearsTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { MONTHLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
+import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
 const PRIMARY = '#0071A9';
@@ -47,6 +48,7 @@ function shiftingParams(state) {
 }
 
 const ReportTypeDropdown = memo(function ReportTypeDropdown({ value, onSelect }) {
+  const styles = useFluidStyles(createStyles);
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
@@ -111,6 +113,7 @@ function rowKey(item, index) {
 }
 
 function ShiftingGearsReportScreen() {
+  const styles = useFluidStyles(createStyles);
   const routeParams = useLocalSearchParams();
   const rawParams = {
     expiry_state: paramString(routeParams.expiry_state).trim(),
@@ -250,29 +253,29 @@ function ShiftingGearsReportScreen() {
 
 export default memo(ShiftingGearsReportScreen);
 
-const styles = StyleSheet.create({
+const createStyles = (f) => ({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   pointer: { cursor: 'pointer' },
-  metaRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 8 },
-  typeWrap: { flexShrink: 1, alignItems: 'stretch', minWidth: 136 },
-  typeLabel: { marginBottom: 4, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
-  typeBtn: { flexDirection: 'row', alignItems: 'center', height: 34, paddingHorizontal: 8, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF', gap: 4 },
+  metaRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: f(16, 28), paddingTop: f(8, 14), paddingBottom: f(10, 16), gap: f(8, 14) },
+  typeWrap: { flexShrink: 1, alignItems: 'stretch', minWidth: f(136, 160) },
+  typeLabel: { marginBottom: f(4, 6), fontSize: f(10, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  typeBtn: { flexDirection: 'row', alignItems: 'center', height: f(34, 40), paddingHorizontal: f(8, 12), borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF', gap: f(4, 6) },
   typeBtnOpen: { borderColor: PRIMARY },
-  typeValue: { flex: 1, fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: TEXT },
-  caret: { fontSize: 9, lineHeight: 12, fontFamily: 'Inter_500Medium', color: MUTED },
+  typeValue: { flex: 1, fontSize: f(12, 14.5), lineHeight: f(16, 19), fontFamily: 'Inter_500Medium', color: TEXT },
+  caret: { fontSize: f(9, 11), lineHeight: f(12, 14), fontFamily: 'Inter_500Medium', color: MUTED },
   menuRoot: { flex: 1 },
   menuBackdrop: { ...StyleSheet.absoluteFillObject },
-  menu: { position: 'absolute', backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, paddingVertical: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
-  menuItem: { paddingHorizontal: 12, paddingVertical: 9 },
+  menu: { position: 'absolute', backgroundColor: '#FFFFFF', borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, paddingVertical: f(4, 6), shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
+  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(8, 10) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
-  menuText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: TEXT },
+  menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: TEXT },
   menuTextActive: { color: PRIMARY, fontFamily: 'Inter_600SemiBold' },
-  durationWrap: { paddingHorizontal: 16, paddingBottom: 18 },
-  durationRow: { flexDirection: 'row', gap: 10 },
-  durationBtn: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 6, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
+  durationWrap: { paddingHorizontal: f(16, 28), paddingBottom: f(12, 18) },
+  durationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', width: '100%' },
+  durationBtn: { flexGrow: 0, flexShrink: 1, width: f(112, 152), minWidth: 0, height: f(32, 38), alignItems: 'center', justifyContent: 'center', paddingHorizontal: f(8, 12), borderRadius: f(8, 10), backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0' },
   durationBtnActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
-  durationLabel: { fontSize: 11, lineHeight: 14, fontFamily: 'Inter_500Medium', color: MUTED, textAlign: 'center' },
+  durationLabel: { fontSize: f(11, 13.5), lineHeight: f(14, 18), fontFamily: 'Inter_500Medium', color: MUTED, textAlign: 'center' },
   durationLabelActive: { fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
   table: { flex: 1, minHeight: 0 },
-  row: { paddingVertical: 8 },
+  row: { paddingVertical: f(8, 12) },
 });

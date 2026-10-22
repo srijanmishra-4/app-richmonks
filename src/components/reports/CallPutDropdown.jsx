@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Modal, Dimensions, Platform, StyleSheet } from 'react-native';
 
-import { useScaledStyles } from '@/utils/responsive';
+import { useFluidStyles } from '@/utils/responsive';
 
 export const CALL_PUT_OPTIONS = [
   { value: 'call', label: 'Call' },
@@ -9,7 +9,7 @@ export const CALL_PUT_OPTIONS = [
 ];
 
 function CallPutDropdown({ value, onChange }) {
-  const t = useScaledStyles(textStyles);
+  const styles = useFluidStyles(createStyles);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
   const anchorRef = useRef(null);
@@ -51,7 +51,7 @@ function CallPutDropdown({ value, onChange }) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={t.label} maxFontSizeMultiplier={1.1}>Option Type</Text>
+      <Text style={styles.label} maxFontSizeMultiplier={1.1}>Option Type</Text>
       <View ref={anchorRef} collapsable={false}>
         <Pressable
           onPress={toggle}
@@ -121,49 +121,43 @@ function nodeContains(node, target) {
 
 export default memo(CallPutDropdown);
 
-const textStyles = (fs) => ({
-  label: { fontSize: fs(12), lineHeight: fs(16), fontFamily: 'Inter_500Medium', color: '#64748B' },
-});
-
-const styles = StyleSheet.create({
-  wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
+const createStyles = (f) => ({
+  wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: f(6, 10) },
   pointer: { cursor: 'pointer' },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 30,
-    minWidth: 72,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    height: f(30, 36),
+    minWidth: f(72, 90),
+    paddingHorizontal: f(8, 12),
+    borderRadius: f(8, 10),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
     justifyContent: 'space-between',
-    gap: 6,
+    gap: f(4, 6),
   },
   btnOpen: { borderColor: '#0071A9' },
-  btnText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
-  caret: { fontSize: 9, lineHeight: 12, fontFamily: 'Inter_500Medium', color: '#64748B' },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.01)',
-  },
+  btnText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  label: { fontSize: f(11.5, 13.5), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#64748B' },
+  caret: { fontSize: f(9, 11), lineHeight: f(12, 14), fontFamily: 'Inter_500Medium', color: '#64748B' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.01)' },
   menu: {
     position: 'absolute',
     zIndex: 2,
     elevation: 4,
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: f(8, 10),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E2E8F0',
-    paddingVertical: 4,
+    paddingVertical: f(4, 6),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
   },
-  menuItem: { paddingHorizontal: 12, paddingVertical: 8 },
+  menuItem: { paddingHorizontal: f(10, 14), paddingVertical: f(7, 10) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
-  menuText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  menuText: { fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
   menuTextActive: { color: '#0071A9', fontFamily: 'Inter_600SemiBold' },
 });

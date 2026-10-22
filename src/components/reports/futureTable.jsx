@@ -2,6 +2,8 @@ import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { TableHeaderCell } from '@/components/CommonTable';
+import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { useFluidStyles } from '@/utils/responsive';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -59,6 +61,7 @@ function sortNumber(val) {
 }
 
 function ChangeText({ value }) {
+  const styles = useFluidStyles(createStyles);
   const text = formatPct(value);
   if (!text) return null;
   const tone = text.startsWith('+') ? 'pos' : text.startsWith('-') ? 'neg' : 'flat';
@@ -68,10 +71,14 @@ function ChangeText({ value }) {
 
 export const FutureRow = memo(function FutureRow({ data }) {
   if (!data) return null;
+  const styles = useFluidStyles(createStyles);
+  const showLogo = useShowReportSymbolLogo();
   return (
     <>
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+          <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+        </SymbolWithLogo>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.cmp }]}>
         <Text style={styles.cmp} numberOfLines={1}>{formatMoney(data.price)}</Text>
@@ -95,6 +102,7 @@ export const FutureRow = memo(function FutureRow({ data }) {
 });
 
 export function FutureHeader({ sort, onSort }) {
+  const styles = useFluidStyles(createStyles);
   return (
     <>
       <TableHeaderCell label="Symbol" flex={COL.symbol} align="left" sortKey="symbol" getValue={(row) => row?.symbol ?? ''} sort={sort} onSort={onSort} />
@@ -105,19 +113,19 @@ export function FutureHeader({ sort, onSort }) {
   );
 }
 
-const styles = StyleSheet.create({
-  cell: { minWidth: 0, justifyContent: 'center', paddingRight: 6 },
-  cellEnd: { alignItems: 'flex-end', paddingRight: 10, paddingLeft: 4 },
-  cellWap: { alignItems: 'flex-end', paddingRight: 10, paddingLeft: 6 },
-  symbol: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
-  cmp: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  change: { marginTop: 2, fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', textAlign: 'right' },
-  wap: { fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
-  cmpHeader: { paddingRight: 10 },
-  wapHeader: { paddingRight: 10 },
-  hlHeader: { paddingLeft: 10 },
-  hlCell: { paddingLeft: 10, paddingRight: 0, gap: 4, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#E4E8EE' },
-  hlRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 },
-  hlLabel: { fontSize: 10, lineHeight: 13, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
-  hlValue: { flexShrink: 1, fontSize: 11, lineHeight: 14, fontFamily: 'Inter_500Medium', color: '#1E293B', textAlign: 'right' },
+const createStyles = (f) => ({
+  cell: { minWidth: 0, justifyContent: 'center', paddingRight: f(6, 14) },
+  cellEnd: { alignItems: 'flex-end', paddingRight: f(10, 20), paddingLeft: f(4, 10) },
+  cellWap: { alignItems: 'flex-end', paddingRight: f(10, 20), paddingLeft: f(6, 12) },
+  symbol: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_600SemiBold', color: '#0F172A' },
+  cmp: { fontSize: f(12, 15), lineHeight: f(16, 20), fontFamily: 'Inter_600SemiBold', color: '#0F172A', textAlign: 'right' },
+  change: { marginTop: f(2, 3), fontSize: f(10, 12.5), lineHeight: f(13, 16), fontFamily: 'Inter_600SemiBold', textAlign: 'right' },
+  wap: { fontSize: f(11.5, 14.5), lineHeight: f(16, 20), fontFamily: 'Inter_500Medium', color: '#0F172A', textAlign: 'right' },
+  cmpHeader: { paddingRight: f(10, 20) },
+  wapHeader: { paddingRight: f(10, 20) },
+  hlHeader: { paddingLeft: f(10, 20), paddingRight: f(4, 12) },
+  hlCell: { paddingLeft: f(10, 20), paddingRight: f(4, 12), gap: f(4, 6), borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#E4E8EE' },
+  hlRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: f(200, 260), gap: f(8, 16) },
+  hlLabel: { fontSize: f(10, 12), lineHeight: f(13, 16), fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  hlValue: { flexShrink: 1, fontSize: f(11, 14), lineHeight: f(14, 18), fontFamily: 'Inter_600SemiBold', color: '#1E293B', textAlign: 'right' },
 });

@@ -5,8 +5,8 @@ import { cdnApi } from '@/utils/api';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { BREAKPOINTS } from '@/constants/breakpoints';
 
-export const SYMBOL_LOGO_SIZE = 22;
-export const SYMBOL_LOGO_GAP = 8;
+export const SYMBOL_LOGO_SIZE = 28;
+export const SYMBOL_LOGO_GAP = 16;
 
 // Room for a logo beside the symbol:
 //   wider than xl, or from 470 up to lg.
@@ -16,6 +16,11 @@ const SYMBOL_LOGO_MIN_WIDTH = 470;
 export function useShowSymbolLogo() {
   const { width } = useBreakpoint();
   return width > BREAKPOINTS.xl || (width >= SYMBOL_LOGO_MIN_WIDTH && width < BREAKPOINTS.lg);
+}
+
+export function useShowReportSymbolLogo() {
+  const { width } = useBreakpoint();
+  return (width >= BREAKPOINTS.md && width <= BREAKPOINTS.lg) || width >= BREAKPOINTS.xl;
 }
 
 export function SymbolWithLogo({ symbol, showLogo, children }) {
@@ -57,5 +62,5 @@ const styles = StyleSheet.create({
   copy: { flex: 1, minWidth: 0 },
   logo: { width: SYMBOL_LOGO_SIZE, height: SYMBOL_LOGO_SIZE },
   fallback: { width: SYMBOL_LOGO_SIZE, height: SYMBOL_LOGO_SIZE, borderRadius: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F5F9' },
-  initials: { fontSize: 8, fontFamily: 'Inter_600SemiBold', color: '#64748B' },
+  initials: { fontSize: 9, fontFamily: 'Inter_600SemiBold', color: '#64748B' },
 });
