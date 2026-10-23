@@ -24,7 +24,7 @@ function Logo({ uri, title, size, t }) {
   );
 }
 
-function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, meta, isWatchlist = false, price, change, changePct, positive, metrics = [], graph, actionLabel, onAction }) {
+function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, meta, isWatchlist = false, price, change, changePct, positive, metrics = [], graph, actionLabel, onAction, contained = false }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const t = useScaledStyles(textStyles);
@@ -98,25 +98,24 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, m
   }, [translateY]);
 
   const sheetWidth = Math.min(width, MAX_WIDTH);
-  const padX = clamp(16, Math.round(sheetWidth * 0.055), 24);
-  const logoSize = clamp(32, Math.round(sheetWidth * 0.095), 40);
+  const padX = clamp(16, Math.round(Math.min(width, MAX_WIDTH) * 0.055), 24);
+  const logoSize = clamp(32, Math.round(Math.min(width, MAX_WIDTH) * 0.095), 40);
   const changeColor = positive == null ? MUTED : positive ? GREEN : RED;
   const changeText = [change, changePct].filter(Boolean).join('  ');
   const pointer = Platform.OS === 'web' ? styles.pointer : null;
 
   const scrimBg = scrimAnim.interpolate({ inputRange: [0, 1], outputRange: ['rgba(15, 23, 42, 0)', 'rgba(15, 23, 42, 0.18)'] });
 
-  return (
-    <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
-      <View style={styles.root}>
-        <Animated.View style={[styles.backdrop, { width, height, backgroundColor: scrimBg }]} pointerEvents="box-none">
-          <Pressable style={{ width, height }} onPress={() => closeRef.current?.()} android_ripple={null} />
-        </Animated.View>
-        <Animated.View
-          onLayout={onSheetLayout}
-          pointerEvents={sliding ? 'auto' : 'none'}
-          style={[styles.sheet, { width: sheetWidth, maxHeight: height * 0.92, opacity: sliding ? 1 : 0, transform: [{ translateY }] }]}
-        >
+  const layer = (
+    <View style={contained ? styles.containedRoot : styles.root}>
+      <Animated.View style={[styles.backdrop, contained ? null : { width, height }, { backgroundColor: scrimBg }]} pointerEvents="box-none">
+        <Pressable style={contained ? styles.fill : { width, height }} onPress={() => closeRef.current?.()} android_ripple={null} />
+      </Animated.View>
+      <Animated.View
+        onLayout={onSheetLayout}
+        pointerEvents={sliding ? 'auto' : 'none'}
+        style={[styles.sheet, { width: sheetWidth, maxHeight: contained ? '92%' : height * 0.92, opacity: sliding ? 1 : 0, transform: [{ translateY }] }]}
+      >
           <View {...pan.panHandlers} style={{ paddingHorizontal: padX }}>
             <View style={styles.handleWrap}>
               <View style={styles.handleSide} />
@@ -174,7 +173,13 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, m
             </View>
           ) : null}
         </Animated.View>
-      </View>
+    </View>
+  );
+
+  if (contained) return mounted ? layer : null;
+  return (
+    <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
+      {layer}
     </Modal>
   );
 }
@@ -183,9 +188,11 @@ export default memo(BottomSlideOn);
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
+  containedRoot: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', alignItems: 'center', overflow: 'hidden', zIndex: 20 },
+  fill: { ...StyleSheet.absoluteFillObject },
   backdrop: { ...StyleSheet.absoluteFill },
   sheet: { flexGrow: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', shadowColor: '#0F172A', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12 },
-  handleWrap: { flexDirection: 'row', alignItems: 'center', paddingTop: 10, paddingBottom: 14 },
+  handleWrap: { flexDirection: 'row', alignItems: 'center', paddingTop: 16, paddingBottom: 24 },
   handleSide: { width: 24 },
   handleCenter: { flex: 1, alignItems: 'center' },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#CBD5E1' },

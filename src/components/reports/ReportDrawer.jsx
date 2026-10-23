@@ -59,7 +59,7 @@ export default memo(ReportDrawer);
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 50, flexDirection: 'row', justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: '#0F172A' },
-  drawer: { width: '60%', maxWidth: 750, height: '100%', backgroundColor: '#F6F7F8', borderLeftWidth: 1, borderLeftColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: -4, height: 0 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 8 },
+  drawer: { width: '60%', maxWidth: 750, height: '100%', backgroundColor: '#F6F7F8', borderLeftWidth: 1, borderLeftColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: -4, height: 0 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 8, overflow: 'hidden' },
   pointer: { cursor: 'pointer' },
-  drawerContent: { flex: 1 },
+  drawerContent: { flex: 1, overflow: 'hidden' },
 });

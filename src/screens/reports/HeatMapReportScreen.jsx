@@ -222,8 +222,8 @@ function rangeText(low, high) {
 
 // Maps a GET_HEAT_MAP row to the generic BottomSlideOn props; metrics missing from the row are skipped.
 function buildTileDetail(item, expiry) {
-  const { amount, pct } = formatChange(item.price_change_value, item.price_change_percent);
   const stock = item.stock_data || {};
+  const { amount, pct } = formatChange(stock.price_change_value, stock.price_change);
   const metrics = [
     { label: 'WAP', value: hasValue(stock.wap) ? formatPrice(stock.wap) : null },
     { label: 'Vol (in Lacs)', value: hasValue(stock.volume) ? `${stock.volume}L` : null },
@@ -239,7 +239,7 @@ function buildTileDetail(item, expiry) {
     logo: item.symbol ? cdnApi(item.symbol) : null,
     title: item.symbol,
     subtitle: expiry,
-    price: formatPrice(item.price),
+    price: formatPrice(stock.price),
     change: amount,
     changePct: pct,
     positive: amount || pct ? !`${amount}${pct}`.includes('-') : null,
@@ -252,7 +252,7 @@ function buildTileDetail(item, expiry) {
 const noop = () => {};
 
 function HeatMapReportScreen() {
-  const { width } = useBreakpoint();
+  const { width, isLaptop } = useBreakpoint();
   const isWide = width >= BREAKPOINTS.md;
   const { industries } = useCommonData();
   const navigation = useNavigation();
@@ -541,6 +541,7 @@ function HeatMapReportScreen() {
         )
       )}
       <BottomSlideOn
+        contained={isLaptop}
         visible={sheet_open && !!tileDetail}
         onClose={closeSheet}
         onDismissed={clearSelectedTile}
@@ -557,6 +558,7 @@ function HeatMapReportScreen() {
         onAction={noop}
       />
       <HeatmapFilterSlideOnComponent
+        contained={isLaptop}
         visible={filter_sheet_open}
         onClose={closeFilterSheet}
         appliedSort={sort_key}
@@ -583,7 +585,7 @@ const createTabStyles = (f, s) => ({
 });
 
 const createStyles = (f) => ({
-  root: { flex: 1, backgroundColor: '#F6F7F8' },
+  root: { flex: 1, backgroundColor: '#F6F7F8', overflow: 'hidden', position: 'relative' },
   pointer: { cursor: 'pointer' },
   noOutline: { outlineStyle: 'none', outlineWidth: 0 },
   metaRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: f(16, 28), paddingTop: 2, paddingBottom: f(10, 14), gap: f(8, 14) },

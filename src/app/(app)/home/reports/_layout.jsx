@@ -7,7 +7,7 @@ export default function HomeReportsLayout() {
   if (!isLaptop) return <Stack screenOptions={{ headerShown: false }} />;
   return (
     <ReportDrawer>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent', overflow: 'hidden' } }} />
     </ReportDrawer>
   );
 }

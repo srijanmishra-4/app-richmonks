@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Modal, Pressable, ScrollView, Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWideStyles } from '@/utils/responsive';
+import { CloseIcon } from '@/components/icons/NavIcons';
 
 const PRIMARY = '#0071A9';
 const TEXT = '#0F172A';
@@ -33,6 +34,7 @@ function HeatmapFilterSlideOnComponent({
   sortOptions = HEATMAP_SORT_OPTIONS,
   onApplySort,
   onApplyFilter,
+  contained = false,
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -164,19 +166,33 @@ function HeatmapFilterSlideOnComponent({
     outputRange: ['rgba(15, 23, 42, 0)', 'rgba(15, 23, 42, 0.18)'],
   });
 
-  return (
-    <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
-      <View style={styles.root}>
-        <Animated.View style={[styles.backdrop, { width, height, backgroundColor: scrimBg }]} pointerEvents="box-none">
-          <Pressable style={{ width, height }} onPress={() => closeRef.current?.()} android_ripple={null} />
-        </Animated.View>
-        <Animated.View
-          onLayout={onSheetLayout}
-          pointerEvents={sliding ? 'auto' : 'none'}
-          style={[styles.sheet, { width: sheetWidth, maxHeight: height * 0.92, opacity: sliding ? 1 : 0, transform: [{ translateY }] }]}
-        >
-          <View {...pan.panHandlers} style={styles.handleWrap}>
-            <View style={styles.handle} />
+  const pointer = Platform.OS === 'web' ? styles.pointer : null;
+  const layer = (
+    <View style={contained ? chrome.containedRoot : chrome.root}>
+      <Animated.View style={[chrome.backdrop, contained ? null : { width, height }, { backgroundColor: scrimBg }]} pointerEvents="box-none">
+        <Pressable style={contained ? chrome.fill : { width, height }} onPress={() => closeRef.current?.()} android_ripple={null} />
+      </Animated.View>
+      <Animated.View
+        onLayout={onSheetLayout}
+        pointerEvents={sliding ? 'auto' : 'none'}
+        style={[chrome.sheet, { width: sheetWidth, maxHeight: contained ? '92%' : height * 0.92, opacity: sliding ? 1 : 0, transform: [{ translateY }] }]}
+      >
+          <View {...pan.panHandlers} style={chrome.handlePad}>
+            <View style={chrome.handleWrap}>
+              <View style={chrome.handleSide} />
+              <View style={chrome.handleCenter}>
+                <View style={chrome.handle} />
+              </View>
+              <Pressable
+                onPress={() => closeRef.current?.()}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                style={({ pressed }) => [chrome.closeBtn, pressed ? chrome.closeBtnPressed : null, pointer]}
+              >
+                <CloseIcon size={22} color={MUTED} />
+              </Pressable>
+            </View>
           </View>
           <View style={[styles.body, { height: 360 + (insets.bottom ? insets.bottom : 0) }]}>
             {/* Side tabs */}
@@ -251,16 +267,24 @@ function HeatmapFilterSlideOnComponent({
               </View>
             </View>
           </View>
-        </Animated.View>
-      </View>
+      </Animated.View>
+    </View>
+  );
+
+  if (contained) return mounted ? layer : null;
+  return (
+    <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
+      {layer}
     </Modal>
   );
 }
 
 export default memo(HeatmapFilterSlideOnComponent);
 
-const createStyles = (f, s) => ({
+const chrome = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
+  containedRoot: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', alignItems: 'center', overflow: 'hidden', zIndex: 20 },
+  fill: { ...StyleSheet.absoluteFillObject },
   backdrop: { ...StyleSheet.absoluteFill },
   sheet: {
     flexGrow: 0,
@@ -273,8 +297,16 @@ const createStyles = (f, s) => ({
     shadowOpacity: 0.08,
     shadowRadius: 12,
   },
-  handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 10 },
+  handlePad: { paddingHorizontal: 16 },
+  handleWrap: { flexDirection: 'row', alignItems: 'center', paddingTop: 10, paddingBottom: 20 },
+  handleSide: { width: 24 },
+  handleCenter: { flex: 1, alignItems: 'center' },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#CBD5E1' },
+  closeBtn: { width: 20, height: 20, marginTop: -4, marginBottom: -12, marginRight: 4, alignItems: 'center', justifyContent: 'center' },
+  closeBtnPressed: { opacity: 0.6 },
+});
+
+const createStyles = (f, s) => ({
   body: { flexDirection: 'row', height: f(360, 440) },
   sidebar: { width: f(90, 120), borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: BORDER, paddingTop: 4 },
   sideTab: { paddingVertical: f(12, 16), paddingHorizontal: f(10, 16), borderRightWidth: 2, borderRightColor: 'transparent' },
