@@ -191,3 +191,17 @@
   pointer-events: none !important;
   background-color: transparent !important;
 }
+
+#home-search-bar,
+#home-search-bar:focus,
+#home-search-bar:focus-visible,
+#rm-desktop-search,
+#rm-desktop-search:focus,
+#rm-desktop-search:focus-visible,
+#rm-screen-search,
+#rm-screen-search:focus,
+#rm-screen-search:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}

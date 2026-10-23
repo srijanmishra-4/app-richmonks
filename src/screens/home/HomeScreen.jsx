@@ -153,7 +153,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={[styles.desktopSentimentCol, { maxWidth: spacing.sentimentMaxWidth }]}>
                   <MarketSentimenter />
-                </View>     
+                </View>
                 <View style={styles.desktopBullsCol}>
                   <BullVsBearSection />
                 </View>

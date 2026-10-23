@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { View, Text, Image, Pressable, Platform, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 
 import { SearchIcon } from '@/components/icons/NavIcons';
 import { useFluidStyles } from '@/utils/responsive';
@@ -23,7 +24,7 @@ function HomeHeader({ user, onAvatarPress }) {
       <Image source={rmIcon} resizeMode="contain" style={styles.icon} accessibilityLabel="RichMonks icon" />
 
       {/* Search Bar */}
-      <Pressable style={styles.searchBar} accessibilityRole="button" accessibilityLabel="Search Futures Options" id="home-search-bar">
+      <Pressable onPress={() => router.push('/home/search')} style={[styles.searchBar, Platform.OS === 'web' ? styles.noFocus : null]} accessibilityRole="button" accessibilityLabel="Search Futures Options" id="home-search-bar" nativeID="home-search-bar">
         <SearchIcon size={18} color="#94A3B8" />
         <Text style={styles.searchPlaceholder} numberOfLines={1}>Search Futures Options</Text>
       </Pressable>
@@ -63,6 +64,7 @@ const createStyles = (f) => ({
     borderRadius: 10,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : null),
   },
+  noFocus: { outlineStyle: 'none', outlineWidth: 0, borderWidth: 0, boxShadow: 'none' },
   searchPlaceholder: {
     fontSize: f(14),
     fontFamily: 'Inter_400Regular',

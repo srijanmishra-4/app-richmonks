@@ -1,9 +1,9 @@
 import { memo } from 'react';
-import { View, Text, Image, TextInput, Pressable, Platform } from 'react-native';
+import { View, Text, Image, Pressable, Platform } from 'react-native';
 import { router, usePathname } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
-import { SearchIcon } from '@/components/icons/NavIcons';
+import HeaderSearch from '@/components/search/HeaderSearch';
 import { getInitials } from '@/components/home/HomeHeader';
 import { useFluidStyles } from '@/utils/responsive';
 
@@ -52,19 +52,7 @@ function DesktopHeader() {
         />
       </Pressable>
 
-      {/* 2. Flexible Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <SearchIcon size={16} color="#94A3B8" />
-          <TextInput
-            placeholder="Search stocks, futures, options..."
-            placeholderTextColor="#94A3B8"
-            style={styles.searchInput}
-            autoCorrect={false}
-            autoCapitalize="none"
-          />
-        </View>
-      </View>
+      <HeaderSearch />
 
       {/* 3. Navigation Links & 5. Profile */}
       <View style={styles.navGroup}>
@@ -124,6 +112,7 @@ const createStyles = (f) => ({
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
     zIndex: 100,
+    overflow: 'visible',
   },
   logoBtn: {
     paddingVertical: 4,
@@ -132,28 +121,6 @@ const createStyles = (f) => ({
   logoImage: {
     width: 140,
     height: 34,
-  },
-  searchContainer: {
-    flex: 1,
-    maxWidth: 580,
-    marginHorizontal: 32,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 38,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: f(13, 15),
-    fontFamily: 'Inter_400Regular',
-    color: '#0F172A',
-    padding: 0,
-    outlineWidth: 0,
   },
   navGroup: {
     flexDirection: 'row',

@@ -19,6 +19,17 @@ const ACTIVE_COLOR = '#FFFFFF';
 const INACTIVE_COLOR = 'rgba(255,255,255,0.55)';
 const TAB_BG = '#0071A9';
 
+function leafRouteName(route) {
+  let current = route;
+  while (current?.state?.routes?.length) {
+    const index = typeof current.state.index === 'number' ? current.state.index : 0;
+    const next = current.state.routes[index];
+    if (!next || next === current) break;
+    current = next;
+  }
+  return current?.name;
+}
+
 const TAB_CONFIG = [
   { name: 'home', label: 'Home', ActiveIcon: HomeContainIcon, InactiveIcon: HomeOutlineIcon },
   { name: 'watchlist', label: 'Watchlist', ActiveIcon: WatchlistContainIcon, InactiveIcon: WatchlistOutlineIcon },
@@ -32,6 +43,7 @@ function TabBar({ state, navigation }) {
   const routeName = focusedRoute?.name;
   const activeId = routeName === 'watchlist' ? 'watchlist' : routeName === 'trades' ? 'trades' : 'home';
   useActiveScreen(activeId);
+  if (leafRouteName(focusedRoute) === 'search') return null;
 
   return (
     <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
