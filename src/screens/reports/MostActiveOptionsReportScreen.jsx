@@ -130,8 +130,8 @@ function MostActiveOptionsReportScreen() {
   const { value: strength, onChange: setStrength, rows: visibleRows } = useStrongWeakFilter(sourceRows);
 
   const RowComponent = useCallback((props) => (
-    <MostActiveOptionsRow {...props} optionType={optionType} />
-  ), [optionType]);
+    <MostActiveOptionsRow {...props} optionType={optionType} expiry={expiry} />
+  ), [optionType, expiry]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>

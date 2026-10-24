@@ -6,7 +6,8 @@ import { socketRequest } from '@/utils/socket';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import TrendingTable from '@/components/home/TrendingTable';
-import { SymbolWithLogo, useShowSymbolLogo } from '@/components/SymbolLogo';
+import { SymbolLink, SymbolWithLogo, useShowSymbolLogo } from '@/components/SymbolLogo';
+import { openFutureProfile } from '@/utils/instrumentProfile';
 import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Constants & Configuration ──────────────────────────────────────────────────
@@ -254,9 +255,11 @@ function TrendingStocks() {
   const columns = [
     { key: 'report', header: 'Report', flex: 1.2, align: 'left' },
     { key: 'symbol', header: 'Symbol', flex: 0.95, align: 'left', render: (row) => row ? (
-      <SymbolWithLogo symbol={row.symbol} showLogo={showLogo}>
-        <Text style={[styles.symbolText, isDesktop && styles.symbolTextDesktop]} numberOfLines={1}>{row.symbol}</Text>
-      </SymbolWithLogo>
+      <SymbolLink label={`Open ${row.symbol} profile`} onPress={() => openFutureProfile({ symbol: row.symbol, expiry: currentData?.expiryState })}>
+        <SymbolWithLogo symbol={row.symbol} showLogo={showLogo}>
+          <Text style={[styles.symbolText, isDesktop && styles.symbolTextDesktop]} numberOfLines={1}>{row.symbol}</Text>
+        </SymbolWithLogo>
+      </SymbolLink>
     ) : null },
     { key: 'dynamic', header: dynamicKey, flex: 0.82, align: 'right', render: (row) => row ? <Text style={[styles.levelText, isDesktop && styles.levelTextDesktop]} numberOfLines={1}>{formatIndianNumber(row.value)}</Text> : null },
     { key: 'cmp', header: 'CMP', flex: 0.88, align: 'right', render: (row) => {

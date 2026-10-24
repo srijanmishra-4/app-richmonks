@@ -7,7 +7,8 @@ import { useFluidStyles } from '@/utils/responsive';
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ExpiryDropdownComponent from '@/components/ExpiryDropdownComponent';
 import ScreenHeader from '@/components/ScreenHeader';
-import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { openFutureProfile, openOptionProfile } from '@/utils/instrumentProfile';
 import StrongWeakFilter, { useStrongWeakFilter } from '@/components/reports/StrongWeakFilter';
 import { BREAKPOINTS } from '@/constants/breakpoints';
 import { useRegisterRefresh } from '@/context/RefreshContext';
@@ -201,7 +202,7 @@ function OiChangesHeader({ sort, onSort, fields, periodLabel }) {
   );
 }
 
-const OiChangesRow = memo(function OiChangesRow({ data, fields, showStrike }) {
+const OiChangesRow = memo(function OiChangesRow({ data, fields, showStrike, optionType, expiry }) {
   const styles = useFluidStyles(createStyles);
   const showLogo = useShowReportSymbolLogo();
   if (!data) return null;
@@ -211,10 +212,17 @@ const OiChangesRow = memo(function OiChangesRow({ data, fields, showStrike }) {
   return (
     <>
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
-          <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
-          {showStrike ? <Text style={styles.strike} numberOfLines={1}>{formatStrike(data.strike_pr)}</Text> : null}
-        </SymbolWithLogo>
+        <SymbolLink
+          label={showStrike ? `Open ${data.symbol} option profile` : `Open ${data.symbol} profile`}
+          onPress={() => (showStrike
+            ? openOptionProfile({ symbol: data.symbol, strike: data.strike_pr, optionType, expiry })
+            : openFutureProfile({ symbol: data.symbol, expiry }))}
+        >
+          <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+            <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+            {showStrike ? <Text style={styles.strike} numberOfLines={1}>{formatStrike(data.strike_pr)}</Text> : null}
+          </SymbolWithLogo>
+        </SymbolLink>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.price }]}>
         <Text style={styles.price} numberOfLines={1}>{formatMoney(data.price)}</Text>
@@ -345,8 +353,8 @@ function OiChangesReportScreen() {
   ), [fields, periodLabel]);
 
   const RowComponent = useCallback((props) => (
-    <OiChangesRow {...props} fields={fields} showStrike={showStrike} />
-  ), [fields, showStrike]);
+    <OiChangesRow {...props} fields={fields} showStrike={showStrike} optionType={option_type} expiry={expiry_state} />
+  ), [fields, showStrike, option_type, expiry_state]);
 
   const updateFilters = useCallback((patch) => {
     const prev = filtersRef.current;

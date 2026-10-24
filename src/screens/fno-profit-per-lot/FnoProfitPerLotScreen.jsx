@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import CommonTable from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
 import { SkeletonMetaRow, SkeletonSummaryCard, usePulse } from '@/components/skeleton/SkeletonBars';
-import { SYMBOL_LOGO_GAP, SYMBOL_LOGO_SIZE, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { SYMBOL_LOGO_GAP, SYMBOL_LOGO_SIZE, SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { openFutureProfile } from '@/utils/instrumentProfile';
 import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
@@ -103,10 +104,12 @@ const PPLRow = memo(function PPLRow({ data }) {
   return (
     <>
       <View style={[styles.cell, styles.cellSymbol, { flex: COL.symbol }]}>
-        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
-          <Text style={styles.symbolText} numberOfLines={1}>{data.symbol || '—'}</Text>
-          <Text style={styles.lotText} numberOfLines={1}>({data.lot ?? '—'})</Text>
-        </SymbolWithLogo>
+        <SymbolLink label={`Open ${data.symbol} profile`} onPress={() => openFutureProfile({ symbol: data.symbol })}>
+          <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+            <Text style={styles.symbolText} numberOfLines={1}>{data.symbol || '—'}</Text>
+            <Text style={styles.lotText} numberOfLines={1}>({data.lot ?? '—'})</Text>
+          </SymbolWithLogo>
+        </SymbolLink>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.cmp }]}>
         <Text style={styles.cmpPrice} numberOfLines={1}>{formatCurrency(data.price)}</Text>

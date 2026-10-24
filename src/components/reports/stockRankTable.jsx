@@ -2,7 +2,8 @@ import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { TableHeaderCell } from '@/components/CommonTable';
-import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { openFutureProfile } from '@/utils/instrumentProfile';
 import { useFluidStyles } from '@/utils/responsive';
 
 const GREEN = '#16A34A';
@@ -110,9 +111,11 @@ export const StockRankRow = memo(function StockRankRow({ data }) {
   return (
     <>
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
-          <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
-        </SymbolWithLogo>
+        <SymbolLink label={`Open ${data.symbol} profile`} onPress={() => openFutureProfile({ symbol: data.symbol })}>
+          <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+            <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+          </SymbolWithLogo>
+        </SymbolLink>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.rank }]}>
         <Text style={styles.rank} numberOfLines={1}>{data.rank != null ? data.rank : '—'}</Text>

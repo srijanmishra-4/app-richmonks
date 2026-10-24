@@ -7,6 +7,7 @@ import { cdnApi } from '@/utils/api';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import LineGraph from '@/components/LineGraph';
+import { openFutureProfile } from '@/utils/instrumentProfile';
 import { useFluidStyles } from '@/utils/responsive';
 
 const PERIODS = [
@@ -184,20 +185,25 @@ function IndexLogo({ symbol }) {
   );
 }
 
-function IndexIdentity({ symbol, expiryDate, price, changeStr, priceDown, desktop, noTabs }) {
+function IndexIdentity({ symbol, expiryDate, price, changeStr, priceDown, desktop, noTabs, onOpenProfile }) {
   const styles = useFluidStyles(createStyles);
+  const title = symbol === 'NIFTY' ? 'NIFTY FUTURES' : 'BANKNIFTY FUTURES';
   return (
     <View style={[
       styles.identityRow,
       desktop ? styles.desktopTitleRow : styles.titleRow,
       desktop && noTabs ? styles.desktopTitleRowNoTabs : null,
     ]}>
-      <IndexLogo key={symbol} symbol={symbol} />
+      <Pressable onPress={onOpenProfile} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Open ${title} profile`} style={Platform.OS === 'web' ? { cursor: 'pointer' } : null}>
+        <IndexLogo key={symbol} symbol={symbol} />
+      </Pressable>
       <View style={styles.identityText}>
-        <Text style={[styles.symbolTitle, desktop ? styles.desktopSymbolTitle : null]}>
-          {symbol === 'NIFTY' ? 'NIFTY FUTURES' : 'BANKNIFTY FUTURES'}
-          {expiryDate ? <Text style={[styles.expiryText, desktop ? styles.desktopExpiryText : null]}>   {expiryDate}</Text> : null}
-        </Text>
+        <Pressable onPress={onOpenProfile} accessibilityRole="button" accessibilityLabel={`Open ${title} profile`} style={Platform.OS === 'web' ? { cursor: 'pointer' } : null}>
+          <Text style={[styles.symbolTitle, desktop ? styles.desktopSymbolTitle : null]}>
+            {title}
+            {expiryDate ? <Text style={[styles.expiryText, desktop ? styles.desktopExpiryText : null]}>   {expiryDate}</Text> : null}
+          </Text>
+        </Pressable>
         <View style={styles.priceRow}>
           <Text style={[styles.priceText, desktop ? styles.desktopPriceText : null]}>{price}</Text>
           {changeStr ? (
@@ -259,6 +265,9 @@ function IndicesSection({ symbol: fixedSymbol, stackStats = false } = {}) {
 
   const cdate = data?.cdate || '';
   const expiryDate = data?.expiry_date || '';
+  const openIndexProfile = useCallback(() => {
+    openFutureProfile({ symbol: selected, expiry: 'near' });
+  }, [selected]);
   const item = data?.[selected] || {};
 
   const price = formatPrice(item.price);
@@ -334,6 +343,7 @@ function IndicesSection({ symbol: fixedSymbol, stackStats = false } = {}) {
               priceDown={priceDown}
               desktop
               noTabs={!!fixedSymbol}
+              onOpenProfile={openIndexProfile}
             />
           </View>
 
@@ -430,6 +440,7 @@ function IndicesSection({ symbol: fixedSymbol, stackStats = false } = {}) {
             price={price}
             changeStr={changeStr}
             priceDown={priceDown}
+            onOpenProfile={openIndexProfile}
           />
 
           {/* Metrics Table Card (Mobile) */}

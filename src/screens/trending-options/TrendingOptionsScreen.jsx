@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
-import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { openOptionProfile } from '@/utils/instrumentProfile';
 import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
@@ -122,17 +123,19 @@ function PriceStack({ price, change, styles }) {
   );
 }
 
-const TrendingOptionsRow = memo(function TrendingOptionsRow({ data }) {
+const TrendingOptionsRow = memo(function TrendingOptionsRow({ data, optionType }) {
   const styles = useFluidStyles(createStyles);
   const showLogo = useShowReportSymbolLogo();
 
   return (
     <>
       <View style={[styles.cell, styles.cellSymbol, { flex: COL.symbol }]}>
-        <SymbolWithLogo symbol={data?.symbol} showLogo={showLogo}>
-          <Text style={styles.symbol} numberOfLines={1} ellipsizeMode="tail">{data?.symbol || '—'}</Text>
-          <Text style={styles.strike} numberOfLines={1} ellipsizeMode="tail">{formatStrike(data?.strike_pr)}</Text>
-        </SymbolWithLogo>
+        <SymbolLink label={`Open ${data?.symbol} option profile`} onPress={() => openOptionProfile({ symbol: data?.symbol, strike: data?.strike_pr, optionType })}>
+          <SymbolWithLogo symbol={data?.symbol} showLogo={showLogo}>
+            <Text style={styles.symbol} numberOfLines={1} ellipsizeMode="tail">{data?.symbol || '—'}</Text>
+            <Text style={styles.strike} numberOfLines={1} ellipsizeMode="tail">{formatStrike(data?.strike_pr)}</Text>
+          </SymbolWithLogo>
+        </SymbolLink>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.tp }]}>
         <Text style={styles.value} numberOfLines={1}>{formatMoney(data?.tp)}</Text>
@@ -200,6 +203,8 @@ function TrendingOptionsScreen() {
     };
   }, [report, optionType]);
 
+  const RowComponent = useCallback((props) => <TrendingOptionsRow {...props} optionType={optionType} />, [optionType]);
+
   const HeaderComponent = useCallback(({ sort, onSort }) => (
     <>
       <TableHeaderCell
@@ -264,7 +269,7 @@ function TrendingOptionsScreen() {
           columns={TABLE_COLUMNS}
           loading={loading}
           HeaderComponent={HeaderComponent}
-          RowComponent={TrendingOptionsRow}
+          RowComponent={RowComponent}
           keyExtractor={rowKey}
           emptyText="No options to show"
           rowStyle={styles.tableRowStyle}

@@ -30,7 +30,6 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, m
   const t = useScaledStyles(textStyles);
   const [mounted, setMounted] = useState(false);
   const [sliding, setSliding] = useState(false);
-  const [pressed, setPressed] = useState(false);
   const translateY = useRef(new Animated.Value(height)).current;
   const scrimAnim = useRef(new Animated.Value(0)).current;
   const sheetHeight = useRef(height);
@@ -168,9 +167,9 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, m
             {graph ? <View style={styles.graph}>{graph}</View> : null}
           </ScrollView>
           {actionLabel ? (
-            <View collapsable={false} accessibilityRole="button" accessibilityLabel={actionLabel} onTouchStart={() => setPressed(true)} onTouchCancel={() => setPressed(false)} onTouchEnd={() => { setPressed(false); onAction?.(); }} style={[styles.action, isWatchlist ? styles.actionCompact : null, { marginHorizontal: padX, marginBottom: insets.bottom + 18 }, pressed ? styles.actionPressed : null, pointer]}>
+            <Pressable onPress={() => onAction?.()} accessibilityRole="button" accessibilityLabel={actionLabel} style={({ pressed }) => [styles.action, isWatchlist ? styles.actionCompact : null, { marginHorizontal: padX, marginBottom: insets.bottom + 18 }, pressed ? styles.actionPressed : null, pointer]}>
               <Text style={isWatchlist ? t.actionTextCompact : t.actionText} numberOfLines={1} maxFontSizeMultiplier={1.1}>{actionLabel}</Text>
-            </View>
+            </Pressable>
           ) : null}
         </Animated.View>
     </View>

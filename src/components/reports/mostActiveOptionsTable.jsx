@@ -2,7 +2,8 @@ import { memo, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { TableHeaderCell } from '@/components/CommonTable';
-import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { openOptionProfile } from '@/utils/instrumentProfile';
 import { useFluid, useFluidStyles } from '@/utils/responsive';
 
 export const GREEN = '#16A34A';
@@ -111,7 +112,7 @@ function highLowLines(lowVal, highVal) {
   };
 }
 
-export const MostActiveOptionsRow = memo(function MostActiveOptionsRow({ data, optionType }) {
+export const MostActiveOptionsRow = memo(function MostActiveOptionsRow({ data, optionType, expiry }) {
   const styles = useFluidStyles(createStyles);
   const type = useMostActiveType();
   const showLogo = useShowReportSymbolLogo();
@@ -134,16 +135,18 @@ export const MostActiveOptionsRow = memo(function MostActiveOptionsRow({ data, o
     <>
       {newColor ? <View style={[styles.newMark, { backgroundColor: newColor }]} /> : null}
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
-          <View style={stack}>
-            <Text style={type.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
-            {data.strike != null && data.strike !== '' ? (
-              <Text style={type.strike} numberOfLines={1}>
-                {`SP: ${formatGrouped(data.strike)} ${optSuffix}`}
-              </Text>
-            ) : null}
-          </View>
-        </SymbolWithLogo>
+        <SymbolLink label={`Open ${data.symbol} option profile`} onPress={() => openOptionProfile({ symbol: data.symbol, strike: data.strike, optionType, expiry })}>
+          <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+            <View style={stack}>
+              <Text style={type.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+              {data.strike != null && data.strike !== '' ? (
+                <Text style={type.strike} numberOfLines={1}>
+                  {`SP: ${formatGrouped(data.strike)} ${optSuffix}`}
+                </Text>
+              ) : null}
+            </View>
+          </SymbolWithLogo>
+        </SymbolLink>
       </View>
       <View style={[mid, styles.cellTop, { flex: COL.tp }]}>
         <Text style={type.center} numberOfLines={1}>{formatMoney(data.trigger_point)}</Text>

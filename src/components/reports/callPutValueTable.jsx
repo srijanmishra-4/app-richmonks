@@ -1,6 +1,7 @@
 import { createContext, memo, useContext } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
-import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { openFutureProfile } from '@/utils/instrumentProfile';
 import { useFluidStyles } from '@/utils/responsive';
 
 export const GREEN = '#16A34A';
@@ -71,7 +72,7 @@ function NewMark({ isCallNew, isPutNew }) {
   return newColor ? <View style={[styles.newMark, { backgroundColor: newColor }]} /> : null;
 }
 
-export const CallPutValueRow = memo(function CallPutValueRow({ data }) {
+export const CallPutValueRow = memo(function CallPutValueRow({ data, expiry }) {
   if (!data) return null;
   const styles = useFluidStyles(createStyles);
   const showLogo = useShowReportSymbolLogo();
@@ -85,9 +86,11 @@ export const CallPutValueRow = memo(function CallPutValueRow({ data }) {
     <>
       {isCallNew || isPutNew ? <NewMark isCallNew={isCallNew} isPutNew={isPutNew} /> : null}
       <View style={[styles.cell, { flex: COL.symbol }]}>
-        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
-          <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
-        </SymbolWithLogo>
+        <SymbolLink label={`Open ${data.symbol} profile`} onPress={() => openFutureProfile({ symbol: data.symbol, expiry })}>
+          <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+            <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+          </SymbolWithLogo>
+        </SymbolLink>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.price }]}>
         <Text style={styles.price} numberOfLines={1}>{formatIndianMoney(data.price)}</Text>

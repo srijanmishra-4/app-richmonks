@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, Pressable, Platform, StyleSheet } from 'react-native';
 
 import { cdnApi } from '@/utils/api';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -33,6 +33,24 @@ export function SymbolWithLogo({ symbol, showLogo, children }) {
   );
 }
 
+export function SymbolLink({ onPress, label, children }) {
+  if (!onPress) return children ?? null;
+  return (
+    <Pressable
+      onPress={(event) => {
+        event?.stopPropagation?.();
+        onPress();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={6}
+      style={[styles.link, Platform.OS === 'web' ? styles.pointer : null]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 export default function SymbolLogo({ symbol }) {
   const [failed, setFailed] = useState(false);
   const label = String(symbol || '').trim();
@@ -58,6 +76,8 @@ export default function SymbolLogo({ symbol }) {
 }
 
 const styles = StyleSheet.create({
+  link: { alignSelf: 'stretch', minWidth: 0 },
+  pointer: { cursor: 'pointer' },
   row: { flexDirection: 'row', alignItems: 'center', gap: SYMBOL_LOGO_GAP, minWidth: 0, width: '100%' },
   copy: { flex: 1, minWidth: 0 },
   logo: { width: SYMBOL_LOGO_SIZE, height: SYMBOL_LOGO_SIZE },

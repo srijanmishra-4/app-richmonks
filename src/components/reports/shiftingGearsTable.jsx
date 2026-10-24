@@ -2,7 +2,8 @@ import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { TableHeaderCell } from '@/components/CommonTable';
-import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { openFutureProfile } from '@/utils/instrumentProfile';
 import { useFluidStyles } from '@/utils/responsive';
 
 const GREEN = '#16A34A';
@@ -65,7 +66,7 @@ function sortNumber(val) {
   return Number.isFinite(n) ? n : null;
 }
 
-export const ShiftingGearsRow = memo(function ShiftingGearsRow({ data, levelField }) {
+export const ShiftingGearsRow = memo(function ShiftingGearsRow({ data, levelField, expiry }) {
   if (!data) return null;
   const styles = useFluidStyles(createStyles);
   const showLogo = useShowReportSymbolLogo();
@@ -76,9 +77,11 @@ export const ShiftingGearsRow = memo(function ShiftingGearsRow({ data, levelFiel
   return (
     <>
       <View style={[styles.cell, styles.symbolCell, { flex: COL.symbol }]}>
-        <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
-          <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
-        </SymbolWithLogo>
+        <SymbolLink label={`Open ${data.symbol} profile`} onPress={() => openFutureProfile({ symbol: data.symbol, expiry })}>
+          <SymbolWithLogo symbol={data.symbol} showLogo={showLogo}>
+            <Text style={styles.symbol} numberOfLines={1}>{data.symbol || '—'}</Text>
+          </SymbolWithLogo>
+        </SymbolLink>
       </View>
       <View style={[styles.cell, styles.cmpCell, { flex: COL.cmp }]}>
         <Text style={styles.cmp} numberOfLines={1}>{formatMoney(data.price)}</Text>

@@ -4,6 +4,7 @@ import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ScreenHeader from '@/components/ScreenHeader';
+import { SymbolLink } from '@/components/SymbolLogo';
 import BottomSlideOn from '@/components/BottomSlideOn';
 import ExpiryDropdownComponent, { useExpiryOptions } from '@/components/ExpiryDropdownComponent';
 import HeatmapFilterSlideOnComponent from '@/components/reports/HeatmapFilterSlideOnComponent';
@@ -12,6 +13,7 @@ import { cdnApi } from '@/utils/api';
 import { FilterIcon, FlipIcon, SearchIcon } from '@/components/ReportIconComponent';
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
+import { openFutureProfile } from '@/utils/instrumentProfile';
 import { MONTHLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
 import { useFluid, useFluidStyles, useWideStyles } from '@/utils/responsive';
@@ -197,16 +199,18 @@ const ControlButton = memo(function ControlButton({ onPress, label, active, flas
   );
 });
 
-const HeatMapTile = memo(function HeatMapTile({ item, text, numColumns = 4, onSelect }) {
+const HeatMapTile = memo(function HeatMapTile({ item, text, numColumns = 4, onSelect, onOpenProfile }) {
   const styles = useFluidStyles(createStyles);
   const outerStyle = useMemo(() => [styles.tileOuter, { width: `${100 / numColumns}%` }], [styles.tileOuter, numColumns]);
   if (item._empty) {
     return <View style={outerStyle}><View style={[styles.tile, styles.tileEmpty]} /></View>;
   }
   return (
-    <Pressable onPress={() => onSelect(item.data)} accessibilityRole="button" accessibilityLabel={item.label} style={[outerStyle, Platform.OS === 'web' ? styles.pointer : null]}>
+    <Pressable onPress={() => onSelect(item.data)} accessibilityLabel={item.label} style={[outerStyle, Platform.OS === 'web' ? styles.pointer : null]}>
       <View style={[styles.tile, { backgroundColor: item.bg }]}>
-        <Text style={sizedText(text.tileSymbol, item.symbolSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.symbol}</Text>
+        <SymbolLink label={`Open ${item.symbol} profile`} onPress={() => onOpenProfile?.(item.data)}>
+          <Text style={sizedText(text.tileSymbol, item.symbolSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.symbol}</Text>
+        </SymbolLink>
         <Text style={sizedText(text.tilePrice, item.priceSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.price}</Text>
         <Text style={sizedText(text.tileChange, item.changeSize, item.changeColor)} numberOfLines={1} allowFontScaling={false}>( {item.changeText} )</Text>
       </View>
@@ -247,9 +251,6 @@ function buildTileDetail(item, expiry) {
     graph,
   };
 }
-
-// Profile page not built yet.
-const noop = () => {};
 
 function HeatMapReportScreen() {
   const { width, isLaptop } = useBreakpoint();
@@ -442,6 +443,15 @@ function HeatMapReportScreen() {
     setSelectedTile(item);
     setSheetOpen(true);
   }, []);
+  const openTileProfile = useCallback((item) => {
+    openFutureProfile({ symbol: item?.symbol, expiry: stateRef.current.expiry });
+  }, []);
+  const openSelectedProfile = useCallback(() => {
+    const symbol = selected_tile?.symbol;
+    if (!symbol) return;
+    setSheetOpen(false);
+    openFutureProfile({ symbol, expiry: stateRef.current.expiry });
+  }, [selected_tile]);
   const closeSheet = useCallback(() => setSheetOpen(false), []);
   const clearSelectedTile = useCallback(() => setSelectedTile(null), []);
 
@@ -534,7 +544,7 @@ function HeatMapReportScreen() {
         <ScrollView style={styles.grid} contentContainerStyle={styles.gridContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.gridWrap}>
             {gridData.map((item) => (
-              <HeatMapTile key={item.key ?? item._key} item={item} text={styles} numColumns={numColumns} onSelect={handleTileSelect} />
+              <HeatMapTile key={item.key ?? item._key} item={item} text={styles} numColumns={numColumns} onSelect={handleTileSelect} onOpenProfile={openTileProfile} />
             ))}
           </View>
         </ScrollView>
@@ -555,7 +565,7 @@ function HeatMapReportScreen() {
         metrics={tileDetail?.metrics}
         graph={tileDetail?.graph.length > 1 ? <LineGraph data={tileDetail.graph} height={125} captureOnStart /> : null}
         actionLabel="View Profile"
-        onAction={noop}
+        onAction={openSelectedProfile}
       />
       <HeatmapFilterSlideOnComponent
         contained={isLaptop}

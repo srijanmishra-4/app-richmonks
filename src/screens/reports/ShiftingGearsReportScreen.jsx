@@ -210,8 +210,8 @@ function ShiftingGearsReportScreen() {
   ), [currentLevelField, currentLevelLabel]);
 
   const RowComponent = useCallback((props) => (
-    <ShiftingGearsRow {...props} levelField={currentLevelField} />
-  ), [currentLevelField]);
+    <ShiftingGearsRow {...props} levelField={currentLevelField} expiry={expiry_state} />
+  ), [currentLevelField, expiry_state]);
 
   const rows = Array.isArray(result?.data) ? result.data : [];
   const timestamp = typeof result?.timestamp === 'string' && result.timestamp ? result.timestamp : '';

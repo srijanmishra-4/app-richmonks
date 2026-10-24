@@ -156,6 +156,7 @@ function CallPutValueReportScreen() {
   }, [groupRows]);
 
   const rowKey = useCallback((item, index) => rowKeys.get(item) ?? `item-${index}`, [rowKeys]);
+  const RowComponent = useCallback((props) => <CallPutValueRow {...props} expiry={expiry} />, [expiry]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -181,7 +182,7 @@ function CallPutValueReportScreen() {
             columns={CALL_PUT_VALUE_COLUMNS}
             loading={loading}
             HeaderComponent={CallPutValueHeader}
-            RowComponent={CallPutValueRow}
+            RowComponent={RowComponent}
             keyExtractor={rowKey}
             emptyText={error ? 'Failed to load report. Please try again.' : 'No data to show'}
           />

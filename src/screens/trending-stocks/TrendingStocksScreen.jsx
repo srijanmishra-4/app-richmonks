@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
-import { SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
+import { openFutureProfile } from '@/utils/instrumentProfile';
 import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 
@@ -133,9 +134,11 @@ const TrendingStocksRow = memo(function TrendingStocksRow({ data }) {
   return (
     <>
       <View style={[styles.cell, styles.cellSymbol, { flex: COL.symbol }]}>
-        <SymbolWithLogo symbol={data?.symbol} showLogo={showLogo}>
-          <Text style={styles.symbol} numberOfLines={1}>{data?.symbol || '—'}</Text>
-        </SymbolWithLogo>
+        <SymbolLink label={`Open ${data?.symbol} profile`} onPress={() => openFutureProfile({ symbol: data?.symbol })}>
+          <SymbolWithLogo symbol={data?.symbol} showLogo={showLogo}>
+            <Text style={styles.symbol} numberOfLines={1}>{data?.symbol || '—'}</Text>
+          </SymbolWithLogo>
+        </SymbolLink>
       </View>
       <View style={[styles.cell, styles.cellEnd, { flex: COL.value }]}>
         <Text style={styles.value} numberOfLines={1}>
