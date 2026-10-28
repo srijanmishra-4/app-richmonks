@@ -4,7 +4,6 @@ import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ScreenHeader from '@/components/ScreenHeader';
-import { SymbolLink } from '@/components/SymbolLogo';
 import BottomSlideOn from '@/components/BottomSlideOn';
 import ExpiryDropdownComponent, { useExpiryOptions } from '@/components/ExpiryDropdownComponent';
 import HeatmapFilterSlideOnComponent from '@/components/reports/HeatmapFilterSlideOnComponent';
@@ -199,7 +198,7 @@ const ControlButton = memo(function ControlButton({ onPress, label, active, flas
   );
 });
 
-const HeatMapTile = memo(function HeatMapTile({ item, text, numColumns = 4, onSelect, onOpenProfile }) {
+const HeatMapTile = memo(function HeatMapTile({ item, text, numColumns = 4, onSelect }) {
   const styles = useFluidStyles(createStyles);
   const outerStyle = useMemo(() => [styles.tileOuter, { width: `${100 / numColumns}%` }], [styles.tileOuter, numColumns]);
   if (item._empty) {
@@ -208,9 +207,7 @@ const HeatMapTile = memo(function HeatMapTile({ item, text, numColumns = 4, onSe
   return (
     <Pressable onPress={() => onSelect(item.data)} accessibilityLabel={item.label} style={[outerStyle, Platform.OS === 'web' ? styles.pointer : null]}>
       <View style={[styles.tile, { backgroundColor: item.bg }]}>
-        <SymbolLink label={`Open ${item.symbol} profile`} onPress={() => onOpenProfile?.(item.data)}>
-          <Text style={sizedText(text.tileSymbol, item.symbolSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.symbol}</Text>
-        </SymbolLink>
+        <Text style={sizedText(text.tileSymbol, item.symbolSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.symbol}</Text>
         <Text style={sizedText(text.tilePrice, item.priceSize, item.textColor)} numberOfLines={1} allowFontScaling={false}>{item.price}</Text>
         <Text style={sizedText(text.tileChange, item.changeSize, item.changeColor)} numberOfLines={1} allowFontScaling={false}>( {item.changeText} )</Text>
       </View>
@@ -443,9 +440,6 @@ function HeatMapReportScreen() {
     setSelectedTile(item);
     setSheetOpen(true);
   }, []);
-  const openTileProfile = useCallback((item) => {
-    openFutureProfile({ symbol: item?.symbol, expiry: stateRef.current.expiry });
-  }, []);
   const openSelectedProfile = useCallback(() => {
     const symbol = selected_tile?.symbol;
     if (!symbol) return;
@@ -544,7 +538,7 @@ function HeatMapReportScreen() {
         <ScrollView style={styles.grid} contentContainerStyle={styles.gridContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.gridWrap}>
             {gridData.map((item) => (
-              <HeatMapTile key={item.key ?? item._key} item={item} text={styles} numColumns={numColumns} onSelect={handleTileSelect} onOpenProfile={openTileProfile} />
+              <HeatMapTile key={item.key ?? item._key} item={item} text={styles} numColumns={numColumns} onSelect={handleTileSelect} />
             ))}
           </View>
         </ScrollView>
