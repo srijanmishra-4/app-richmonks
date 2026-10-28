@@ -16,6 +16,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import BottomSlideOn from '@/components/BottomSlideOn';
 import { LineGraph } from '@/components/LineGraph';
 import AddWatchlistScreen from '@/screens/watchlist/AddWatchlistScreen';
+import { openFutureProfile, openOptionProfile } from '@/utils/instrumentProfile';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -24,9 +25,9 @@ const ACCENT = '#0071A9';
 const LOGO_SIZE = 22;
 
 const TABS = [
-  { key: 'futures', label: 'My Futures', load: watchlistApi.futures, profile: '/watchlist/futures-profile' },
-  { key: 'options', label: 'My Options', load: watchlistApi.options, profile: '/watchlist/options-profile' },
-  { key: 'industry', label: 'Industry', profile: '/watchlist/industry-profile' },
+  { key: 'futures', label: 'My Futures', load: watchlistApi.futures },
+  { key: 'options', label: 'My Options', load: watchlistApi.options },
+  { key: 'industry', label: 'Industry' },
 ];
 
 const EMPTY_COPY = {
@@ -344,7 +345,7 @@ const reportStyles = StyleSheet.create({
   actionText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_600SemiBold', color: '#FFFFFF' },
 });
 
-const WatchlistRow = memo(function WatchlistRow({ item, kind, onRemove, onPress, onSymbolPress, isExpanded, reportState, isRemoving }) {
+const WatchlistRow = memo(function WatchlistRow({ item, kind, onRemove, onPress, isExpanded, reportState, isRemoving }) {
   const change = formatChange(item);
   const changeNum = parseSigned(item?.price_change_value) ?? parseSigned(item?.price_change);
   const changeColor = changeNum > 0 ? GREEN : changeNum < 0 ? RED : NEUTRAL;
@@ -353,19 +354,13 @@ const WatchlistRow = memo(function WatchlistRow({ item, kind, onRemove, onPress,
   return (
     <View>
       <Pressable onPress={() => onPress?.(item)} disabled={isRemoving} style={[styles.row, Platform.OS === 'web' ? styles.pointer : null, isExpanded ? styles.rowExpanded : null, isRemoving ? styles.rowRemoving : null]}>
-        <Pressable
-          onPress={(e) => { e.stopPropagation?.(); onSymbolPress?.(item); }}
-          disabled={!symbol || isRemoving}
-          accessibilityRole="button"
-          accessibilityLabel={kind === 'options' ? `Open ${symbol} option profile` : `Open ${symbol} profile`}
-          style={[styles.symbolCol, kind === 'options' ? styles.symbolColOptions : null, Platform.OS === 'web' ? styles.pointer : null]}
-        >
+        <View style={[styles.symbolCol, kind === 'options' ? styles.symbolColOptions : null]}>
           <WatchlistLogo key={symbol || 'logo'} symbol={symbol} title={symbol || item.script} />
           <View style={styles.symbolText}>
             <Text style={styles.script} numberOfLines={1}>{symbol || '—'}</Text>
             <InstrumentMeta item={item} kind={kind} />
           </View>
-        </Pressable>
+        </View>
         <View style={styles.graphSlot}>
           <WatchlistSparkline id={item.id || item.script} graph={item.graph} change={changeNum} />
         </View>
@@ -559,19 +554,12 @@ export default function WatchlistScreen({ isSidebar = false }) {
     else { setSortField(null); setSortOrder('asc'); }
   }, [sortField, sortOrder]);
 
-  const spec = TABS.find((item) => item.key === tab) ?? TABS[0];
-
   const openProfile = useCallback((item) => {
-    router.push({
-      pathname: spec.profile,
-      params: {
-        id: item.id ?? '', script: item.script ?? '', symbol: item.symbol ?? '',
-        expiry_dt: item.expiry_dt ?? '', price: String(item.price ?? ''),
-        price_change: String(item.price_change ?? ''), price_change_value: String(item.price_change_value ?? ''),
-        option_type: item.option_type ?? '', strike_pr: String(item.strike_pr ?? ''),
-      },
-    });
-  }, [spec.profile]);
+    const symbol = logoSymbol(item);
+    const expiry = item?.expiry_dt;
+    if (tab === 'options') openOptionProfile({ symbol, strike: item?.strike_pr, optionType: item?.option_type, expiry });
+    else openFutureProfile({ symbol, expiry });
+  }, [tab]);
 
   const removeItem = useCallback(async (item) => {
     const kind = tab;
@@ -744,7 +732,7 @@ export default function WatchlistScreen({ isSidebar = false }) {
           keyExtractor={(item, index) => String(item?.id ?? `${item?.script ?? 'row'}-${index}`)}
           renderItem={({ item }) => {
             const key = itemKey(item, tab);
-            return <WatchlistRow item={item} kind={tab} onRemove={removeItem} onPress={handleRowPress} onSymbolPress={openProfile} isExpanded={isDesktopSidebar && expandedKey === key} reportState={isDesktopSidebar ? getReportState(item) : null} isRemoving={removingIds.has(item?.id)} />;
+            return <WatchlistRow item={item} kind={tab} onRemove={removeItem} onPress={handleRowPress} isExpanded={isDesktopSidebar && expandedKey === key} reportState={isDesktopSidebar ? getReportState(item) : null} isRemoving={removingIds.has(item?.id)} />;
           }}
           extraData={listExtra}
           style={styles.list}
