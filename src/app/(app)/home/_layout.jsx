@@ -14,7 +14,7 @@ export default function HomeStackLayout() {
   const f = useFluid();
 
   if (!isLaptop) {
-    return <Stack screenOptions={{ headerShown: false }} />;
+    return <Stack screenOptions={{ headerShown: false, freezeOnBlur: false }} />;
   }
 
   return (

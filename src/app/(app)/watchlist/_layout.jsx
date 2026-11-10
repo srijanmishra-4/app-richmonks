@@ -5,5 +5,5 @@ export const unstable_settings = {
 };
 
 export default function WatchlistStackLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Stack screenOptions={{ headerShown: false, freezeOnBlur: false }} />;
 }

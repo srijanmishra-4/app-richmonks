@@ -1,5 +1,5 @@
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RefreshProvider, useActiveScreen } from '@/context/RefreshContext';
@@ -36,13 +36,20 @@ const TAB_CONFIG = [
   { name: 'trades', label: 'My Trades', ActiveIcon: TradesContainIcon, InactiveIcon: TradesOutlineIcon },
 ];
 
-function TabBar({ state, navigation }) {
+function TabBar({ state }) {
   const insets = useSafeAreaInsets();
   const fs = useFs();
   const focusedRoute = state.routes[state.index];
   const routeName = focusedRoute?.name;
   const activeId = routeName === 'watchlist' ? 'watchlist' : routeName === 'trades' ? 'trades' : 'home';
   useActiveScreen(activeId);
+
+  // Tabs in this Expo Router build are placeholders until a real href is opened.
+  // navigateToTab only focuses that shell, which is a blank screen on Android.
+  function openTab(tabName) {
+    router.navigate(`/${tabName}`);
+  }
+
   if (leafRouteName(focusedRoute) === 'search') return null;
 
   return (
@@ -55,14 +62,7 @@ function TabBar({ state, navigation }) {
         return (
           <Pressable
             key={tab.name}
-            onPress={() => {
-              const currentRoute = state.routes[state.index];
-              const currentName = currentRoute?.name === 'index' ? 'home' : currentRoute?.name;
-              if (currentName !== tab.name && currentRoute?.state?.index > 0) {
-                navigation.navigate(currentName, { screen: 'index' });
-              }
-              navigation.navigate(tab.name, { screen: 'index' });
-            }}
+            onPress={() => openTab(tab.name)}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
             accessibilityLabel={tab.label}
@@ -95,8 +95,11 @@ export default function AppLayout() {
           <Tabs
             tabBar={(props) => (isLaptop ? null : <TabBar {...props} />)}
             backBehavior="history"
+            detachInactiveScreens={false}
             screenOptions={{
               headerShown: false,
+              lazy: false,
+              freezeOnBlur: false,
               tabBarStyle: isLaptop ? { display: 'none' } : undefined,
             }}
           >
