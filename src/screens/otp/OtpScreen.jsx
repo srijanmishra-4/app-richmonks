@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { RMLoaderOverlay } from '@/components/RMLoader/RMLoader';
 import { authApi } from '@/utils/api';
+import { hasOtpSession } from '@/utils/otpSession';
 
 const bgMobile2 = require('@/assets/rm-bg-mobile-2.png');
 const bgWeb = require('@/assets/login-bg-web-2.png');
@@ -343,7 +344,7 @@ export default function OtpScreen() {
   const sheetBottom = keyboardHeight > 0 ? 32 : restingBottom;
   const mobilePadding = width >= 480 ? 28 : 22;
 
-  if (!phone) return <Redirect href="/login" />;
+  if (!hasOtpSession(phone)) return <Redirect href="/login" />;
 
   const overlayNodes = (
     <>

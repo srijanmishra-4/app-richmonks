@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { authApi } from '@/utils/api';
+import { startOtpSession } from '@/utils/otpSession';
 
 function fluid(width, min, max, minW, maxW) {
   if (width <= minW) return min;
@@ -44,6 +45,7 @@ export default function LoginForm({ wide = false, onInputFocus, onSnackbar, onLo
     try {
       await new Promise((resolve) => setTimeout(resolve, 5000));
       await authApi.login(phoneNumber);
+      startOtpSession(phoneNumber);
       router.push({ pathname: '/otp', params: { phone: phoneNumber } });
     } catch (e) {
       onSnackbar?.(e.message);

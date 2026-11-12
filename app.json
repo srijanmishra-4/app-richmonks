@@ -5,7 +5,7 @@
     "scheme": "richmonks",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./src/assets/icon.png",
+    "icon": "./src/assets/app-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -15,7 +15,7 @@
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./src/assets/icon.png"
+        "foregroundImage": "./src/assets/app-icon.png"
       },
       "package": "com.richmonks.richmonksapp"
     },
@@ -30,6 +30,14 @@
       [
         "expo-font",
         {
+          "ios": {
+            "fonts": [
+              "./src/assets/fonts/Inter_400Regular.ttf",
+              "./src/assets/fonts/Inter_500Medium.ttf",
+              "./src/assets/fonts/Inter_600SemiBold.ttf",
+              "./src/assets/fonts/Inter_700Bold.ttf"
+            ]
+          },
           "android": {
             "fonts": [
               "./src/assets/fonts/Inter_400Regular.ttf",

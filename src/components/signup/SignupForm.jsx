@@ -5,6 +5,7 @@ import DobPicker from '@/components/signup/DobPicker';
 
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { authApi } from '@/utils/api';
+import { startOtpSession } from '@/utils/otpSession';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 const TERMS_URL = 'https://www.richmonks.in/terms-of-use';
@@ -154,6 +155,7 @@ export default function SignupForm({ wide = false, onInputFocus, onSnackbar, onL
     onLoadingChange?.(true);
     try {
       await authApi.signup({ full_name: fullName.trim(), email: email.trim(), mobile: phoneNumber, dob: toApiDate(dob), platform: SIGNUP_PLATFORM });
+      startOtpSession(phoneNumber);
       router.push({ pathname: '/otp', params: { phone: phoneNumber } });
     } catch (e) {
       onSnackbar?.(e.message);

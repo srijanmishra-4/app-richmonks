@@ -8,6 +8,7 @@ import LoginForm from '@/components/login/LoginForm';
 import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { RMLoaderOverlay } from '@/components/RMLoader/RMLoader';
 import { authApi } from '@/utils/api';
+import { startOtpSession } from '@/utils/otpSession';
 
 const bgMobile = require('@/assets/login-bg-mobile.png');
 const bgWeb = require('@/assets/login-bg-web-2.png');
@@ -40,6 +41,7 @@ function WideLoginCard({ onSnackbar, onLoadingChange }) {
     onLoadingChange?.(true);
     try {
       await authApi.login(phoneNumber);
+      startOtpSession(phoneNumber);
       router.push({ pathname: '/otp', params: { phone: phoneNumber } });
     } catch (e) {
       onSnackbar?.(e.message);

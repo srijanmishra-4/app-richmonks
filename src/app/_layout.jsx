@@ -65,11 +65,12 @@ function RootNavigator({ fontsReady }) {
       <StatusBar style="dark" />
       {mountNavigator && (
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={!sessionReady || isAuthenticated}>
+          {/* Without redirectTo, a failed guard redirects to the group path itself ("/(auth)"), which matches no screen. */}
+          <Stack.Protected guard={!sessionReady || isAuthenticated} redirectTo="/login">
             <Stack.Screen name="(app)" />
             <Stack.Screen name="profile" />
           </Stack.Protected>
-          <Stack.Protected guard={!sessionReady || !isAuthenticated}>
+          <Stack.Protected guard={!sessionReady || !isAuthenticated} redirectTo="/home">
             <Stack.Screen name="(auth)" />
           </Stack.Protected>
         </Stack>
