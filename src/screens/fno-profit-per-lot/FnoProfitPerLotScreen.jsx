@@ -6,7 +6,7 @@ import CommonTable from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
 import { SkeletonMetaRow, SkeletonSummaryCard, usePulse } from '@/components/skeleton/SkeletonBars';
 import { SYMBOL_LOGO_GAP, SYMBOL_LOGO_SIZE, SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
-import { openFutureProfile } from '@/utils/instrumentProfile';
+import { openFutureProfile } from '@/utils/stockProfile';
 import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 

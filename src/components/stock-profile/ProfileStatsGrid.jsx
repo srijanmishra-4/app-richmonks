@@ -69,8 +69,36 @@ function levelColor(price, level) {
   return p > l ? GREEN : RED;
 }
 
-function StockStatisticsGrid({ profile }) {
-  const styles = useFluidStyles(createStyles);
+function rupeeText(val) {
+  const text = numText(val);
+  if (text.startsWith('-')) return `-₹${text.slice(1)}`;
+  return `₹${text}`;
+}
+
+function daysRange(low, high) {
+  const part = (val) => {
+    if (val == null || typeof val === 'boolean' || typeof val === 'object') return null;
+    const s = String(val).trim();
+    if (!s || /^(null|undefined|nan|-|—)$/i.test(s)) return null;
+    return rupeeText(val);
+  };
+  const left = part(low);
+  const right = part(high);
+  if (left == null && right == null) return '—';
+  return `${left ?? '—'} - ${right ?? '—'}`;
+}
+
+function optionRows(profile, stats) {
+  const oiDay = chgMeta(stats?.chg_in_oi_one_day);
+  const oiFive = chgMeta(stats?.chg_in_oi_five_day);
+  return [
+    [{ label: 'Daily WAP', value: rupeeText(profile?.wap) }, { label: 'Trigger Point', value: rupeeText(stats?.trigger_point) }, { label: "Days' Range", value: daysRange(profile?.low, profile?.high) }],
+    [{ label: 'Volume (L)', value: numText(stats?.volume_today) }, { label: 'Peak OI', value: numText(stats?.peak_oi) }, { label: 'OI Value (L)', value: rupeeText(stats?.oi_val_inlakh) }],
+    [{ label: 'OI', value: numText(stats?.oi) }, { label: 'ΔOI 1D', value: oiDay.text, color: oiDay.color }, { label: 'ΔOI 5D', value: oiFive.text, color: oiFive.color }],
+  ];
+}
+
+function futureRows(profile) {
   const price = profile?.price;
   const levels = profile?.key_levels;
   const dma = profile?.price_momemtum;
@@ -82,11 +110,16 @@ function StockStatisticsGrid({ profile }) {
   const d100 = dmaStatus(dma?.abv_100_dma);
   const rankChg = chgMeta(profile?.rank_chg_20);
   const volChg = pctMeta(profile?.vol_chg);
-  const rows = [
+  return [
     [{ label: 'Rolling Cost', value: numText(rolling), color: levelColor(price, rolling) }, { label: 'Max Pain', value: numText(pain), color: levelColor(price, pain) }, { label: 'Pivot Point', value: numText(pivot), color: levelColor(price, pivot) }],
     [{ label: 'Rank. (Δ 20 Days)', value: numText(profile?.rank), hint: rankChg.text, hintColor: rankChg.color }, { label: 'Volume. (Δ %)', value: numText(profile?.volume), hint: volChg.text, hintColor: volChg.color }, { label: 'Price Action', value: textVal(profile?.price_action) }],
     [{ label: '5 DMA', value: d5[0], color: d5[1] }, { label: '20 DMA', value: d20[0], color: d20[1] }, { label: '100 DMA', value: d100[0], color: d100[1] }],
   ];
+}
+
+function StockStatisticsGrid({ profile, variant, stats }) {
+  const styles = useFluidStyles(createStyles);
+  const rows = variant === 'option' ? optionRows(profile, stats) : futureRows(profile);
 
   return (
     <View style={styles.card}>

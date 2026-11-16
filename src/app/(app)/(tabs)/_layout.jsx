@@ -1,0 +1,121 @@
+import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { Tabs, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useFs } from '@/utils/responsive';
+
+import {
+  HomeContainIcon, HomeOutlineIcon,
+  WatchlistContainIcon, WatchlistOutlineIcon,
+  TradesContainIcon, TradesOutlineIcon,
+} from '@/components/icons/NavIcons';
+
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+
+const ACTIVE_COLOR = '#FFFFFF';
+const INACTIVE_COLOR = 'rgba(255,255,255,0.55)';
+const TAB_BG = '#0071A9';
+
+function leafRouteName(route) {
+  let current = route;
+  while (current?.state?.routes?.length) {
+    const index = typeof current.state.index === 'number' ? current.state.index : 0;
+    const next = current.state.routes[index];
+    if (!next || next === current) break;
+    current = next;
+  }
+  return current?.name;
+}
+
+const TAB_CONFIG = [
+  { name: 'home', label: 'Home', ActiveIcon: HomeContainIcon, InactiveIcon: HomeOutlineIcon },
+  { name: 'watchlist', label: 'Watchlist', ActiveIcon: WatchlistContainIcon, InactiveIcon: WatchlistOutlineIcon },
+  { name: 'trades', label: 'My Trades', ActiveIcon: TradesContainIcon, InactiveIcon: TradesOutlineIcon },
+];
+
+function TabBar({ state }) {
+  const insets = useSafeAreaInsets();
+  const fs = useFs();
+  const focusedRoute = state.routes[state.index];
+  const routeName = focusedRoute?.name;
+
+  // Tabs in this Expo Router build are placeholders until a real href is opened.
+  // navigateToTab only focuses that shell, which is a blank screen on Android.
+  function openTab(tabName) {
+    router.navigate(`/${tabName}`);
+  }
+
+  if (leafRouteName(focusedRoute) === 'search') return null;
+
+  return (
+    <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
+      {TAB_CONFIG.map((tab) => {
+        const focused = routeName === tab.name || (tab.name === 'home' && routeName === 'index');
+        const color = focused ? ACTIVE_COLOR : INACTIVE_COLOR;
+        const Icon = focused ? tab.ActiveIcon : tab.InactiveIcon;
+
+        return (
+          <Pressable
+            key={tab.name}
+            onPress={() => openTab(tab.name)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: focused }}
+            accessibilityLabel={tab.label}
+            id={`tab-${tab.name}`}
+            style={[styles.tabItem, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
+          >
+            <Icon size={22} color={color} />
+            <Text style={[styles.tabLabel, { fontSize: fs(11), color, fontFamily: focused ? 'Inter_600SemiBold' : 'Inter_400Regular' }]} numberOfLines={1} maxFontSizeMultiplier={1.1}>
+              {tab.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export const unstable_settings = {
+  anchor: 'home',
+};
+
+export default function TabsLayout() {
+  const { isLaptop } = useBreakpoint();
+
+  return (
+    <Tabs
+      tabBar={(props) => (isLaptop ? null : <TabBar {...props} />)}
+      backBehavior="history"
+      detachInactiveScreens={false}
+      screenOptions={{
+        headerShown: false,
+        freezeOnBlur: false,
+        tabBarStyle: isLaptop ? { display: 'none' } : undefined,
+      }}
+    >
+      <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="home" />
+      <Tabs.Screen name="watchlist" />
+      <Tabs.Screen name="trades" />
+    </Tabs>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: TAB_BG,
+    paddingTop: 6,
+    borderTopWidth: 0,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+  },
+  tabLabel: {
+    marginTop: 2,
+    letterSpacing: 0.1,
+  },
+});

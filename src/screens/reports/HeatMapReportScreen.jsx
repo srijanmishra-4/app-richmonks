@@ -12,7 +12,7 @@ import { cdnApi } from '@/utils/api';
 import { FilterIcon, FlipIcon, SearchIcon } from '@/components/ReportIconComponent';
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
-import { openFutureProfile } from '@/utils/instrumentProfile';
+import { openFutureProfile } from '@/utils/stockProfile';
 import { MONTHLY_EXPIRY_OPTIONS, paramString, queryKey, resolveChoice, useReportQuery } from '@/utils/reportParams';
 import { socketRequest } from '@/utils/socket';
 import { useFluid, useFluidStyles, useWideStyles } from '@/utils/responsive';

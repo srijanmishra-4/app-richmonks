@@ -1,7 +1,7 @@
 import { createContext, memo, useContext } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
-import { openFutureProfile } from '@/utils/instrumentProfile';
+import { openFutureProfile } from '@/utils/stockProfile';
 import { useFluidStyles } from '@/utils/responsive';
 
 export const GREEN = '#16A34A';

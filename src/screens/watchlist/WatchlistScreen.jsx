@@ -16,7 +16,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import BottomSlideOn from '@/components/BottomSlideOn';
 import { LineGraph } from '@/components/LineGraph';
 import AddWatchlistScreen from '@/screens/watchlist/AddWatchlistScreen';
-import { openFutureProfile, openOptionProfile } from '@/utils/instrumentProfile';
+import { openFutureProfile, openOptionProfile } from '@/utils/stockProfile';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -122,6 +122,29 @@ function logoSymbol(item) {
   const symbol = String(item?.symbol ?? '').trim();
   if (symbol) return symbol;
   return String(item?.script ?? '').trim().split(/\s+/)[0] || '';
+}
+
+const EXPIRY_STATES = new Set(['near', 'next', 'far', 'weeklyNear', 'weeklyNext', 'weeklyFar']);
+
+function isoDate(value) {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(String(value ?? '').trim());
+  return match ? match[1] : '';
+}
+
+// Watchlist rows store the expiry as YYYY-MM-DD. The profile route wants the
+// state (near, weeklyNear, …). A shared calendar day prefers the monthly state;
+// a weekly-only date stays weekly so the option profile opens that contract.
+function expiryStateFor(item, kind, allExpiryDates) {
+  const explicit = String(item?.expiry_state ?? '').trim();
+  if (EXPIRY_STATES.has(explicit)) return explicit;
+  const key = isoDate(item?.expiry_dt);
+  const matches = key && Array.isArray(allExpiryDates)
+    ? allExpiryDates.filter((row) => isoDate(row?.expiry_date) === key && EXPIRY_STATES.has(row?.expiry_state))
+    : [];
+  const monthly = matches.find((row) => !String(row.expiry_state).startsWith('weekly'));
+  const weekly = matches.find((row) => String(row.expiry_state).startsWith('weekly'));
+  if (kind === 'options') return monthly?.expiry_state || weekly?.expiry_state || 'near';
+  return monthly?.expiry_state || 'near';
 }
 
 function PlusIcon({ size = 18, color = '#0F172A', weight = 1.8 }) {
@@ -425,7 +448,7 @@ export default function WatchlistScreen({ isSidebar = false }) {
   const [reportItem, setReportItem] = useState(null);
   const [slideOnVisible, setSlideOnVisible] = useState(false);
   const [addingType, setAddingType] = useState(null);
-  const { industries, nearExpiry, strikePricesAndPrices } = useCommonData();
+  const { industries, nearExpiry, allExpiryDates, strikePricesAndPrices } = useCommonData();
   const [industryId, setIndustryId] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterMenuTop, setFilterMenuTop] = useState(0);
@@ -556,10 +579,10 @@ export default function WatchlistScreen({ isSidebar = false }) {
 
   const openProfile = useCallback((item) => {
     const symbol = logoSymbol(item);
-    const expiry = item?.expiry_dt;
+    const expiry = expiryStateFor(item, tab, allExpiryDates);
     if (tab === 'options') openOptionProfile({ symbol, strike: item?.strike_pr, optionType: item?.option_type, expiry });
     else openFutureProfile({ symbol, expiry });
-  }, [tab]);
+  }, [tab, allExpiryDates]);
 
   const removeItem = useCallback(async (item) => {
     const kind = tab;
@@ -620,7 +643,15 @@ export default function WatchlistScreen({ isSidebar = false }) {
   }, [tab, isDesktopSidebar, fetchReport]);
 
   const closeSlideOn = useCallback(() => setSlideOnVisible(false), []);
-  const clearSlideOn = useCallback(() => { setReportResult(null); setReportItem(null); }, []);
+  const pendingProfileRef = useRef(null);
+  const clearSlideOn = useCallback(() => {
+    const item = pendingProfileRef.current;
+    pendingProfileRef.current = null;
+    setReportResult(null);
+    setReportItem(null);
+    // Push after the sheet unmounts. Navigating while the modal is still up drops the route.
+    if (item) setTimeout(() => openProfile(item), 0);
+  }, [openProfile]);
 
   // ─── SlideOn props for mobile ──────────────────────────────────────────────
   const slideOnMetrics = useMemo(() => buildReportMetrics(reportResult, tab), [reportResult, tab]);
@@ -631,7 +662,10 @@ export default function WatchlistScreen({ isSidebar = false }) {
   const slideOnChangeNum = parseSigned(reportResult?.price_change) ?? parseSigned(reportItem?.price_change);
   const slideOnChange = reportResult?.price_change != null ? `${slideOnChangeNum > 0 ? '+' : slideOnChangeNum < 0 ? '-' : ''}${Math.abs(slideOnChangeNum ?? 0).toFixed(2)}%` : formatChange(reportItem);
   const slideOnPositive = slideOnChangeNum != null ? slideOnChangeNum > 0 : null;
-  const slideOnProfileAction = useCallback(() => { closeSlideOn(); if (reportItem) openProfile(reportItem); }, [closeSlideOn, reportItem, openProfile]);
+  const slideOnProfileAction = useCallback(() => {
+    pendingProfileRef.current = reportItem;
+    closeSlideOn();
+  }, [closeSlideOn, reportItem]);
 
   // ─── Desktop accordion report state for each row ─────────────────────────
   const getReportState = useCallback((item) => {

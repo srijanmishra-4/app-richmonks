@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { router, useNavigation, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,8 +29,15 @@ export default function SearchScreen() {
   const navigation = useNavigation();
   const pathname = usePathname();
   const seenPath = useRef(pathname);
+  const allowLeave = useRef(false);
   const insets = useSafeAreaInsets();
-  const { stage, backToSymbols } = search;
+  const { stage, backToSymbols, reset } = search;
+
+  const dismissSearch = useCallback(() => {
+    allowLeave.current = true;
+    reset();
+    if (router.canGoBack()) router.back();
+  }, [reset]);
 
   useEffect(() => { silenceBrowserSuggestions(INPUT_ID); }, []);
 
@@ -42,7 +49,7 @@ export default function SearchScreen() {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (event) => {
-      if (stage !== 'instruments') return;
+      if (allowLeave.current || stage !== 'instruments') return;
       const type = event.data?.action?.type;
       if (type !== 'GO_BACK' && type !== 'POP' && type !== 'POP_TO_TOP') return;
       event.preventDefault();
@@ -84,7 +91,7 @@ export default function SearchScreen() {
           />
         </View>
       </View>
-      <FnoSearchPanel search={search} variant="screen" />
+      <FnoSearchPanel search={search} variant="screen" onDismiss={dismissSearch} />
     </View>
   );
 }

@@ -6,7 +6,7 @@ import { socketRequest } from '@/utils/socket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import TrendingTable from '@/components/home/TrendingTable';
 import { SymbolLink, SymbolWithLogo, useShowSymbolLogo } from '@/components/SymbolLogo';
-import { openOptionProfile } from '@/utils/instrumentProfile';
+import { openOptionProfile } from '@/utils/stockProfile';
 import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Constants & Configuration ──────────────────────────────────────────────────

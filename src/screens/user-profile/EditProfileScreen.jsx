@@ -4,12 +4,12 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import DobPicker from '@/components/signup/DobPicker';
-import ProfileHeader from '@/components/profile/ProfileHeader';
+import ProfileHeader from '@/components/user-profile/ProfileHeader';
 import { RMLoader } from '@/components/RMLoader/RMLoader';
 import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { useAuth } from '@/context/AuthContext';
 import { profileApi } from '@/utils/api';
-import { formatDob, isValidEmail, mapProfile, parseDob, toApiDob } from '@/components/profile/profileData';
+import { formatDob, isValidEmail, mapProfile, parseDob, toApiDob } from '@/components/user-profile/profileData';
 
 const ACCENT = '#0071A9';
 const pointer = Platform.OS === 'web' ? { cursor: 'pointer' } : null;
@@ -35,7 +35,7 @@ function formatContact(value) {
 
 function goBack() {
   if (router.canGoBack()) router.back();
-  else router.replace('/profile');
+  else router.replace('/user-profile');
 }
 
 export default function EditProfileScreen() {

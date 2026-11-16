@@ -47,13 +47,14 @@ export function useExpiryOptions(withWeekly = false) {
   }, [allExpiryDates, nearExpiry, nextExpiry, withWeekly]);
 }
 
-function ExpiryDropdownComponent({ value, onSelect, withWeekly = false, compact = false }) {
+function ExpiryDropdownComponent({ value, onSelect, withWeekly = false, compact = false, large = false, displayLabel }) {
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
   const styles = useWideStyles(createStyles);
   const options = useExpiryOptions(withWeekly);
   const current = options.find((item) => item.value === value);
+  const shown = displayLabel ?? current?.label ?? '—';
 
   const toggle = useCallback(() => {
     if (open) {
@@ -72,11 +73,11 @@ function ExpiryDropdownComponent({ value, onSelect, withWeekly = false, compact 
 
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.label, compact ? styles.labelCompact : null]} maxFontSizeMultiplier={1.1}>{compact ? 'Expiry' : 'Expiry Date'}</Text>
+      <Text style={[styles.label, compact ? styles.labelCompact : null, large ? styles.labelLarge : null]} maxFontSizeMultiplier={1.1}>{compact ? 'Expiry' : 'Expiry Date'}</Text>
       <View ref={anchorRef} collapsable={false}>
-        <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="Expiry Date" accessibilityState={{ expanded: open }} style={[styles.btn, compact ? styles.btnCompact : null, open ? styles.btnOpen : null, Platform.OS === 'web' ? styles.pointer : null]}>
-          <Text style={[styles.value, compact ? styles.valueCompact : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{current?.label ?? '—'}</Text>
-          <View style={open ? styles.chevronUp : styles.chevronDown}><ChevronRightIcon size={compact ? 10 : 12} color={MUTED} /></View>
+        <Pressable onPress={toggle} hitSlop={large ? 6 : undefined} accessibilityRole="button" accessibilityLabel="Expiry Date" accessibilityState={{ expanded: open }} style={[styles.btn, compact ? styles.btnCompact : null, large ? styles.btnLarge : null, open ? styles.btnOpen : null, Platform.OS === 'web' ? styles.pointer : null]}>
+          <Text style={[styles.value, compact ? styles.valueCompact : null, large ? styles.valueLarge : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{shown}</Text>
+          <View style={open ? styles.chevronUp : styles.chevronDown}><ChevronRightIcon size={large ? 12 : compact ? 10 : 12} color={MUTED} /></View>
         </Pressable>
       </View>
       <Modal visible={open} transparent animationType="none" statusBarTranslucent onRequestClose={() => setOpen(false)}>
@@ -118,6 +119,9 @@ const createStyles = (f, s) => ({
   menuItem: { paddingHorizontal: f(10, 14, 12), paddingVertical: f(7, 10, 9) },
   menuItemActive: { backgroundColor: '#F8FAFC' },
   menuTextActive: { color: PRIMARY },
+  btnLarge: { height: null, paddingVertical: 8, paddingHorizontal: 12 },
+  labelLarge: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_400Regular' },
+  valueLarge: { fontSize: 14, lineHeight: 18, fontFamily: 'Inter_500Medium' },
   label: { fontSize: f(11.5, 13.5, s(12)), lineHeight: f(16, 18, s(16)), fontFamily: 'Inter_500Medium', color: MUTED },
   value: { fontSize: f(12, 14, s(13)), lineHeight: f(16, 18, s(17)), fontFamily: 'Inter_600SemiBold', color: TEXT },
   menuText: { fontSize: f(12, 14, s(12)), lineHeight: f(16, 18, s(16)), fontFamily: 'Inter_500Medium', color: TEXT },

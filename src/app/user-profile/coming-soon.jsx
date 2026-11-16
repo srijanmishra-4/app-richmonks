@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import ProfileHeader from '@/components/profile/ProfileHeader';
+import ProfileHeader from '@/components/user-profile/ProfileHeader';
 import ComingSoon from '@/components/reports/ComingSoon';
 
 export default function ProfileComingSoonRoute() {

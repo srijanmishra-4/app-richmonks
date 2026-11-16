@@ -8,7 +8,7 @@ import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ExpiryDropdownComponent from '@/components/ExpiryDropdownComponent';
 import ScreenHeader from '@/components/ScreenHeader';
 import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
-import { openFutureProfile, openOptionProfile } from '@/utils/instrumentProfile';
+import { openFutureProfile, openOptionProfile } from '@/utils/stockProfile';
 import StrongWeakFilter, { useStrongWeakFilter } from '@/components/reports/StrongWeakFilter';
 import { BREAKPOINTS } from '@/constants/breakpoints';
 import { useRegisterRefresh } from '@/context/RefreshContext';

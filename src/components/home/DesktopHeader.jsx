@@ -84,7 +84,7 @@ function DesktopHeader() {
 
         {/* Profile Avatar & Menu */}
         <Pressable
-          onPress={() => router.push('/profile')}
+          onPress={() => router.push('/user-profile')}
           style={[styles.profileBtn, Platform.OS === 'web' ? styles.pointer : null]}
           accessibilityRole="button"
           accessibilityLabel="Open profile"

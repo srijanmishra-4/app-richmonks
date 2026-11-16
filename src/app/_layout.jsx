@@ -68,7 +68,7 @@ function RootNavigator({ fontsReady }) {
           {/* Without redirectTo, a failed guard redirects to the group path itself ("/(auth)"), which matches no screen. */}
           <Stack.Protected guard={!sessionReady || isAuthenticated} redirectTo="/login">
             <Stack.Screen name="(app)" />
-            <Stack.Screen name="profile" />
+            <Stack.Screen name="user-profile" />
           </Stack.Protected>
           <Stack.Protected guard={!sessionReady || !isAuthenticated} redirectTo="/home">
             <Stack.Screen name="(auth)" />

@@ -32,7 +32,7 @@ export function openFutureProfile({ symbol, expiry = 'near' } = {}) {
   const name = cleanSymbol(symbol);
   if (!name) return;
   router.push({
-    pathname: '/home/profile/futures',
+    pathname: '/stock-profile/future',
     params: { symbol: name, expiry: profileExpiry(expiry) },
   });
 }
@@ -42,7 +42,7 @@ export function openOptionProfile({ symbol, strike, optionType, expiry = 'near' 
   if (!name) return;
   const expiryState = profileExpiry(expiry);
   router.push({
-    pathname: '/home/profile/options',
+    pathname: '/stock-profile/option',
     params: {
       symbol: name,
       strike_pr: strikeParam(strike),

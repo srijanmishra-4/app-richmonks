@@ -109,7 +109,7 @@ export default function HomeScreen() {
     >
       {/* Laptops use the global DesktopHeader. Tablets and phones use this bar plus the bottom tabs. */}
       {!isLaptop && (
-        <HomeHeader user={user} onAvatarPress={() => router.push('/profile')} />
+        <HomeHeader user={user} onAvatarPress={() => router.push('/user-profile')} />
       )}
 
       {/* Conditional Sticky Market Ticker */}

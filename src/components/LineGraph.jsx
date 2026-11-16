@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect, useId } from 'react';
 import { View, Text, StyleSheet, PanResponder, Platform } from 'react-native';
 import Svg, { Path, Circle, Line, G, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 
@@ -7,6 +7,29 @@ export function dismissAllLineGraphTooltips() {
   dismissListeners.forEach((fn) => fn());
 }
 export let lastLineGraphTouchTime = 0;
+
+// Capture-phase listeners arm this before the touched view runs. The graph
+// claims that same touch on the way down, so a later check only clears
+// tooltips when the touch started outside every graph.
+let outsideTouchGeneration = 0;
+let graphTouchGeneration = 0;
+let outsideTouchPending = 0;
+
+export function armLineGraphOutsideDismiss() {
+  outsideTouchGeneration += 1;
+  outsideTouchPending += 1;
+  const generation = outsideTouchGeneration;
+  queueMicrotask(() => {
+    outsideTouchPending -= 1;
+    if (outsideTouchPending > 0) return;
+    if (graphTouchGeneration !== generation) dismissAllLineGraphTooltips();
+  });
+}
+
+function markLineGraphTouch() {
+  graphTouchGeneration = outsideTouchGeneration;
+  lastLineGraphTouchTime = Date.now();
+}
 
 function parsePriceChangeNumber(val) {
   if (val == null || val === '') return null;
@@ -112,13 +135,18 @@ function findNearestPointIndex(touchX, points) {
   return closestIdx;
 }
 
-export default function LineGraph({ data = [], height = 190, style, onPointSelect, captureOnStart = false }) {
+export default function LineGraph({ data = [], height = 190, flex = false, style, onPointSelect, captureOnStart = false, largeTooltip = false }) {
+  const gradPrefix = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const gradGreen = `${gradPrefix}g`;
+  const gradRed = `${gradPrefix}r`;
+  const gradNeutral = `${gradPrefix}n`;
   const [layout, setLayout] = useState({ width: 0, height });
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [tooltipSize, setTooltipSize] = useState({ width: 130, height: 44 });
+  const [tooltipSize, setTooltipSize] = useState({ width: largeTooltip ? 164 : 130, height: largeTooltip ? 54 : 44 });
   const selectedIndexRef = useRef(-1);
   const directionRef = useRef(null);
   const touchRef = useRef(null);
+  const containerRef = useRef(null);
 
   const clearSelection = useCallback(() => {
     selectedIndexRef.current = -1;
@@ -131,13 +159,19 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
   }, [clearSelection]);
 
   useEffect(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const handleWebOutside = () => {
-        if (Date.now() - lastLineGraphTouchTime > 150) clearSelection();
-      };
-      window.addEventListener('pointerdown', handleWebOutside, true);
-      return () => window.removeEventListener('pointerdown', handleWebOutside, true);
-    }
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
+    const handleWebOutside = (event) => {
+      const node = containerRef.current;
+      const target = event.target;
+      if (!node || typeof node.contains !== 'function') return;
+      if (node.contains(target)) {
+        markLineGraphTouch();
+        return;
+      }
+      clearSelection();
+    };
+    document.addEventListener('pointerdown', handleWebOutside, true);
+    return () => document.removeEventListener('pointerdown', handleWebOutside, true);
   }, [clearSelection]);
 
   useEffect(() => {
@@ -206,7 +240,7 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
   pointsRef.current = points;
 
   const handleTouch = useCallback((touchX) => {
-    lastLineGraphTouchTime = Date.now();
+    markLineGraphTouch();
     const pts = pointsRef.current;
     if (!pts || pts.length === 0) return;
     const idx = findNearestPointIndex(touchX, pts);
@@ -251,8 +285,12 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
     });
   }, [handleTouch, captureOnStart]);
 
+  const onGraphTouchStartCapture = useCallback(() => {
+    markLineGraphTouch();
+  }, []);
+
   const onGraphTouchStart = useCallback((e) => {
-    lastLineGraphTouchTime = Date.now();
+    markLineGraphTouch();
     directionRef.current = null;
     touchRef.current = {
       x: e.nativeEvent.pageX,
@@ -313,7 +351,7 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
       const p2 = points[i + 1];
       const segColor = p2.color || '#94A3B8';
 
-      const gradId = segColor === '#10B981' ? 'grad-green' : segColor === '#EF4444' ? 'grad-red' : 'grad-neutral';
+      const gradId = segColor === '#10B981' ? gradGreen : segColor === '#EF4444' ? gradRed : gradNeutral;
       const y1B = Math.min(plotFloorY, p1.y + gradHeight);
       const y2B = Math.min(plotFloorY, p2.y + gradHeight);
       const areaD = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} L ${p2.x.toFixed(1)} ${p2.y.toFixed(1)} L ${p2.x.toFixed(1)} ${y2B.toFixed(1)} L ${p1.x.toFixed(1)} ${y1B.toFixed(1)} Z`;
@@ -329,7 +367,7 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
     }
     paths.push({ d: currentPath, stroke: currentColor, key: `path-${points.length - 1}` });
     return { linePaths: paths, areaFills: fills };
-  }, [points, plotFloorY, gradHeight]);
+  }, [points, plotFloorY, gradHeight, gradGreen, gradRed, gradNeutral]);
 
   const selectedPoint = selectedIndex >= 0 && selectedIndex < points.length ? points[selectedIndex] : null;
 
@@ -367,9 +405,11 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
 
   return (
     <View
-      style={[styles.container, { height }, style]}
+      ref={containerRef}
+      style={[styles.container, flex ? styles.flexBox : { height }, style]}
       onLayout={onLayout}
       {...panResponder.panHandlers}
+      onTouchStartCapture={onGraphTouchStartCapture}
       onTouchStart={onGraphTouchStart}
       onTouchMove={onGraphTouchMove}
       onTouchEnd={onGraphTouchEnd}
@@ -412,17 +452,17 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
 
           {/* Gradient defs for area fills */}
           <Defs>
-            <SvgGradient id="grad-green" x1="0" y1="0" x2="0" y2="1">
+            <SvgGradient id={gradGreen} x1="0%" y1="0%" x2="0%" y2="100%" gradientUnits="objectBoundingBox">
               <Stop offset="0" stopColor="#10B981" stopOpacity="0.35" />
               <Stop offset="0.55" stopColor="#10B981" stopOpacity="0.10" />
               <Stop offset="1" stopColor="#10B981" stopOpacity="0" />
             </SvgGradient>
-            <SvgGradient id="grad-red" x1="0" y1="0" x2="0" y2="1">
+            <SvgGradient id={gradRed} x1="0%" y1="0%" x2="0%" y2="100%" gradientUnits="objectBoundingBox">
               <Stop offset="0" stopColor="#EF4444" stopOpacity="0.35" />
               <Stop offset="0.55" stopColor="#EF4444" stopOpacity="0.10" />
               <Stop offset="1" stopColor="#EF4444" stopOpacity="0" />
             </SvgGradient>
-            <SvgGradient id="grad-neutral" x1="0" y1="0" x2="0" y2="1">
+            <SvgGradient id={gradNeutral} x1="0%" y1="0%" x2="0%" y2="100%" gradientUnits="objectBoundingBox">
               <Stop offset="0" stopColor="#94A3B8" stopOpacity="0.22" />
               <Stop offset="0.55" stopColor="#94A3B8" stopOpacity="0.06" />
               <Stop offset="1" stopColor="#94A3B8" stopOpacity="0" />
@@ -473,13 +513,13 @@ export default function LineGraph({ data = [], height = 190, style, onPointSelec
         <View
           pointerEvents="none"
           onLayout={onTooltipLayout}
-          style={[styles.tooltipCard, { left: tooltipPos.left, top: tooltipPos.top }]}
+          style={[styles.tooltipCard, largeTooltip ? styles.tooltipCardLarge : null, { left: tooltipPos.left, top: tooltipPos.top }]}
         >
-          <View style={styles.tooltipFirstLine}>
-            <Text style={styles.tooltipPrice}>{formatTooltipPrice(selectedPoint.raw?.price)}</Text>
-            <Text style={[styles.tooltipPct, { color: pctColor }]}>{formatTooltipPercent(selectedPctVal)}</Text>
+          <View style={[styles.tooltipFirstLine, largeTooltip ? styles.tooltipFirstLineLarge : null]}>
+            <Text style={[styles.tooltipPrice, largeTooltip ? styles.tooltipPriceLarge : null]}>{formatTooltipPrice(selectedPoint.raw?.price)}</Text>
+            <Text style={[styles.tooltipPct, largeTooltip ? styles.tooltipPctLarge : null, { color: pctColor }]}>{formatTooltipPercent(selectedPctVal)}</Text>
           </View>
-          <Text style={styles.tooltipDate}>{formatDateTime(selectedPoint.raw?.cdate, selectedPoint.raw?.time, selectedPoint.raw?.timestamp)}</Text>
+          <Text style={[styles.tooltipDate, largeTooltip ? styles.tooltipDateLarge : null]}>{formatDateTime(selectedPoint.raw?.cdate, selectedPoint.raw?.time, selectedPoint.raw?.timestamp)}</Text>
           <View
             style={[
               tooltipPos.isBelow ? styles.caretUp : styles.caretDown,
@@ -500,6 +540,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
+  flexBox: { flex: 1, minHeight: 0 },
   tooltipCard: {
     position: 'absolute',
     backgroundColor: '#FFFFFF',
@@ -537,6 +578,11 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 2,
   },
+  tooltipCardLarge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9 },
+  tooltipFirstLineLarge: { gap: 6 },
+  tooltipPriceLarge: { fontSize: 14 },
+  tooltipPctLarge: { fontSize: 13 },
+  tooltipDateLarge: { fontSize: 12, marginTop: 3 },
   caretDown: {
     position: 'absolute',
     bottom: -5,

@@ -7,7 +7,7 @@ import { cdnApi } from '@/utils/api';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import LineGraph from '@/components/LineGraph';
-import { openFutureProfile } from '@/utils/instrumentProfile';
+import { openFutureProfile } from '@/utils/stockProfile';
 import { useFluidStyles } from '@/utils/responsive';
 
 const PERIODS = [

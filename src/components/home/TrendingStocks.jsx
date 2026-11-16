@@ -7,7 +7,7 @@ import { useSocketEvent } from '@/hooks/useSocket';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import TrendingTable from '@/components/home/TrendingTable';
 import { SymbolLink, SymbolWithLogo, useShowSymbolLogo } from '@/components/SymbolLogo';
-import { openFutureProfile } from '@/utils/instrumentProfile';
+import { openFutureProfile } from '@/utils/stockProfile';
 import { useFluidStyles } from '@/utils/responsive';
 
 // ─── Constants & Configuration ──────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import EditProfileScreen from '@/screens/profile/EditProfileScreen';
+import EditProfileScreen from '@/screens/user-profile/EditProfileScreen';
 
 export default function EditProfileRoute() {
   return <EditProfileScreen />;

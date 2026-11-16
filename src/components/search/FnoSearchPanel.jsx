@@ -243,7 +243,7 @@ function StrikeMenu({ menu, layout, onClose, onSelect, onArm }) {
   );
 }
 
-function FnoSearchPanel({ search, variant = 'screen', maxHeight = 440 }) {
+function FnoSearchPanel({ search, variant = 'screen', maxHeight = 440, onDismiss }) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [panelWidth, setPanelWidth] = useState(0);
   const [menu, setMenu] = useState(null);
@@ -277,12 +277,13 @@ function FnoSearchPanel({ search, variant = 'screen', maxHeight = 440 }) {
     if (blockOpen.current || !row?.symbol) return;
     const symbol = row.symbol;
     const expiry = row.expiry;
+    onDismiss?.();
     if (row.kind === 'FUT') {
-      router.push({ pathname: '/home/profile/futures', params: { symbol, expiry } });
+      router.push({ pathname: '/stock-profile/future', params: { symbol, expiry } });
       return;
     }
     router.push({
-      pathname: '/home/profile/options',
+      pathname: '/stock-profile/option',
       params: {
         symbol,
         strike_pr: strikeParam(search.strikeFor(row)),
@@ -291,7 +292,7 @@ function FnoSearchPanel({ search, variant = 'screen', maxHeight = 440 }) {
         period: optionPeriod(symbol, expiry),
       },
     });
-  }, [search.strikeFor]);
+  }, [onDismiss, search.strikeFor]);
 
   const openStrikeMenu = useCallback((row, event) => {
     holdNavigation();

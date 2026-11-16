@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, TextInput, View, useWindowDimensions } from 'react-native';
 import { usePathname } from 'expo-router';
 
@@ -30,17 +30,61 @@ function HeaderSearch() {
   const styles = useFluidStyles(createStyles);
   const inputRef = useRef(null);
   const seenPath = useRef(pathname);
+  const suppressOpen = useRef(false);
+  const suppressTimer = useRef(null);
   const [open, setOpen] = useState(false);
   const maxHeight = Math.max(120, Math.min(440, height - 80));
 
-  useEffect(() => {
+  const fieldIsFocused = useCallback(() => {
+    const input = inputRef.current;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const active = document.activeElement;
+      if (active && (active.id === INPUT_ID || active === input)) return true;
+    }
+    return input?.isFocused?.() === true;
+  }, []);
+
+  const openSearch = useCallback(() => {
+    if (suppressTimer.current) {
+      clearTimeout(suppressTimer.current);
+      suppressTimer.current = null;
+    }
+    suppressOpen.current = false;
+    silenceBrowserSuggestions(INPUT_ID);
+    setOpen(true);
+    inputRef.current?.focus?.();
+  }, []);
+
+  const dismissSearch = useCallback(() => {
     setOpen(false);
+    search.reset();
+    // A route change while the field is idle must not swallow the next click.
+    // blur() does not fire then, so the guard would stay on until a later blur.
+    if (!fieldIsFocused()) {
+      suppressOpen.current = false;
+      return;
+    }
+    // Ignore the focus bounce that blur() can emit while this dismiss finishes.
+    suppressOpen.current = true;
+    inputRef.current?.blur();
+    if (suppressTimer.current) clearTimeout(suppressTimer.current);
+    suppressTimer.current = setTimeout(() => {
+      suppressOpen.current = false;
+      suppressTimer.current = null;
+    }, 0);
+  }, [fieldIsFocused, search.reset]);
+
+  useEffect(() => {
     if (seenPath.current === pathname) return;
     seenPath.current = pathname;
-    search.reset();
-  }, [pathname, search.reset]);
+    dismissSearch();
+  }, [pathname, dismissSearch]);
 
   useEffect(() => { silenceBrowserSuggestions(INPUT_ID); }, []);
+
+  useEffect(() => () => {
+    if (suppressTimer.current) clearTimeout(suppressTimer.current);
+  }, []);
 
   useEffect(() => {
     if (!open || Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
@@ -51,7 +95,7 @@ function HeaderSearch() {
 
   return (
     <View style={styles.searchContainer}>
-      <View style={styles.searchBar}>
+      <View style={styles.searchBar} onPointerDown={openSearch}>
         <SearchIcon size={16} color="#94A3B8" />
         <TextInput
           ref={inputRef}
@@ -59,8 +103,11 @@ function HeaderSearch() {
           nativeID={INPUT_ID}
           value={search.query}
           onChangeText={search.onQueryChange}
-          onFocus={() => { silenceBrowserSuggestions(INPUT_ID); setOpen(true); }}
-          onTouchStart={() => setOpen(true)}
+          onFocus={() => {
+            if (suppressOpen.current) return;
+            openSearch();
+          }}
+          onPointerDown={openSearch}
           placeholder="Search stocks, futures, options..."
           placeholderTextColor="#94A3B8"
           style={[styles.searchInput, webReset]}
@@ -78,7 +125,7 @@ function HeaderSearch() {
           <Pressable style={Platform.OS === 'web' ? webBackdrop : styles.backdrop} onPress={() => setOpen(false)} accessibilityLabel="Close search" />
           <View style={[styles.dropdownShadow, Platform.OS === 'web' ? { boxShadow: '0 8px 24px rgba(15, 23, 42, 0.12)' } : null, { maxHeight }]}>
             <View style={styles.dropdown}>
-              <FnoSearchPanel search={search} variant="dropdown" maxHeight={maxHeight} />
+              <FnoSearchPanel search={search} variant="dropdown" maxHeight={maxHeight} onDismiss={dismissSearch} />
             </View>
           </View>
         </>

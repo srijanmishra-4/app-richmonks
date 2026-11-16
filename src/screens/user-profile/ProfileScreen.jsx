@@ -6,11 +6,11 @@ import Svg, { Path } from 'react-native-svg';
 
 import { ChevronRightIcon } from '@/components/icons/HomeIcons';
 import { getInitials } from '@/components/home/HomeHeader';
-import ProfileHeader from '@/components/profile/ProfileHeader';
+import ProfileHeader from '@/components/user-profile/ProfileHeader';
 import { RMLoader } from '@/components/RMLoader/RMLoader';
 import { useAuth } from '@/context/AuthContext';
 import { profileApi } from '@/utils/api';
-import { mapProfile, openExternal, PRIVACY_URL, sessionIdentity, TERMS_URL } from '@/components/profile/profileData';
+import { mapProfile, openExternal, PRIVACY_URL, sessionIdentity, TERMS_URL } from '@/components/user-profile/profileData';
 
 const ACCENT = '#0071A9';
 const DANGER = '#DC2626';
@@ -124,7 +124,7 @@ export default function ProfileScreen() {
             ) : null}
           </View>
 
-          <Pressable onPress={() => router.push('/profile/edit')} style={[styles.editRow, pointer]} accessibilityRole="button" accessibilityLabel="Edit Profile" id="profile-edit">
+          <Pressable onPress={() => router.push('/user-profile/edit')} style={[styles.editRow, pointer]} accessibilityRole="button" accessibilityLabel="Edit Profile" id="profile-edit">
             <PencilIcon />
             <Text style={styles.editText}>Edit Profile</Text>
             <View style={styles.chevron}><ChevronRightIcon size={16} color="#94A3B8" /></View>

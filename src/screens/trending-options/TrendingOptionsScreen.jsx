@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import CommonTable, { TableHeaderCell } from '@/components/CommonTable';
 import ScreenHeader from '@/components/ScreenHeader';
 import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
-import { openOptionProfile } from '@/utils/instrumentProfile';
+import { openOptionProfile } from '@/utils/stockProfile';
 import { useFluidStyles } from '@/utils/responsive';
 import { socketRequest } from '@/utils/socket';
 

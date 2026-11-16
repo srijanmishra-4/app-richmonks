@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { View, Text, Pressable, Platform } from 'react-native';
 
-import PriceRangeBarComponent from '@/components/instrument/PriceRangeBarComponent';
+import PriceRangeBarComponent from '@/components/stock-profile/future/PriceRangeBarComponent';
 import { useFluidStyles } from '@/utils/responsive';
 
 const PERIODS = [

@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { useFocusEffect } from 'expo-router';
 
 import { onSocketEvent } from '@/utils/socket';
 
-// One REC_DATA_UPDATED listener for the signed-in app. Every screen that is
-// still mounted refreshes, whether or not its tab is focused. Components
-// register a GET_* and drop it on unmount, so a screen that has left the tree
-// is not in the map and is not requested.
+// One REC_DATA_UPDATED listener for the signed-in app. Only the focused scope
+// refreshes; other mounted scopes are marked stale and refresh once when they
+// regain focus. Components register a GET_* and drop it on unmount, so a
+// screen that has left the tree is not in the map and is not requested.
 
 const RefreshContext = createContext(null);
 const ScopeContext = createContext(null);
@@ -16,11 +17,8 @@ function logDataUpdated(data) {
 
 export function RefreshProvider({ children }) {
   const screensRef = useRef(new Map());
+  const staleRef = useRef(new Set());
   const activeRef = useRef(null);
-
-  const setActiveScreen = useCallback((id) => {
-    activeRef.current = id;
-  }, []);
 
   const register = useCallback((screenId, refresh) => {
     let bucket = screensRef.current.get(screenId);
@@ -31,7 +29,10 @@ export function RefreshProvider({ children }) {
     bucket.add(refresh);
     return () => {
       bucket.delete(refresh);
-      if (bucket.size === 0) screensRef.current.delete(screenId);
+      if (bucket.size === 0) {
+        screensRef.current.delete(screenId);
+        staleRef.current.delete(screenId);
+      }
     };
   }, []);
 
@@ -48,14 +49,20 @@ export function RefreshProvider({ children }) {
     return Promise.allSettled(tasks);
   }, []);
 
-  const refreshScreenRef = useRef(refreshScreen);
-  refreshScreenRef.current = refreshScreen;
+  const setActiveScreen = useCallback((id) => {
+    activeRef.current = id;
+    if (staleRef.current.delete(id)) refreshScreen(id);
+  }, [refreshScreen]);
 
   useEffect(() => onSocketEvent('REC_DATA_UPDATED', (result, error, raw) => {
     const payload = raw !== undefined ? raw : result;
     logDataUpdated(payload);
-    Array.from(screensRef.current.keys()).forEach((id) => refreshScreenRef.current(id));
-  }), []);
+    const active = activeRef.current;
+    Array.from(screensRef.current.keys()).forEach((id) => {
+      if (id === active) refreshScreen(id);
+      else staleRef.current.add(id);
+    });
+  }), [refreshScreen]);
 
   const value = useMemo(
     () => ({ register, refreshScreen, setActiveScreen }),
@@ -66,15 +73,11 @@ export function RefreshProvider({ children }) {
 }
 
 export function RefreshScope({ id, children }) {
-  return <ScopeContext.Provider value={id}>{children}</ScopeContext.Provider>;
-}
-
-export function useActiveScreen(id) {
   const api = useContext(RefreshContext);
-  useEffect(() => {
-    if (!api) return undefined;
-    api.setActiveScreen(id);
-  }, [api, id]);
+  useFocusEffect(useCallback(() => {
+    api?.setActiveScreen(id);
+  }, [api, id]));
+  return <ScopeContext.Provider value={id}>{children}</ScopeContext.Provider>;
 }
 
 export function useRegisterRefresh(refresh) {

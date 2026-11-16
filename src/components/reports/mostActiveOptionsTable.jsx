@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 
 import { TableHeaderCell } from '@/components/CommonTable';
 import { SymbolLink, SymbolWithLogo, useShowReportSymbolLogo } from '@/components/SymbolLogo';
-import { openOptionProfile } from '@/utils/instrumentProfile';
+import { openOptionProfile } from '@/utils/stockProfile';
 import { useFluid, useFluidStyles } from '@/utils/responsive';
 
 export const GREEN = '#16A34A';
