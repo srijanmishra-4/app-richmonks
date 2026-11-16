@@ -47,7 +47,7 @@ export function useExpiryOptions(withWeekly = false) {
   }, [allExpiryDates, nearExpiry, nextExpiry, withWeekly]);
 }
 
-function ExpiryDropdownComponent({ value, onSelect, withWeekly = false }) {
+function ExpiryDropdownComponent({ value, onSelect, withWeekly = false, compact = false }) {
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState(null);
@@ -72,11 +72,11 @@ function ExpiryDropdownComponent({ value, onSelect, withWeekly = false }) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label} maxFontSizeMultiplier={1.1}>Expiry Date</Text>
+      <Text style={[styles.label, compact ? styles.labelCompact : null]} maxFontSizeMultiplier={1.1}>{compact ? 'Expiry' : 'Expiry Date'}</Text>
       <View ref={anchorRef} collapsable={false}>
-        <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="Expiry Date" accessibilityState={{ expanded: open }} style={[styles.btn, open ? styles.btnOpen : null, Platform.OS === 'web' ? styles.pointer : null]}>
-          <Text style={styles.value} numberOfLines={1} maxFontSizeMultiplier={1.1}>{current?.label ?? '—'}</Text>
-          <View style={open ? styles.chevronUp : styles.chevronDown}><ChevronRightIcon size={12} color={MUTED} /></View>
+        <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="Expiry Date" accessibilityState={{ expanded: open }} style={[styles.btn, compact ? styles.btnCompact : null, open ? styles.btnOpen : null, Platform.OS === 'web' ? styles.pointer : null]}>
+          <Text style={[styles.value, compact ? styles.valueCompact : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{current?.label ?? '—'}</Text>
+          <View style={open ? styles.chevronUp : styles.chevronDown}><ChevronRightIcon size={compact ? 10 : 12} color={MUTED} /></View>
         </Pressable>
       </View>
       <Modal visible={open} transparent animationType="none" statusBarTranslucent onRequestClose={() => setOpen(false)}>
@@ -106,7 +106,10 @@ const createStyles = (f, s) => ({
   pointer: { cursor: 'pointer' },
   wrap: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: f(6, 10, 8) },
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: f(30, 36), minWidth: f(80, 100), paddingHorizontal: f(8, 12, 10), borderRadius: f(8, 10), borderWidth: StyleSheet.hairlineWidth, borderColor: BORDER, backgroundColor: '#FFFFFF', gap: f(6, 8) },
+  btnCompact: { height: f(28, 32), minWidth: f(72, 88), paddingHorizontal: f(8, 10), borderRadius: f(6, 8) },
   btnOpen: { borderColor: PRIMARY },
+  labelCompact: { fontSize: f(11, 12.5), fontFamily: 'Inter_400Regular' },
+  valueCompact: { fontSize: f(12, 13.5), fontFamily: 'Inter_500Medium' },
   chevronDown: { transform: [{ rotate: '90deg' }] },
   chevronUp: { transform: [{ rotate: '-90deg' }] },
   menuRoot: { flex: 1 },

@@ -1,5 +1,11 @@
-import InstrumentComingSoonScreen from '@/screens/home/InstrumentComingSoonScreen';
+import { RefreshScope } from '@/context/RefreshContext';
+
+import FuturesProfileScreen from '@/screens/home/FuturesProfileScreen';
 
 export default function FuturesProfileRoute() {
-  return <InstrumentComingSoonScreen title="Futures" />;
+  return (
+    <RefreshScope id="home">
+      <FuturesProfileScreen />
+    </RefreshScope>
+  );
 }

@@ -51,15 +51,16 @@ export function SymbolLink({ onPress, label, children }) {
   );
 }
 
-export default function SymbolLogo({ symbol }) {
+export default function SymbolLogo({ symbol, size }) {
   const [failed, setFailed] = useState(false);
   const label = String(symbol || '').trim();
   const usable = label && label !== '—';
+  const dims = size ? { width: size, height: size } : null;
 
   if (!usable || failed) {
     return (
-      <View style={styles.fallback}>
-        <Text style={styles.initials} allowFontScaling={false}>{usable ? label.slice(0, 2).toUpperCase() : ''}</Text>
+      <View style={[styles.fallback, dims, size ? { borderRadius: size * 0.2 } : null]}>
+        <Text style={[styles.initials, size ? { fontSize: Math.round(size * 0.32) } : null]} allowFontScaling={false}>{usable ? label.slice(0, 2).toUpperCase() : ''}</Text>
       </View>
     );
   }
@@ -67,7 +68,7 @@ export default function SymbolLogo({ symbol }) {
   return (
     <Image
       source={{ uri: cdnApi(label) }}
-      style={styles.logo}
+      style={[styles.logo, dims]}
       resizeMode="contain"
       onError={() => setFailed(true)}
       accessibilityLabel={`${label} logo`}
