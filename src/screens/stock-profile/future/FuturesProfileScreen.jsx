@@ -8,8 +8,8 @@ import StockHeroCard from '@/components/stock-profile/StockHeroCard';
 import KeyStatsOverview from '@/components/stock-profile/future/FutureKeyStatsOverview';
 import StockStatisticsGrid from '@/components/stock-profile/ProfileStatsGrid';
 import MarketBiasCard from '@/components/stock-profile/future/FutureMarketBiasCard';
-import HighLowRange from '@/components/stock-profile/future/FutureHighLowRange';
-import Performance from '@/components/stock-profile/future/FuturePerformance';
+import PricePerformance from '@/components/stock-profile/future/PricePerformance';
+import OIChanges from '@/components/stock-profile/future/OIChanges';
 import PriceRangeBarComponent from '@/components/stock-profile/future/PriceRangeBarComponent';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -20,15 +20,24 @@ import { socketRequest } from '@/utils/socket';
 
 const TABS = [
   { key: 'stats', label: 'Key Stats' },
+  { key: 'oi', label: 'OI Overview' },
   { key: 'options', label: 'Options Data' },
+  { key: 'takeaways', label: 'RM Takeaways' },
 ];
 
-const PROFILE_FIELDS = ['price', 'price_change', 'price_change_value', 'wap', 'lot_size', 'margin', 'high', 'low', 'high_5_days', 'low_5_days', 'high_20_day', 'low_20_day', 'high_30_days', 'low_30_days', 'dist_high', 'dist_low', 'dist_high_5_day', 'dist_low_5_day', 'dist_high_20_day', 'dist_low_20_day', 'dist_high_30_day', 'dist_low_30_day', 'key_levels', 'rank', 'rank_chg_20', 'volume', 'vol_chg', 'price_action', 'price_momemtum', 'oi_qty_change_1_day', 'oi_qty_change_5_day'];
-const GRAPH_FIELDS = ['prev_1d_close', 'prev_5day_close', 'prev_30day_close', 'graphData1Day', 'graphData5Days', 'graphData30Days'];
+const GRAPH_FIELDS = ['prev_1d_close', 'prev_5day_close', 'prev_30day_close', 'graphData1Day', 'graphData5Days', 'graphData10Days', 'graphData20Days', 'graphData30Days', 'graphData60Days'];
 
 function unwrap(res) {
   const data = res?.result ?? res;
-  return data && typeof data === 'object' ? data : null;
+  return data && typeof data === 'object' && !Array.isArray(data) ? data : null;
+}
+
+function objectOf(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function arrayOf(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function pick(source, fields) {
@@ -40,14 +49,40 @@ function pick(source, fields) {
 function readProfile(res) {
   const payload = unwrap(res);
   if (!payload) return null;
+  const data = objectOf(payload.data);
+  const keyStats = objectOf(data.key_stats);
+  const oiOverview = objectOf(data.oi_overview);
+  const mom = objectOf(oiOverview.mom);
+  const optionData = objectOf(data.optionData);
+  const daily = objectOf(optionData.daily_data);
+  const summary = objectOf(data.rm_summary);
   return {
+    ...keyStats,
+    price_performance: objectOf(keyStats.price_performance),
+    market_bias: objectOf(keyStats.market_bias),
+    oi_changes: arrayOf(keyStats.oi_changes),
     market_status: payload.market_status,
     cdate: payload.cdate,
-    bias: payload.data?.bias,
-    tradingDataComment: payload.data?.tradingDataComment,
-    market_bias: payload.data?.profile?.market_bias,
-    oi_summary: payload.data?.oi_summary,
-    ...pick(payload.data?.profile, PROFILE_FIELDS),
+    expiry_date: payload.expiry_date,
+    expiry_state: payload.expiry_state,
+    oi_overview: {
+      data5days: arrayOf(oiOverview.data5days),
+      mom: { ...mom, data: arrayOf(mom.data) },
+      oi_performance: arrayOf(oiOverview.oi_performance),
+    },
+    optionData: {
+      ...optionData,
+      daily_data: {
+        ...daily,
+        call: { ...objectOf(daily.call), data: arrayOf(daily.call?.data) },
+        put: { ...objectOf(daily.put), data: arrayOf(daily.put?.data) },
+      },
+    },
+    rm_summary: {
+      key_movements: arrayOf(summary.key_movements),
+      rm_insights: arrayOf(summary.rm_insights),
+      key_observations: arrayOf(summary.key_observations),
+    },
   };
 }
 
@@ -69,7 +104,7 @@ export default function FuturesProfileScreen() {
   const [graph, setGraph] = useState(null);
 
   const fetchProfile = useCallback(
-    () => socketRequest('GET_APP_STOCK_PROFILE_V2', { symbol, expiry }),
+    () => socketRequest('GET_APP_STOCK_PROFILE', { symbol, expiry }),
     [symbol, expiry],
   );
   const fetchGraph = useCallback(
@@ -77,7 +112,7 @@ export default function FuturesProfileScreen() {
     [symbol, expiry],
   );
 
-  useSocketEvent('REC_APP_STOCK_PROFILE_V2', (res) => {
+  useSocketEvent('REC_APP_STOCK_PROFILE', (res) => {
     const next = readProfile(res);
     if (next) setProfile(next);
   });
@@ -91,7 +126,7 @@ export default function FuturesProfileScreen() {
     fetchProfile().catch(() => { });
   }, [fetchProfile]);
 
-  useEffect(() => {
+  useEffect(() => { 
     setGraph(null);
     fetchGraph().catch(() => { });
   }, [fetchGraph]);
@@ -129,17 +164,17 @@ export default function FuturesProfileScreen() {
           </Pressable>
         </View>
       </View>
-      <View style={styles.tabs}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabs}>
         {TABS.map((item) => {
           const selected = tab === item.key;
           return (
             <Pressable key={item.key} onPress={() => setTab(item.key)} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={item.label} style={[styles.tab, Platform.OS === 'web' ? styles.pointer : null]}>
-              <Text style={[styles.tabLabel, selected ? styles.tabLabelActive : null]} maxFontSizeMultiplier={1.1}>{item.label}</Text>
+              <Text style={[styles.tabLabel, selected ? styles.tabLabelActive : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{item.label}</Text>
               <View style={selected ? styles.tabIndicator : styles.tabIndicatorSpacer} />
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <StockHeroCard
           status={profile?.market_status}
@@ -152,24 +187,47 @@ export default function FuturesProfileScreen() {
           price_change_value={profile?.price_change_value}
           lot_size={profile?.lot_size}
           margin={profile?.margin}
+          wap={profile?.wap}
         />
-        {tab === 'stats' ? (
-          <>
-            <KeyStatsOverview profile={profile} graph={graph} />
-            <MarketBiasCard bias={profile?.bias} comment={profile?.tradingDataComment} priceChange={profile?.market_bias?.price_change} futureOi={profile?.market_bias?.future_oi} />
-            <StockStatisticsGrid profile={profile} /> 
-            <HighLowRange profile={profile} />
-            <Performance profile={profile} />
-          </>
-        ) : (
-          <PriceRangeBarComponent high={profile?.high} low={profile?.low} price={profile?.price} wap={profile?.wap} />
-        )}
+        {profileTab(tab, profile, graph)}
       </ScrollView>
     </>
   );
 
   if (isLaptop) return <View style={styles.fill}>{body}</View>;
   return <SafeAreaView style={styles.fill} edges={['top']}>{body}</SafeAreaView>;
+}
+
+function profileTab(tab, profile, graph) {
+  if (tab === 'stats') return <KeyStatsTab profile={profile} graph={graph} />;
+  if (tab === 'oi') return <OiOverviewTab overview={profile?.oi_overview} />;
+  if (tab === 'options') return <OptionsDataTab optionData={profile?.optionData} />;
+  if (tab === 'takeaways') return <RmTakeawaysTab summary={profile?.rm_summary} />;
+  return null;
+}
+
+function KeyStatsTab({ profile, graph }) {
+  return (
+    <>
+      <KeyStatsOverview profile={profile} graph={graph} />
+      <StockStatisticsGrid profile={profile} />
+      <MarketBiasCard bias={profile?.bias} comment={profile?.tradingDataComment} priceChange={profile?.market_bias?.price_change} futureOi={profile?.market_bias?.future_oi} score={profile?.score ?? profile?.market_bias?.score} />
+      <PricePerformance data={profile?.price_performance} />
+      <OIChanges data={profile?.oi_changes} />
+    </>
+  );
+}
+
+function OiOverviewTab() {
+  return null;
+}
+
+function OptionsDataTab() {
+  return null;
+}
+
+function RmTakeawaysTab() {
+  return null;
 }
 
 const createStyles = (f) => ({
@@ -188,8 +246,9 @@ const createStyles = (f) => ({
   iconBtn: { width: f(40, 44), height: f(40, 44), alignItems: 'center', justifyContent: 'center' },
   searchBtn: { marginRight: f(10, 14) },
   pointer: { cursor: 'pointer' },
-  tabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
-  tab: { flex: 1, alignItems: 'stretch', paddingTop: f(16, 18) },
+  tabsScroll: { flexGrow: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
+  tabs: { flexDirection: 'row', flexGrow: 1 },
+  tab: { flexGrow: 1, alignItems: 'stretch', paddingTop: f(16, 18), paddingHorizontal: f(12, 18) },
   tabLabel: { textAlign: 'center', fontSize: f(14, 16), lineHeight: f(18, 22), fontFamily: 'Inter_500Medium', color: '#64748B' },
   tabLabelActive: { fontFamily: 'Inter_600SemiBold', color: '#0071A9' },
   tabIndicator: { height: 2, marginTop: f(14, 16), backgroundColor: '#0071A9' },

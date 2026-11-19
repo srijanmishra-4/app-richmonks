@@ -73,6 +73,24 @@ function formatPercent(num) {
   return `${num > 0 ? '+' : '-'}${abs}%`;
 }
 
+function formatScore(val) {
+  if (typeof val === 'number') return Number.isFinite(val) ? String(Math.round(val * 10) / 10) : '—';
+  if (val == null || typeof val === 'boolean' || typeof val === 'object') return '—';
+  const text = String(val).trim();
+  if (!text || /^(null|undefined|nan|-|—)$/i.test(text)) return '—';
+  return text;
+}
+
+function ScoreIcon({ color, size }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 16 16">
+      <Path d="M2.6 11.2a5.6 5.6 0 1 1 10.8 0" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+      <Path d="M8 9.4 11 6.1" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+      <Circle cx="8" cy="9.4" r="1.15" fill={color} />
+    </Svg>
+  );
+}
+
 function SentimentIcon({ glyph, theme, size }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
@@ -127,31 +145,37 @@ function Metric({ label, value, hint, styles }) {
   );
 }
 
-function MarketBiasCard({ bias, comment, priceChange, futureOi }) {
+function MarketBiasCard({ bias, comment, priceChange, futureOi, score }) {
   const styles = useFluidStyles(createStyles);
   const meta = resolveBias(bias);
   if (!meta) return null;
 
   const theme = THEMES[meta.theme];
-  const description = typeof comment === 'string' ? comment.trim() : '';
+  // const description = typeof comment === 'string' ? comment.trim() : '';
 
   return (
     <View
       style={[
         styles.card,
-        { backgroundColor: theme.card, borderColor: theme.border, boxShadow: `0 6px 20px ${theme.glow}` },
+        { backgroundColor: theme.card, borderColor: theme.border, boxShadow: `0 4px 14px ${theme.glow}` },
       ]}
     >
       <View style={styles.top}>
         <SentimentIcon glyph={meta.glyph} theme={theme} size={styles.icon.width} />
         <View style={styles.heading}>
           <Text style={styles.eyebrow} numberOfLines={1} maxFontSizeMultiplier={1.1}>MARKET BIAS</Text>
-          <Text style={[styles.title, { color: theme.title }]} maxFontSizeMultiplier={1.1}>
+          <Text style={[styles.title, { color: theme.title }]} numberOfLines={1} maxFontSizeMultiplier={1.1}>
             {meta.title}
           </Text>
-          {description ? (
+          {/* {description ? (
             <Text style={styles.description} numberOfLines={2} maxFontSizeMultiplier={1.2}>{description}</Text>
-          ) : null}
+          ) : null} */}
+        </View>
+        <View style={styles.scoreChip}>
+          <ScoreIcon color={theme.title} size={styles.scoreIcon.width} />
+          <Text style={styles.scoreText} numberOfLines={1} maxFontSizeMultiplier={1.1}>
+            Score : <Text style={[styles.scoreValue, { color: theme.title }]}>{formatScore(score)}</Text>
+          </Text>
         </View>
       </View>
 
@@ -169,54 +193,69 @@ export default memo(MarketBiasCard);
 const createStyles = (f) => ({
   card: {
     marginHorizontal: f(16, 24),
-    marginBottom: f(28, 36),
-    paddingHorizontal: f(12, 14),
-    paddingVertical: f(10, 12),
-    borderRadius: f(14, 16),
+    marginBottom: f(18, 24),
+    marginTop: f(8, 12),
+    paddingHorizontal: f(10, 12),
+    paddingVertical: f(11, 13),
+    borderRadius: f(12, 14),
     borderWidth: 1,
   },
-  top: { flexDirection: 'row', alignItems: 'center', gap: f(10, 12) },
-  icon: { width: f(44, 52) },
+  top: { flexDirection: 'row', alignItems: 'center', gap: f(8, 10) },
+  icon: { width: f(36, 42) },
   heading: { flex: 1, minWidth: 0 },
   eyebrow: {
-    fontSize: f(8.5, 9.5),
-    lineHeight: f(12, 13),
+    fontSize: f(10, 11),
+    lineHeight: f(13, 14),
     fontFamily: 'Inter_500Medium',
-    letterSpacing: 1.1,
+    letterSpacing: 0.9,
     color: MUTED,
   },
   title: {
-    marginTop: f(3, 4),
-    fontSize: f(16, 18),
-    lineHeight: f(20, 22),
+    marginTop: f(2, 3),
+    fontSize: f(14, 16),
+    lineHeight: f(18, 20),
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 0.2,
   },
+  scoreChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    flexShrink: 0,
+    gap: f(5, 6),
+    paddingVertical: f(5, 6),
+    paddingHorizontal: f(8, 10),
+    borderRadius: f(8, 10),
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+  },
+  scoreIcon: { width: f(14, 16) },
+  scoreText: { fontSize: f(12, 13), lineHeight: f(15, 16), fontFamily: 'Inter_500Medium', color: MUTED },
+  scoreValue: { fontFamily: 'Inter_600SemiBold' },
   description: {
-    marginTop: f(3, 4),
-    fontSize: f(10.5, 11.5),
-    lineHeight: f(15, 16),
+    marginTop: f(2, 3),
+    fontSize: f(10, 11),
+    lineHeight: f(14, 15),
     fontFamily: 'Inter_400Regular',
     color: '#334155',
   },
   metrics: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    marginTop: f(10, 12),
-    paddingVertical: f(8, 10),
-    paddingHorizontal: f(8, 10),
-    borderRadius: f(10, 12),
+    marginTop: f(8, 10),
+    paddingVertical: f(6, 8),
+    paddingHorizontal: f(6, 8),
+    borderRadius: f(8, 10),
     backgroundColor: 'rgba(255, 255, 255, 0.72)',
   },
-  metric: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: f(10, 12) },
-  divider: { width: 1, alignSelf: 'stretch', marginHorizontal: f(8, 10), backgroundColor: 'rgba(148, 163, 184, 0.25)' },
-  badge: { width: f(22, 26), height: f(22, 26), borderRadius: f(11, 13), alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  metric: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: f(12, 14) },
+  divider: { width: 1, alignSelf: 'stretch', marginHorizontal: f(6, 8), backgroundColor: 'rgba(148, 163, 184, 0.25)' },
+  badge: { width: f(18, 22), height: f(18, 22), borderRadius: f(9, 11), alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   badgeUp: { backgroundColor: '#E3F6E8' },
   badgeDown: { backgroundColor: '#FBE4E3' },
   badgeFlat: { backgroundColor: '#F1F5F9' },
-  trend: { width: f(9, 10) },
-  metricBody: { flex: 1, minWidth: 0 },
-  metricLabel: { fontSize: f(11, 12), lineHeight: f(14, 16), fontFamily: 'Inter_500Medium', color: MUTED },
-  metricValue: { marginTop: 1, fontSize: f(14, 16), lineHeight: f(18, 20), fontFamily: 'Inter_600SemiBold' },
-  compare: { marginTop: 1, fontSize: f(10.5, 11.5), lineHeight: f(14, 15), fontFamily: 'Inter_400Regular', color: SUBTLE },
+  trend: { width: f(8, 9) },
+  metricBody: { flexShrink: 1, minWidth: 0 },
+  metricLabel: { fontSize: f(10, 11), lineHeight: f(13, 14), fontFamily: 'Inter_500Medium', color: MUTED },
+  metricValue: { marginTop: 1, fontSize: f(12, 14), lineHeight: f(16, 18), fontFamily: 'Inter_600SemiBold' },
+  compare: { marginTop: 1, fontSize: f(10, 11), lineHeight: f(13, 14), fontFamily: 'Inter_400Regular', color: SUBTLE },
 });

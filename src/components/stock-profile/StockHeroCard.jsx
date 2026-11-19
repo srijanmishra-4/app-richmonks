@@ -99,6 +99,7 @@ function StockHeroCard({
   price_change_value,
   lot_size,
   margin,
+  wap,
   isOption,
   optionType,
   onOptionTypeChange,
@@ -118,6 +119,9 @@ function StockHeroCard({
   const lots = formatIndian(lot_size);
   const marginNum = formatIndian(margin);
   const marginText = marginNum ? `${marginNum}%` : '—';
+  const priceNum = parseSigned(price);
+  const wapNum = parseSigned(wap);
+  const wapColor = priceNum == null || wapNum == null ? MUTED : priceNum > wapNum ? GREEN : RED;
 
   return (
     <View style={[styles.card, wide ? styles.cardWide : null]}>
@@ -172,7 +176,11 @@ function StockHeroCard({
             <Text style={[styles.futureText, wide ? styles.futureTextWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>Future Profile</Text>
             <ChevronRightIcon size={14} color="#0071A9" />
           </Pressable>
-        ) : null}
+        ) : (
+          <Text style={[styles.metaLabel, styles.wap, wide ? styles.metaLabelWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>
+            WAP: <Text style={[styles.metaValue, { color: wapColor }]}>{formatRupee(wap)}</Text>
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -200,6 +208,7 @@ const createStyles = (f) => ({
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: f(12, 16), marginTop: f(14, 16) },
   metaLeft: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: f(12, 16) },
   metaLabel: { flexShrink: 1, fontSize: f(12, 13), lineHeight: f(16, 18), fontFamily: 'Inter_400Regular', color: MUTED },
+  wap: { flexShrink: 0 },
   futureLink: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 2 },
   futureText: { fontSize: f(12, 13), lineHeight: f(16, 18), fontFamily: 'Inter_600SemiBold', color: '#0071A9' },
   pointer: { cursor: 'pointer' },

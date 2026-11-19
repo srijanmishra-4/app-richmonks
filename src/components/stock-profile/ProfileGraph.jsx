@@ -38,10 +38,12 @@ function CandlestickMark() {
   );
 }
 
-function ProfileGraph({ data, period, onPeriodChange, fill }) {
+function ProfileGraph({ data, period, onPeriodChange, periods, fill }) {
   const styles = useFluidStyles(createStyles);
   const [localPeriod, setLocalPeriod] = useState('1D');
   const [chartWidth, setChartWidth] = useState(0);
+  const items = periods?.length ? periods : PERIODS;
+  const compact = items.length > 3;
   const selected = period || localPeriod;
   const points = useMemo(() => graphPoints(data), [data]);
   const onChartBoxLayout = (event) => {
@@ -66,19 +68,19 @@ function ProfileGraph({ data, period, onPeriodChange, fill }) {
         )}
       </View>
       <View style={[styles.controls, fill ? styles.controlsWide : null]}>
-        <View style={styles.pills}>
-          {PERIODS.map((item) => {
+        <View style={[styles.pills, compact ? styles.pillsCompact : null]}>
+          {items.map((item) => {
             const active = item.key === selected;
             return (
               <Pressable
                 key={item.key}
                 onPress={() => choose(item.key)}
-                style={[fill ? styles.pillWide : styles.pill, active ? styles.pillActive : styles.pillIdle, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
+                style={[fill ? styles.pillWide : styles.pill, compact ? styles.pillCompact : null, fill && compact ? styles.pillCompactWide : null, active ? styles.pillActive : styles.pillIdle, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={item.label}
               >
-                <Text style={[styles.pillText, fill ? styles.pillTextWide : null, active ? styles.pillTextActive : styles.pillTextIdle]} numberOfLines={1} maxFontSizeMultiplier={1.1}>
+                <Text style={[styles.pillText, fill ? styles.pillTextWide : null, compact ? styles.pillTextCompact : null, active ? styles.pillTextActive : styles.pillTextIdle]} numberOfLines={1} maxFontSizeMultiplier={1.1}>
                   {item.label}
                 </Text>
               </Pressable>
@@ -120,6 +122,7 @@ const createStyles = (f) => ({
     paddingHorizontal: f(16, 24),
   },
   pills: { flexDirection: 'row', alignItems: 'center', gap: f(8, 10), flexShrink: 1 },
+  pillsCompact: { flex: 1, gap: f(4, 6) },
   pill: {
     height: f(30, 34),
     minWidth: f(48, 56),
@@ -131,7 +134,9 @@ const createStyles = (f) => ({
   },
   pillActive: { backgroundColor: '#EEF6FB', borderColor: '#EEF6FB' },
   pillIdle: { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+  pillCompact: { flex: 1, minWidth: 0, height: f(28, 32), paddingHorizontal: f(2, 4) },
   pillText: { fontSize: f(12.5, 14), lineHeight: f(16, 18) },
+  pillTextCompact: { fontSize: f(11.5, 13), lineHeight: f(15, 16) },
   pillTextActive: { fontFamily: 'Inter_500Medium', color: ACTIVE },
   pillTextIdle: { fontFamily: 'Inter_400Regular', color: '#64748B' },
   candle: {
@@ -153,6 +158,7 @@ const createStyles = (f) => ({
   watchlist: { height: 36, marginRight: 8, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 6 },
   watchlistText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_500Medium', color: '#0F172A' },
   pillWide: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
+  pillCompactWide: { paddingVertical: 6, paddingHorizontal: 6 },
   pillTextWide: { fontSize: 13, lineHeight: 18 },
   candleWide: { width: 36, height: 36 },
 });
