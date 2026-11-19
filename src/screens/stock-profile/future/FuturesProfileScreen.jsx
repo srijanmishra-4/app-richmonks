@@ -11,6 +11,9 @@ import MarketBiasCard from '@/components/stock-profile/future/FutureMarketBiasCa
 import PricePerformance from '@/components/stock-profile/future/PricePerformance';
 import OIChanges from '@/components/stock-profile/future/OIChanges';
 import PriceRangeBarComponent from '@/components/stock-profile/future/PriceRangeBarComponent';
+import FiveDayData from '@/components/stock-profile/future/FiveDayData';
+import MomOiTable from '@/components/stock-profile/future/MomOiTable';
+import OIChangesTable from '@/components/stock-profile/future/OIChangesTable';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSocketEvent } from '@/hooks/useSocket';
@@ -52,7 +55,7 @@ function readProfile(res) {
   const data = objectOf(payload.data);
   const keyStats = objectOf(data.key_stats);
   const oiOverview = objectOf(data.oi_overview);
-  const mom = objectOf(oiOverview.mom);
+  const mom = oiOverview.mom;
   const optionData = objectOf(data.optionData);
   const daily = objectOf(optionData.daily_data);
   const summary = objectOf(data.rm_summary);
@@ -67,8 +70,8 @@ function readProfile(res) {
     expiry_state: payload.expiry_state,
     oi_overview: {
       data5days: arrayOf(oiOverview.data5days),
-      mom: { ...mom, data: arrayOf(mom.data) },
-      oi_performance: arrayOf(oiOverview.oi_performance),
+      mom: Array.isArray(mom) ? mom : Array.isArray(mom?.data) ? mom.data : mom,
+      oi_changes: arrayOf(oiOverview.oi_changes ?? oiOverview.i_changes ?? keyStats.oi_changes),
     },
     optionData: {
       ...optionData,
@@ -189,7 +192,7 @@ export default function FuturesProfileScreen() {
           margin={profile?.margin}
           wap={profile?.wap}
         />
-        {profileTab(tab, profile, graph)}
+        {profileTab(tab, profile, graph, symbol)}
       </ScrollView>
     </>
   );
@@ -198,9 +201,9 @@ export default function FuturesProfileScreen() {
   return <SafeAreaView style={styles.fill} edges={['top']}>{body}</SafeAreaView>;
 }
 
-function profileTab(tab, profile, graph) {
+function profileTab(tab, profile, graph, symbol) {
   if (tab === 'stats') return <KeyStatsTab profile={profile} graph={graph} />;
-  if (tab === 'oi') return <OiOverviewTab overview={profile?.oi_overview} />;
+  if (tab === 'oi') return <OiOverviewTab overview={profile?.oi_overview} symbol={symbol} />;
   if (tab === 'options') return <OptionsDataTab optionData={profile?.optionData} />;
   if (tab === 'takeaways') return <RmTakeawaysTab summary={profile?.rm_summary} />;
   return null;
@@ -218,8 +221,14 @@ function KeyStatsTab({ profile, graph }) {
   );
 }
 
-function OiOverviewTab() {
-  return null;
+function OiOverviewTab({ overview, symbol }) {
+  return (
+    <>
+      <FiveDayData oi_overview={overview} symbol={symbol} />
+      <MomOiTable oi_overview={overview} symbol={symbol} />
+      <OIChangesTable oi_overview={overview} symbol={symbol} />
+    </>
+  );
 }
 
 function OptionsDataTab() {
