@@ -180,7 +180,7 @@ const createStyles = (f) => ({
   accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
   accentBarLatest: { backgroundColor: GREEN },
   accentBarNeutral: { backgroundColor: '#E2E8F0' },
-  rowInner: { flexDirection: 'row', alignItems: 'center', paddingVertical: f(8, 9), paddingHorizontal: f(10, 12) },
+  rowInner: { flexDirection: 'row', alignItems: 'center', paddingVertical: f(12, 14), paddingHorizontal: f(10, 12) },
   cell: { minWidth: 0, justifyContent: 'center' },
   dateCell: { flex: 0.82, alignItems: 'flex-start' },
   priceCell: { flex: 1.28, alignItems: 'center' },

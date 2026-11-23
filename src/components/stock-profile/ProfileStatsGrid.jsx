@@ -50,19 +50,6 @@ function textVal(val) {
   return s;
 }
 
-function dmaStatus(val) {
-  if (typeof val === 'boolean') return val ? ['Above', GREEN] : ['Below', RED];
-  if (typeof val === 'number') return Number.isFinite(val) ? (val > 0 ? ['Above', GREEN] : ['Below', RED]) : ['-', null];
-  const s = textVal(val);
-  if (s === '-') return ['-', null];
-  const k = s.toLowerCase();
-  if (k === 'above' || k === 'abv' || k === 'true' || k === 'y' || k === 'yes' || k === '1') return ['Above', GREEN];
-  if (k === 'below' || k === 'blw' || k === 'false' || k === 'n' || k === 'no' || k === '0') return ['Below', RED];
-  if (k.includes('above')) return ['Above', GREEN];
-  if (k.includes('below')) return ['Below', RED];
-  return [s, null];
-}
-
 function gbrMeta(val) {
   const s = textVal(val);
   if (s === '-') return { text: '-', color: null };
@@ -111,13 +98,12 @@ function optionRows(profile, stats) {
 
 function futureRows(profile) {
   const price = profile?.price;
-  const performance = profile?.price_performance;
   const rolling = profile?.rolling_cost;
   const pain = profile?.pain_point;
   const pivot = profile?.pivot_point;
-  const d5 = dmaStatus(performance?.abv_5_dma);
-  const d20 = dmaStatus(performance?.abv_20_dma);
-  const d100 = dmaStatus(performance?.abv_100_dma);
+  const dma5 = profile?.dma_5;
+  const dma20 = profile?.dma_20;
+  const dma100 = profile?.dma_100;
   const rankChg = chgMeta(profile?.rank_chg_20);
   const volChg = pctMeta(profile?.vol_chg);
   const gbr = gbrMeta(profile?.color);
@@ -125,7 +111,7 @@ function futureRows(profile) {
     [{ label: 'Rolling Cost', value: rupeeText(rolling), color: levelColor(price, rolling) }, { label: 'Max Pain', value: rupeeText(pain, 2), color: levelColor(price, pain) }, { label: 'Pivot Point', value: rupeeText(pivot), color: levelColor(price, pivot) }],
     [{ label: 'GBR Color', value: gbr.text, color: gbr.color }, { label: 'Buy Above', value: rupeeText(profile?.buy_above) }, { label: 'Sell Below', value: rupeeText(profile?.sell_below) }],
     [{ label: 'Rank. (Δ 20 Days)', value: numText(profile?.rank), hint: rankChg.text, hintColor: rankChg.color }, { label: 'Volume. (Δ %)', value: `${numText(profile?.volume)} L`, hint: volChg.text, hintColor: volChg.color }, { label: 'Price Action', value: textVal(profile?.price_action) }],
-    [{ label: '5 DMA', value: d5[0], color: d5[1] }, { label: '20 DMA', value: d20[0], color: d20[1] }, { label: '100 DMA', value: d100[0], color: d100[1] }],
+    [{ label: '5 DMA', value: rupeeText(dma5, 2), color: levelColor(price, dma5) }, { label: '20 DMA', value: rupeeText(dma20, 2), color: levelColor(price, dma20) }, { label: '100 DMA', value: rupeeText(dma100, 2), color: levelColor(price, dma100) }],
   ];
 }
 
