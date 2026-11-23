@@ -161,7 +161,7 @@ function FiveDayData({ oi_overview, data5days, symbol }) {
 export default memo(FiveDayData);
 
 const createStyles = (f) => ({
-  wrap: { marginHorizontal: f(16, 24), marginTop: f(16, 20) },
+  wrap: { marginHorizontal: f(16, 24), marginTop: f(22, 28), paddingTop: f(18, 22), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E2E8F0' },
   headingWrap: { marginBottom: f(6, 8) },
   title: { fontSize: f(16, 17), lineHeight: f(20, 22), fontFamily: 'Inter_600SemiBold', color: TEXT },
   subtitle: { marginTop: f(1, 2), fontSize: f(11, 12), lineHeight: f(14, 16), fontFamily: 'Inter_500Medium', color: MUTED },

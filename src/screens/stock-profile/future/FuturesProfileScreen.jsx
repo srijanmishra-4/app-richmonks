@@ -14,6 +14,7 @@ import PriceRangeBarComponent from '@/components/stock-profile/future/PriceRange
 import FiveDayData from '@/components/stock-profile/future/FiveDayData';
 import MomOiTable from '@/components/stock-profile/future/MomOiTable';
 import OIChangesTable from '@/components/stock-profile/future/OIChangesTable';
+import OptionOiValue from '@/components/stock-profile/future/OptionOiValue';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSocketEvent } from '@/hooks/useSocket';
@@ -27,6 +28,14 @@ const TABS = [
   { key: 'options', label: 'Options Data' },
   { key: 'takeaways', label: 'RM Takeaways' },
 ];
+
+const DEFAULT_TAB = 'stats';
+
+function tabFromParam(value) {
+  const key = paramString(value).trim().toLowerCase();
+  const match = TABS.find((item) => item.key === key);
+  return match ? match.key : DEFAULT_TAB;
+}
 
 const GRAPH_FIELDS = ['prev_1d_close', 'prev_5day_close', 'prev_30day_close', 'graphData1Day', 'graphData5Days', 'graphData10Days', 'graphData20Days', 'graphData30Days', 'graphData60Days'];
 
@@ -102,7 +111,8 @@ export default function FuturesProfileScreen() {
   const params = useLocalSearchParams();
   const symbol = paramString(params.symbol).trim();
   const expiry = paramString(params.expiry).trim() || 'near';
-  const [tab, setTab] = useState('stats');
+  const rawTab = paramString(params.tab);
+  const tab = tabFromParam(rawTab);
   const [profile, setProfile] = useState(null);
   const [graph, setGraph] = useState(null);
 
@@ -134,6 +144,11 @@ export default function FuturesProfileScreen() {
     fetchGraph().catch(() => { });
   }, [fetchGraph]);
 
+  useEffect(() => {
+    if (rawTab === tab) return;
+    navigation.setParams({ tab });
+  }, [navigation, rawTab, tab]);
+
   useRegisterRefresh(fetchProfile);
   useRegisterRefresh(fetchGraph);
 
@@ -151,6 +166,11 @@ export default function FuturesProfileScreen() {
     if (value === expiry) return;
     navigation.setParams({ expiry: value });
   }, [navigation, expiry]);
+
+  const onTabChange = useCallback((key) => {
+    if (key === tab) return;
+    navigation.setParams({ tab: key });
+  }, [navigation, tab]);
 
   const body = (
     <>
@@ -171,7 +191,7 @@ export default function FuturesProfileScreen() {
         {TABS.map((item) => {
           const selected = tab === item.key;
           return (
-            <Pressable key={item.key} onPress={() => setTab(item.key)} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={item.label} style={[styles.tab, Platform.OS === 'web' ? styles.pointer : null]}>
+            <Pressable key={item.key} onPress={() => onTabChange(item.key)} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={item.label} style={[styles.tab, Platform.OS === 'web' ? styles.pointer : null]}>
               <Text style={[styles.tabLabel, selected ? styles.tabLabelActive : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{item.label}</Text>
               <View style={selected ? styles.tabIndicator : styles.tabIndicatorSpacer} />
             </Pressable>
@@ -203,7 +223,7 @@ export default function FuturesProfileScreen() {
 
 function profileTab(tab, profile, graph, symbol) {
   if (tab === 'stats') return <KeyStatsTab profile={profile} graph={graph} />;
-  if (tab === 'oi') return <OiOverviewTab overview={profile?.oi_overview} symbol={symbol} />;
+  if (tab === 'oi') return <OiOverviewTab overview={profile?.oi_overview} pcr={profile?.pcr} optionData={profile?.optionData} symbol={symbol} />;
   if (tab === 'options') return <OptionsDataTab optionData={profile?.optionData} />;
   if (tab === 'takeaways') return <RmTakeawaysTab summary={profile?.rm_summary} />;
   return null;
@@ -221,9 +241,10 @@ function KeyStatsTab({ profile, graph }) {
   );
 }
 
-function OiOverviewTab({ overview, symbol }) {
+function OiOverviewTab({ overview, pcr, optionData, symbol }) {
   return (
     <>
+      <OptionOiValue pcr={pcr} optionData={optionData} />
       <FiveDayData oi_overview={overview} symbol={symbol} />
       <MomOiTable oi_overview={overview} symbol={symbol} />
       <OIChangesTable oi_overview={overview} symbol={symbol} />
