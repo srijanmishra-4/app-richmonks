@@ -5,7 +5,8 @@ import { useFocusEffect } from 'expo-router';
 
 import LineGraph from '@/components/LineGraph';
 import CandlestickGraph from '@/components/CandlestickGraph';
-import { BookmarkIcon, LineGraphIcon } from '@/components/icons/StockProfileIcons';
+import { LineGraphIcon } from '@/components/icons/StockProfileIcons';
+import WatchlistButton from '@/components/stock-profile/WatchlistButton';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { socketRequest } from '@/utils/socket';
 import { useFluidStyles } from '@/utils/responsive';
@@ -59,7 +60,7 @@ function readCandleResponse(res) {
   return data;
 }
 
-function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, optionType, strikePr, expiryState, keyStats, header }) {
+function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, optionType, strikePr, expiryState, keyStats, header, watchlistAdded, watchlistDisabled, onWatchlist }) {
   const styles = useFluidStyles(createStyles);
   const [localPeriod, setLocalPeriod] = useState('1D');
   const [chartWidth, setChartWidth] = useState(0);
@@ -183,10 +184,7 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, opt
         </View>
         {fill ? (
           <View style={styles.chartActions}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Watchlist" style={[styles.watchlist, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}>
-              <BookmarkIcon size={16} />
-              <Text style={styles.watchlistText} numberOfLines={1} maxFontSizeMultiplier={1.1}>Watchlist</Text>
-            </Pressable>
+            <WatchlistButton added={watchlistAdded} disabled={watchlistDisabled} onPress={onWatchlist} iconSize={16} label="Watchlist" labelStyle={styles.watchlistText} style={styles.watchlist} />
             <Pressable onPress={toggleMode} accessibilityRole="button" accessibilityLabel={graphMode === 'line' ? 'Show candlestick chart' : 'Show line chart'} style={[styles.candle, styles.candleWide, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}>
               {graphMode === 'line' ? <CandlestickMark /> : <LineGraphIcon size={18} />}
             </Pressable>

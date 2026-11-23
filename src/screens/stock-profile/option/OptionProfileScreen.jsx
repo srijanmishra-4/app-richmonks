@@ -10,9 +10,11 @@ import ProfileGraph from '@/components/stock-profile/ProfileGraph';
 import ProfileStatsGrid from '@/components/stock-profile/ProfileStatsGrid';
 import Option5DaysData from '@/components/stock-profile/option/Option5DaysData';
 import OptionStreak from '@/components/stock-profile/option/OptionStreak';
+import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { useCommonData } from '@/context/CommonDataContext';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useProfileWatchlist } from '@/hooks/useProfileWatchlist';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { optionSide } from '@/utils/stockProfile';
 import { paramString } from '@/utils/reportParams';
@@ -80,6 +82,15 @@ export default function OptionProfileScreen() {
   const strike = routeValue(params, 'strike_pr');
   const expiry = routeValue(params, 'expiry') || 'near';
   const urlPeriod = routeValue(params, 'period');
+  const snackbar = useSnackbar();
+  const watchlist = useProfileWatchlist({
+    kind: 'options',
+    symbol,
+    expiry,
+    optionType,
+    strike,
+    onError: snackbar.show,
+  });
   const [graphPeriod, setGraphPeriod] = useState('1D');
   const [payload, setPayload] = useState(null);
   const [graph, setGraph] = useState(null);
@@ -200,6 +211,9 @@ export default function OptionProfileScreen() {
       isOption
       optionType={optionType}
       strike={strike}
+      watchlistAdded={watchlist.added}
+      watchlistDisabled={!watchlist.ready || watchlist.busy}
+      onWatchlist={watchlist.toggle}
     />
   );
 
@@ -243,13 +257,14 @@ export default function OptionProfileScreen() {
             </Pressable>
             {hero}
             <View style={styles.graphFill}>
-              <ProfileGraph fill data={series} period={graphPeriod} onPeriodChange={onPeriodChange} symbol={symbol} optionType={optionType} strikePr={strikePrice} expiryState={expiry} keyStats={keyStats} />
+              <ProfileGraph fill data={series} period={graphPeriod} onPeriodChange={onPeriodChange} symbol={symbol} optionType={optionType} strikePr={strikePrice} expiryState={expiry} keyStats={keyStats} watchlistAdded={watchlist.added} watchlistDisabled={!watchlist.ready || watchlist.busy} onWatchlist={watchlist.toggle} />
             </View>
           </View>
           <ScrollView style={styles.right} contentContainerStyle={styles.rightContent} keyboardShouldPersistTaps="handled">
             {side}
           </ScrollView>
         </View>
+        <Snackbar message={snackbar.message} visible={snackbar.visible} onDismiss={snackbar.hide} />
       </View>
     );
   }
@@ -264,6 +279,7 @@ export default function OptionProfileScreen() {
         </View>
         {side}
       </Animated.ScrollView>
+      <Snackbar message={snackbar.message} visible={snackbar.visible} onDismiss={snackbar.hide} />
     </>
   );
 

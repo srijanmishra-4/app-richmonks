@@ -11,10 +11,10 @@ export const BackChevronIcon = memo(function BackChevronIcon({ size = 24, color 
   );
 });
 
-export const BookmarkIcon = memo(function BookmarkIcon({ size = 24, color = '#0F172A' }) {
+export const BookmarkIcon = memo(function BookmarkIcon({ size = 24, color = '#0F172A', filled = false }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M6 5a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 5v15.5l-6-4-6 4V5Z" stroke={color} strokeWidth={STROKE} strokeLinejoin="round" />
+      <Path d="M6 5a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 5v15.5l-6-4-6 4V5Z" stroke={color} strokeWidth={STROKE} strokeLinejoin="round" fill={filled ? color : 'none'} />
     </Svg>
   );
 });

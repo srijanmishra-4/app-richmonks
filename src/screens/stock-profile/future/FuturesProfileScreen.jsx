@@ -19,8 +19,10 @@ import OptionsData from '@/components/stock-profile/future/OptionsData';
 import KeyMovements from '@/components/stock-profile/future/KeyMovements';
 import KeyObservations from '@/components/stock-profile/future/KeyObservations';
 import IntradayMovement from '@/components/stock-profile/future/IntradayMovement';
+import Snackbar, { useSnackbar } from '@/components/Snackbar';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useProfileWatchlist } from '@/hooks/useProfileWatchlist';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { paramString } from '@/utils/reportParams';
 import { useFluidStyles } from '@/utils/responsive';
@@ -115,6 +117,8 @@ export default function FuturesProfileScreen() {
   const params = useLocalSearchParams();
   const symbol = paramString(params.symbol).trim();
   const expiry = paramString(params.expiry).trim() || 'near';
+  const snackbar = useSnackbar();
+  const watchlist = useProfileWatchlist({ kind: 'futures', symbol, expiry, onError: snackbar.show });
   const rawTab = paramString(params.tab);
   const tab = tabFromParam(rawTab);
   const [profile, setProfile] = useState(null);
@@ -204,6 +208,9 @@ export default function FuturesProfileScreen() {
         price={profile?.price}
         priceChange={profile?.price_change}
         priceChangeValue={profile?.price_change_value}
+        watchlistAdded={watchlist.added}
+        watchlistDisabled={!watchlist.ready || watchlist.busy}
+        onWatchlist={watchlist.toggle}
       />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabs}>
         {TABS.map((item) => {
@@ -233,6 +240,7 @@ export default function FuturesProfileScreen() {
         />
         {profileTab(tab, profile, graphFor === requestKey ? graph : null, symbol, expiry)}
       </Animated.ScrollView>
+      <Snackbar message={snackbar.message} visible={snackbar.visible} onDismiss={snackbar.hide} />
     </>
   );
 

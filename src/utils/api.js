@@ -40,6 +40,15 @@ export const profileApi = {
 // Authenticated calls to the main API: attaches the stored JWT and logs out on 401.
 export const apiRequest = (path, options) => request(`${config.api}${path}`, { method: 'GET', auth: true, ...options });
 
+function withQuery(url, params) {
+  const parts = [];
+  Object.entries(params).forEach(([key, value]) => {
+    if (value == null || value === '') return;
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+  });
+  return parts.length ? `${url}?${parts.join('&')}` : url;
+}
+
 export const watchlistApi = {
   futures: () => request(`${config.watchlist}/futures/`, { method: 'GET', auth: true }),
   options: () => request(`${config.watchlist}/options/`, { method: 'GET', auth: true }),
@@ -47,6 +56,8 @@ export const watchlistApi = {
   addOption: (body) => request(`${config.watchlist}/options/add`, { method: 'POST', auth: true, body }),
   removeFuture: (id) => request(`${config.watchlist}/futures/remove`, { method: 'POST', auth: true, body: { id } }),
   removeOption: (id) => request(`${config.watchlist}/options/remove`, { method: 'POST', auth: true, body: { id } }),
+  checkFuture: (params) => request(withQuery(`${config.watchlist}/futures/check`, params), { method: 'GET', auth: true }),
+  checkOption: (params) => request(withQuery(`${config.watchlist}/options/check`, params), { method: 'GET', auth: true }),
 };
 
 // Returns the logo URL for <Image>; a JSON request cannot read a PNG.

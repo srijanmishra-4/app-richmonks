@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { View, Text, Pressable, Animated, Platform, StyleSheet } from 'react-native';
 
-import { BackChevronIcon, BookmarkIcon, SearchIcon } from '@/components/icons/StockProfileIcons';
+import { BackChevronIcon, SearchIcon } from '@/components/icons/StockProfileIcons';
 import { profileQuote } from '@/components/stock-profile/StockHeroCard';
+import WatchlistButton from '@/components/stock-profile/WatchlistButton';
 import SymbolLogo from '@/components/SymbolLogo';
 import { useFluidStyles } from '@/utils/responsive';
 
@@ -40,6 +41,9 @@ export default function ProfileNavHeader({
   isOption,
   optionType,
   strike,
+  watchlistAdded = false,
+  watchlistDisabled = false,
+  onWatchlist,
 }) {
   const styles = useFluidStyles(createStyles);
   const quote = profileQuote({ price, price_change: priceChange, price_change_value: priceChangeValue });
@@ -83,9 +87,7 @@ export default function ProfileNavHeader({
         </View>
       </Animated.View>
       <View style={styles.headerActions}>
-        <View style={styles.iconBtn} accessible={false}>
-          <BookmarkIcon size={22} />
-        </View>
+        <WatchlistButton added={watchlistAdded} disabled={watchlistDisabled} onPress={onWatchlist} iconSize={22} style={styles.iconBtn} />
         <Pressable onPress={onSearch} hitSlop={8} accessibilityRole="button" accessibilityLabel="Search" style={[styles.iconBtn, styles.searchBtn, Platform.OS === 'web' ? styles.pointer : null]}>
           <SearchIcon size={22} />
         </Pressable>
