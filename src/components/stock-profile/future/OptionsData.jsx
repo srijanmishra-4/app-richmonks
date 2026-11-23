@@ -1,7 +1,8 @@
-import { memo, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { View, Text, Pressable, Platform } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useFluidStyles } from '@/utils/responsive';
+import { openOptionProfile } from '@/utils/stockProfile';
 
 const GREEN = '#16A34A';
 const RED = '#DC2626';
@@ -78,12 +79,17 @@ function formatChangeOi(val) {
   return { text: '0', color: MUTED };
 }
 
-function OptionsData({ optionData }) {
+function OptionsData({ optionData, symbol, expiry }) {
   const styles = useFluidStyles(createStyles);
   const [tab, setTab] = useState('calls');
 
   const side = tab === 'calls' ? optionData?.daily_data?.call?.data : optionData?.daily_data?.put?.data;
   const records = Array.isArray(side) ? side : [];
+  const optionType = tab === 'calls' ? 'CE' : 'PE';
+
+  const openStrike = useCallback((item) => {
+    openOptionProfile({ symbol, strike: item?.strike, optionType, expiry });
+  }, [symbol, optionType, expiry]);
 
   const renderTab = (key, label) => {
     const active = tab === key;
@@ -144,10 +150,17 @@ function OptionsData({ optionData }) {
             const tag = String(item?.tag ?? '').trim().toUpperCase();
             const money = MONEYNESS_THEME[tag];
             const isLast = index === records.length - 1;
+            const strikeLabel = formatStrike(item?.strike);
             return (
-              <View key={`${item?.strike ?? 'row'}-${index}`} style={[styles.row, isLast ? null : styles.rowDivider]}>
+              <Pressable
+                key={`${item?.strike ?? 'row'}-${index}`}
+                onPress={() => openStrike(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${strikeLabel} ${optionType} option profile`}
+                style={[styles.row, isLast ? null : styles.rowDivider, Platform.OS === 'web' ? styles.pointer : null]}
+              >
                 <View style={[styles.cell, styles.colStrike, styles.strikeCell]}>
-                  <Text style={styles.primaryText} numberOfLines={1}>{formatStrike(item?.strike)}</Text>
+                  <Text style={styles.primaryText} numberOfLines={1}>{strikeLabel}</Text>
                   {money ? (
                     <View style={[styles.tagPill, { borderColor: money.border, backgroundColor: money.bg }]}>
                       <Text style={[styles.tagText, { color: money.text }]}>{tag}</Text>
@@ -174,7 +187,7 @@ function OptionsData({ optionData }) {
                     <Text style={styles.subText}>-</Text>
                   )}
                 </View>
-              </View>
+              </Pressable>
             );
           })
         )}

@@ -220,7 +220,7 @@ export default function FuturesProfileScreen() {
           wap={profile?.wap}
           onIdentityReveal={onIdentityReveal}
         />
-        {profileTab(tab, profile, graph, symbol)}
+        {profileTab(tab, profile, graph, symbol, expiry)}
       </Animated.ScrollView>
     </>
   );
@@ -229,10 +229,10 @@ export default function FuturesProfileScreen() {
   return <SafeAreaView style={styles.fill} edges={['top']}>{body}</SafeAreaView>;
 }
 
-function profileTab(tab, profile, graph, symbol) {
+function profileTab(tab, profile, graph, symbol, expiry) {
   if (tab === 'stats') return <KeyStatsTab profile={profile} graph={graph} />;
   if (tab === 'oi') return <OiOverviewTab overview={profile?.oi_overview} pcr={profile?.pcr} optionData={profile?.optionData} symbol={symbol} />;
-  if (tab === 'options') return <OptionsDataTab optionData={profile?.optionData} />;
+  if (tab === 'options') return <OptionsDataTab optionData={profile?.optionData} symbol={symbol} expiry={expiry} />;
   if (tab === 'takeaways') return <RmTakeawaysTab summary={profile?.rm_summary} symbol={symbol} />;
   return null;
 }
@@ -260,8 +260,8 @@ function OiOverviewTab({ overview, pcr, optionData, symbol }) {
   );
 }
 
-function OptionsDataTab({ optionData }) {
-  return <OptionsData optionData={optionData} />;
+function OptionsDataTab({ optionData, symbol, expiry }) {
+  return <OptionsData optionData={optionData} symbol={symbol} expiry={expiry} />;
 }
 
 function RmTakeawaysTab({ summary, symbol }) {
