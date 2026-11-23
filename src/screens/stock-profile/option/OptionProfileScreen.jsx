@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Pressable, ScrollView, Platform, StyleSheet } from 'react-native';
+import { View, Pressable, ScrollView, Animated, Platform, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BackChevronIcon, BookmarkIcon, SearchIcon } from '@/components/icons/StockProfileIcons';
+import { BackChevronIcon } from '@/components/icons/StockProfileIcons';
+import ProfileNavHeader, { useProfileHeaderScroll } from '@/components/stock-profile/ProfileNavHeader';
 import StockHeroCard from '@/components/stock-profile/StockHeroCard';
 import ProfileGraph from '@/components/stock-profile/ProfileGraph';
 import ProfileStatsGrid from '@/components/stock-profile/ProfileStatsGrid';
@@ -82,6 +83,11 @@ export default function OptionProfileScreen() {
   const [graphPeriod, setGraphPeriod] = useState('1D');
   const [payload, setPayload] = useState(null);
   const [graph, setGraph] = useState(null);
+  const [reveal, setReveal] = useState({ start: 4000, end: 4024 });
+  const { scrollY, onScroll, scrollEventThrottle } = useProfileHeaderScroll();
+  const onIdentityReveal = useCallback((next) => {
+    setReveal((prev) => (Math.abs(prev.start - next.start) < 0.5 && Math.abs(prev.end - next.end) < 0.5 ? prev : next));
+  }, []);
   const strikePrice = strikeNumber(strike);
 
   const fetchProfile = useCallback(() => {
@@ -173,19 +179,20 @@ export default function OptionProfileScreen() {
   const series = graph?.[GRAPH_SERIES[graphPeriod] || 'graphData1Day'];
 
   const header = (
-    <View style={styles.header}>
-      <Pressable onPress={onBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.iconBtn, Platform.OS === 'web' ? styles.pointer : null]}>
-        <BackChevronIcon size={24} />
-      </Pressable>
-      <View style={styles.headerActions}>
-        <View style={styles.iconBtn} accessible={false}>
-          <BookmarkIcon size={22} />
-        </View>
-        <Pressable onPress={onSearch} hitSlop={8} accessibilityRole="button" accessibilityLabel="Search" style={[styles.iconBtn, styles.searchBtn, Platform.OS === 'web' ? styles.pointer : null]}>
-          <SearchIcon size={22} />
-        </Pressable>
-      </View>
-    </View>
+    <ProfileNavHeader
+      onBack={onBack}
+      onSearch={onSearch}
+      scrollY={scrollY}
+      revealStart={reveal.start}
+      revealEnd={reveal.end}
+      symbol={symbol}
+      price={profile?.price}
+      priceChange={profile?.price_change}
+      priceChangeValue={profile?.price_change_value}
+      isOption
+      optionType={optionType}
+      strike={strike}
+    />
   );
 
   const hero = (
@@ -206,6 +213,7 @@ export default function OptionProfileScreen() {
       price_change_value={profile?.price_change_value}
       lot_size={profile?.lot}
       margin={profile?.margin}
+      onIdentityReveal={onIdentityReveal}
     />
   );
 
@@ -241,13 +249,13 @@ export default function OptionProfileScreen() {
   const body = (
     <>
       {header}
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <Animated.ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" onScroll={onScroll} scrollEventThrottle={scrollEventThrottle}>
         {hero}
         <View style={styles.graphWrap}>
           <ProfileGraph data={series} period={graphPeriod} onPeriodChange={onPeriodChange} />
         </View>
         {side}
-      </ScrollView>
+      </Animated.ScrollView>
     </>
   );
 
@@ -256,19 +264,6 @@ export default function OptionProfileScreen() {
 
 const createStyles = (f) => ({
   fill: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: f(56, 64),
-    paddingLeft: f(8, 16),
-    paddingRight: f(12, 16),
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: f(20, 24) },
-  iconBtn: { width: f(40, 44), height: f(40, 44), alignItems: 'center', justifyContent: 'center' },
-  searchBtn: { marginRight: f(10, 14) },
   pointer: { cursor: 'pointer' },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: f(24, 32) },

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Animated, Platform, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BackChevronIcon, BookmarkIcon, SearchIcon } from '@/components/icons/StockProfileIcons';
+import ProfileNavHeader, { useProfileHeaderScroll } from '@/components/stock-profile/ProfileNavHeader';
 import StockHeroCard from '@/components/stock-profile/StockHeroCard';
 import KeyStatsOverview from '@/components/stock-profile/future/FutureKeyStatsOverview';
 import StockStatisticsGrid from '@/components/stock-profile/ProfileStatsGrid';
@@ -15,6 +15,10 @@ import FiveDayData from '@/components/stock-profile/future/FiveDayData';
 import MomOiTable from '@/components/stock-profile/future/MomOiTable';
 import OIChangesTable from '@/components/stock-profile/future/OIChangesTable';
 import OptionOiValue from '@/components/stock-profile/future/OptionOiValue';
+import OptionsData from '@/components/stock-profile/future/OptionsData';
+import KeyMovements from '@/components/stock-profile/future/KeyMovements';
+import KeyObservations from '@/components/stock-profile/future/KeyObservations';
+import IntradayMovement from '@/components/stock-profile/future/IntradayMovement';
 import { useRegisterRefresh } from '@/context/RefreshContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSocketEvent } from '@/hooks/useSocket';
@@ -115,6 +119,11 @@ export default function FuturesProfileScreen() {
   const tab = tabFromParam(rawTab);
   const [profile, setProfile] = useState(null);
   const [graph, setGraph] = useState(null);
+  const [reveal, setReveal] = useState({ start: 4000, end: 4024 });
+  const { scrollY, onScroll, scrollEventThrottle } = useProfileHeaderScroll();
+  const onIdentityReveal = useCallback((next) => {
+    setReveal((prev) => (Math.abs(prev.start - next.start) < 0.5 && Math.abs(prev.end - next.end) < 0.5 ? prev : next));
+  }, []);
 
   const fetchProfile = useCallback(
     () => socketRequest('GET_APP_STOCK_PROFILE', { symbol, expiry }),
@@ -174,19 +183,17 @@ export default function FuturesProfileScreen() {
 
   const body = (
     <>
-      <View style={styles.header}>
-        <Pressable onPress={onBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.iconBtn, Platform.OS === 'web' ? styles.pointer : null]}>
-          <BackChevronIcon size={24} />
-        </Pressable>
-        <View style={styles.headerActions}>
-          <View style={styles.iconBtn} accessible={false}>
-            <BookmarkIcon size={22} />
-          </View>
-          <Pressable onPress={onSearch} hitSlop={8} accessibilityRole="button" accessibilityLabel="Search" style={[styles.iconBtn, styles.searchBtn, Platform.OS === 'web' ? styles.pointer : null]}>
-            <SearchIcon size={22} />
-          </Pressable>
-        </View>
-      </View>
+      <ProfileNavHeader
+        onBack={onBack}
+        onSearch={onSearch}
+        scrollY={scrollY}
+        revealStart={reveal.start}
+        revealEnd={reveal.end}
+        symbol={symbol}
+        price={profile?.price}
+        priceChange={profile?.price_change}
+        priceChangeValue={profile?.price_change_value}
+      />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabs}>
         {TABS.map((item) => {
           const selected = tab === item.key;
@@ -198,7 +205,7 @@ export default function FuturesProfileScreen() {
           );
         })}
       </ScrollView>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <Animated.ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" onScroll={onScroll} scrollEventThrottle={scrollEventThrottle}>
         <StockHeroCard
           status={profile?.market_status}
           cdate={profile?.cdate}
@@ -211,9 +218,10 @@ export default function FuturesProfileScreen() {
           lot_size={profile?.lot_size}
           margin={profile?.margin}
           wap={profile?.wap}
+          onIdentityReveal={onIdentityReveal}
         />
         {profileTab(tab, profile, graph, symbol)}
-      </ScrollView>
+      </Animated.ScrollView>
     </>
   );
 
@@ -225,7 +233,7 @@ function profileTab(tab, profile, graph, symbol) {
   if (tab === 'stats') return <KeyStatsTab profile={profile} graph={graph} />;
   if (tab === 'oi') return <OiOverviewTab overview={profile?.oi_overview} pcr={profile?.pcr} optionData={profile?.optionData} symbol={symbol} />;
   if (tab === 'options') return <OptionsDataTab optionData={profile?.optionData} />;
-  if (tab === 'takeaways') return <RmTakeawaysTab summary={profile?.rm_summary} />;
+  if (tab === 'takeaways') return <RmTakeawaysTab summary={profile?.rm_summary} symbol={symbol} />;
   return null;
 }
 
@@ -252,29 +260,22 @@ function OiOverviewTab({ overview, pcr, optionData, symbol }) {
   );
 }
 
-function OptionsDataTab() {
-  return null;
+function OptionsDataTab({ optionData }) {
+  return <OptionsData optionData={optionData} />;
 }
 
-function RmTakeawaysTab() {
-  return null;
+function RmTakeawaysTab({ summary, symbol }) {
+  return (
+    <>
+      <KeyMovements data={summary?.key_movements} symbol={symbol} />
+      <KeyObservations data={summary?.key_observations} symbol={symbol} />
+      <IntradayMovement data={summary?.rm_insights} symbol={symbol} />
+    </>
+  );
 }
 
 const createStyles = (f) => ({
   fill: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: f(56, 64),
-    paddingLeft: f(8, 16),
-    paddingRight: f(12, 16),
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: f(20, 24) },
-  iconBtn: { width: f(40, 44), height: f(40, 44), alignItems: 'center', justifyContent: 'center' },
-  searchBtn: { marginRight: f(10, 14) },
   pointer: { cursor: 'pointer' },
   tabsScroll: { flexGrow: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
   tabs: { flexDirection: 'row', flexGrow: 1 },

@@ -88,6 +88,14 @@ function futureExpiry(expiry) {
   return value || 'near';
 }
 
+export function profileQuote({ price, price_change, price_change_value }) {
+  const delta = parseSigned(price_change_value) ?? parseSigned(price_change);
+  const changeColor = delta == null || delta === 0 ? MUTED : delta > 0 ? GREEN : RED;
+  const changeText = [formatSigned(price_change_value, false), formatSigned(price_change, true)].filter(Boolean).join(' ');
+  const changePercent = formatSigned(price_change, true).replace(/^\(/, '').replace(/\)$/, '');
+  return { priceText: formatRupee(price), changeText, changePercent, changeColor };
+}
+
 function StockHeroCard({
   status,
   cdate,
@@ -106,6 +114,7 @@ function StockHeroCard({
   strike,
   onStrikeChange,
   expiryDate,
+  onIdentityReveal,
 }) {
   const styles = useFluidStyles(createStyles);
   const { isLaptop } = useBreakpoint();
@@ -113,9 +122,8 @@ function StockHeroCard({
   const open = String(status ?? '').toLowerCase().includes('open');
   const formattedExpiry = formatExpiryDate(expiryDate);
   const expiryLabel = isOption && formattedExpiry ? (String(expiry || '').startsWith('weekly') ? `${formattedExpiry} (W)` : formattedExpiry) : undefined;
-  const delta = parseSigned(price_change_value) ?? parseSigned(price_change);
-  const changeColor = delta == null || delta === 0 ? MUTED : delta > 0 ? GREEN : RED;
-  const changeText = [formatSigned(price_change_value, false), formatSigned(price_change, true)].filter(Boolean).join(' ');
+  const quote = profileQuote({ price, price_change, price_change_value });
+  const { changeColor, changeText } = quote;
   const lots = formatIndian(lot_size);
   const marginNum = formatIndian(margin);
   const marginText = marginNum ? `${marginNum}%` : '—';
@@ -134,7 +142,14 @@ function StockHeroCard({
         <ExpiryDropdownComponent value={expiry} onSelect={onExpiryChange} compact large={wide} withWeekly={Boolean(isOption) && String(symbol || '').toUpperCase() === 'NIFTY'} displayLabel={expiryLabel} />
       </View>
 
-      <View style={[styles.identityRow, wide ? styles.identityRowWide : null]}>
+      <View
+        style={[styles.identityRow, wide ? styles.identityRowWide : null]}
+        onLayout={onIdentityReveal ? (event) => {
+          const { y, height } = event.nativeEvent.layout;
+          if (height <= 0) return;
+          onIdentityReveal({ start: y + height * 0.4, end: y + height + 10 });
+        } : undefined}
+      >
         <View style={[styles.identity, isOption ? styles.identityOption : null, wide ? styles.identityWide : null]}>
           {wide ? (
             <View style={styles.logoSpace}>
@@ -156,7 +171,7 @@ function StockHeroCard({
           )}
         </View>
         <View style={[styles.priceCol, wide ? styles.priceColWide : null]}>
-          <Text style={[styles.price, wide ? styles.priceWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{formatRupee(price)}</Text>
+          <Text style={[styles.price, wide ? styles.priceWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{quote.priceText}</Text>
           <Text style={[styles.change, { color: changeColor }, wide ? styles.changeWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{changeText || '—'}</Text>
         </View>
       </View>
