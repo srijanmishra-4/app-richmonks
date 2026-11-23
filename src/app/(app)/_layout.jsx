@@ -6,6 +6,12 @@ import { CommonDataProvider } from '@/context/CommonDataContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import DesktopHeader from '@/components/home/DesktopHeader';
 import { armLineGraphOutsideDismiss } from '@/components/LineGraph';
+import { armCandlestickOutsideDismiss } from '@/components/CandlestickGraph';
+
+function armChartDismiss() {
+  armLineGraphOutsideDismiss();
+  armCandlestickOutsideDismiss();
+}
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -17,7 +23,7 @@ export default function AppLayout() {
   return (
     <CommonDataProvider>
       <RefreshProvider>
-        <View style={styles.appContainer} onTouchStartCapture={armLineGraphOutsideDismiss}>
+        <View style={styles.appContainer} onTouchStartCapture={armChartDismiss}>
           {isLaptop && <DesktopHeader />}
           <View style={styles.navigator}>
             <Stack screenOptions={{ headerShown: false, freezeOnBlur: false }} />

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Pressable, ScrollView, Animated, Platform, StyleSheet } from 'react-native';
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackChevronIcon } from '@/components/icons/StockProfileIcons';
@@ -83,6 +83,8 @@ export default function OptionProfileScreen() {
   const [graphPeriod, setGraphPeriod] = useState('1D');
   const [payload, setPayload] = useState(null);
   const [graph, setGraph] = useState(null);
+  const [graphFor, setGraphFor] = useState('');
+  const graphFocused = useRef(false);
   const [reveal, setReveal] = useState({ start: 4000, end: 4024 });
   const { scrollY, onScroll, scrollEventThrottle } = useProfileHeaderScroll();
   const onIdentityReveal = useCallback((next) => {
@@ -105,14 +107,19 @@ export default function OptionProfileScreen() {
       expiry_state: expiry,
     });
   }, [symbol, optionType, strikePrice, expiry]);
+  const requestKey = `${symbol}|${optionType}|${strikePrice}|${expiry}`;
 
   useSocketEvent('REC_OPTION_PROFILE', (res) => {
     const next = unwrap(res);
     if (next && (next.data || next.market_status != null || next.expiry_date != null)) setPayload(next);
   });
   useSocketEvent('REC_LINE_GRAPH', (res) => {
+    if (!graphFocused.current) return;
     const next = readGraph(res);
-    if (next) setGraph(next);
+    if (next) {
+      setGraphFor(requestKey);
+      setGraph(next);
+    }
   });
 
   useEffect(() => {
@@ -124,11 +131,11 @@ export default function OptionProfileScreen() {
     fetchProfile().catch(() => { });
   }, [fetchProfile, symbol]);
 
-  useEffect(() => {
-    setGraph(null);
-    if (!symbol || !strikePrice) return undefined;
+  useFocusEffect(useCallback(() => {
+    graphFocused.current = true;
     fetchGraph().catch(() => { });
-  }, [fetchGraph, symbol, strikePrice]);
+    return () => { graphFocused.current = false; };
+  }, [fetchGraph]));
 
   useRegisterRefresh(fetchProfile);
   useRegisterRefresh(fetchGraph);
@@ -176,7 +183,8 @@ export default function OptionProfileScreen() {
 
   const profile = payload?.data?.profile;
   const stats = payload?.data?.key_stats;
-  const series = graph?.[GRAPH_SERIES[graphPeriod] || 'graphData1Day'];
+  const series = (graphFor === requestKey ? graph : null)?.[GRAPH_SERIES[graphPeriod] || 'graphData1Day'];
+  const keyStats = profile ? { open: profile.open, high: profile.high, low: profile.low, close: profile.close ?? profile.price, volume: profile.volume } : null;
 
   const header = (
     <ProfileNavHeader
@@ -235,7 +243,7 @@ export default function OptionProfileScreen() {
             </Pressable>
             {hero}
             <View style={styles.graphFill}>
-              <ProfileGraph fill data={series} period={graphPeriod} onPeriodChange={onPeriodChange} />
+              <ProfileGraph fill data={series} period={graphPeriod} onPeriodChange={onPeriodChange} symbol={symbol} optionType={optionType} strikePr={strikePrice} expiryState={expiry} keyStats={keyStats} />
             </View>
           </View>
           <ScrollView style={styles.right} contentContainerStyle={styles.rightContent} keyboardShouldPersistTaps="handled">
@@ -252,7 +260,7 @@ export default function OptionProfileScreen() {
       <Animated.ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" onScroll={onScroll} scrollEventThrottle={scrollEventThrottle}>
         {hero}
         <View style={styles.graphWrap}>
-          <ProfileGraph data={series} period={graphPeriod} onPeriodChange={onPeriodChange} />
+          <ProfileGraph data={series} period={graphPeriod} onPeriodChange={onPeriodChange} symbol={symbol} optionType={optionType} strikePr={strikePrice} expiryState={expiry} keyStats={keyStats} />
         </View>
         {side}
       </Animated.ScrollView>

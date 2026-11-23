@@ -1,19 +1,34 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 import Svg, { Line, Rect } from 'react-native-svg';
+import { useFocusEffect } from 'expo-router';
 
 import LineGraph from '@/components/LineGraph';
-import { BookmarkIcon } from '@/components/icons/StockProfileIcons';
+import CandlestickGraph from '@/components/CandlestickGraph';
+import { BookmarkIcon, LineGraphIcon } from '@/components/icons/StockProfileIcons';
+import { useSocketEvent } from '@/hooks/useSocket';
+import { socketRequest } from '@/utils/socket';
 import { useFluidStyles } from '@/utils/responsive';
 
 const ACTIVE = '#0071A9';
 const GREEN = '#22C55E';
 const RED = '#EF4444';
+const CANDLE_FALLBACK_HEIGHT = 198;
+const CANDLE_FALLBACK_HEIGHT_WIDE = 364;
 
-const PERIODS = [
+const LINE_PERIODS = [
   { key: '1D', label: '1 Day' },
   { key: '5D', label: '5 Day' },
   { key: '30D', label: '30 Day' },
+];
+
+const CANDLE_PERIODS = [
+  { key: '1D', label: '1D', series: 'candleGraph1Day' },
+  { key: '5D', label: '5D', series: 'candleGraph5Days' },
+  { key: '10D', label: '10D', series: 'candleGraph10Days' },
+  { key: '20D', label: '20D', series: 'candleGraph20Days' },
+  { key: '30D', label: '30D', series: 'candleGraph30Days' },
+  { key: '60D', label: '60D', series: 'candleGraph60Days' },
 ];
 
 function graphPoints(series) {
@@ -38,35 +53,114 @@ function CandlestickMark() {
   );
 }
 
-function ProfileGraph({ data, period, onPeriodChange, periods, fill }) {
+function readCandleResponse(res) {
+  const data = res?.result ?? res;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  return data;
+}
+
+function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, optionType, strikePr, expiryState, keyStats, header }) {
   const styles = useFluidStyles(createStyles);
   const [localPeriod, setLocalPeriod] = useState('1D');
   const [chartWidth, setChartWidth] = useState(0);
-  const items = periods?.length ? periods : PERIODS;
+  const [lineStackHeight, setLineStackHeight] = useState(0);
+  const [graphMode, setGraphMode] = useState('line'); // 'line' | 'candle'
+  const [candlePeriod, setCandlePeriod] = useState('1D');
+  const [candleData, setCandleData] = useState(null);
+  const candleFocused = useRef(false);
+  const candleKey = useRef('');
+
+  const lineItems = periods?.length ? periods : LINE_PERIODS;
+  const items = graphMode === 'candle' ? CANDLE_PERIODS : lineItems;
   const compact = items.length > 3;
-  const selected = period || localPeriod;
+  const selected = graphMode === 'candle' ? candlePeriod : (period || localPeriod);
   const points = useMemo(() => graphPoints(data), [data]);
+
+  // Candlestick socket. Both profiles stay mounted while the other is open and share
+  // REC_CANDLESTICK_GRAPH, so only the visible one may apply a response, and it
+  // re-requests its own contract (symbol, call/put, strike, expiry) on focus.
+  const shouldFetchCandle = graphMode === 'candle' && !!symbol;
+  useFocusEffect(useCallback(() => {
+    candleFocused.current = true;
+    if (shouldFetchCandle) {
+      const key = `${symbol}|${optionType}|${strikePr}|${expiryState}`;
+      if (candleKey.current !== key) {
+        candleKey.current = key;
+        setCandleData(null);
+      }
+      const payload = { symbol, option_type: optionType || 'XX', strike_pr: strikePr ?? 0, expiry_state: expiryState || 'near' };
+      socketRequest('GET_CANDLESTICK_GRAPH', payload).then((res) => {
+        if (!candleFocused.current) return;
+        const parsed = res && typeof res === 'object' && !Array.isArray(res) ? res : null;
+        if (parsed) setCandleData(parsed);
+      }).catch(() => {});
+    }
+    return () => { candleFocused.current = false; };
+  }, [shouldFetchCandle, symbol, optionType, strikePr, expiryState]));
+
+  useSocketEvent('REC_CANDLESTICK_GRAPH', (res) => {
+    if (!candleFocused.current || graphMode !== 'candle') return;
+    const parsed = readCandleResponse(res);
+    if (parsed) setCandleData(parsed);
+  }, graphMode === 'candle');
+
+  const candleMeta = CANDLE_PERIODS.find((item) => item.key === candlePeriod) ?? CANDLE_PERIODS[0];
+  const candleSeries = useMemo(() => {
+    const arr = candleData?.[candleMeta.series];
+    return Array.isArray(arr) ? arr : [];
+  }, [candleData, candleMeta.series]);
+
   const onChartBoxLayout = (event) => {
     if (Platform.OS !== 'web') return;
     const next = event.nativeEvent.layout.width;
     if (next > 0) setChartWidth((prev) => (prev === next ? prev : next));
   };
+
   const choose = (key) => {
-    if (onPeriodChange) onPeriodChange(key);
-    else setLocalPeriod(key);
+    if (graphMode === 'candle') {
+      setCandlePeriod(key);
+    } else {
+      if (onPeriodChange) onPeriodChange(key);
+      else setLocalPeriod(key);
+    }
   };
+
+  const toggleMode = useCallback(() => {
+    setGraphMode((prev) => (prev === 'line' ? 'candle' : 'line'));
+  }, []);
+
+  const onLineStackLayout = (event) => {
+    const next = event.nativeEvent.layout.height;
+    if (next > 0) setLineStackHeight((prev) => (prev === next ? prev : next));
+  };
+
+  const renderLineGraph = () => {
+    if (fill) {
+      return (
+        <View style={styles.chartBox} onLayout={onChartBoxLayout}>
+          <LineGraph flex largeTooltip data={points} height={190} style={Platform.OS === 'web' && chartWidth > 0 ? { width: chartWidth } : null} />
+        </View>
+      );
+    }
+    return <LineGraph largeTooltip data={points} height={190} />;
+  };
+
+  const candleHeight = lineStackHeight || (fill ? CANDLE_FALLBACK_HEIGHT_WIDE : CANDLE_FALLBACK_HEIGHT);
 
   return (
     <View style={fill ? styles.wideWrap : null}>
-      <View style={[styles.graph, fill ? styles.graphWide : null]}>
-        {fill ? (
-          <View style={styles.chartBox} onLayout={onChartBoxLayout}>
-            <LineGraph flex largeTooltip data={points} height={190} style={Platform.OS === 'web' && chartWidth > 0 ? { width: chartWidth } : null} />
+      {graphMode === 'candle' ? (
+        <View style={[styles.candleStack, fill ? styles.candleStackWide : null, { height: candleHeight }]}>
+          <CandlestickGraph data={candleSeries} height={candleHeight} keyStats={keyStats} />
+        </View>
+      ) : (
+        <View onLayout={onLineStackLayout}>
+          {header}
+          <View style={[styles.graph, fill ? styles.graphWide : null]}>
+            {renderLineGraph()}
           </View>
-        ) : (
-          <LineGraph largeTooltip data={points} height={190} />
-        )}
-      </View>
+        </View>
+      )}
       <View style={[styles.controls, fill ? styles.controlsWide : null]}>
         <View style={[styles.pills, compact ? styles.pillsCompact : null]}>
           {items.map((item) => {
@@ -93,14 +187,14 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill }) {
               <BookmarkIcon size={16} />
               <Text style={styles.watchlistText} numberOfLines={1} maxFontSizeMultiplier={1.1}>Watchlist</Text>
             </Pressable>
-            <View style={[styles.candle, styles.candleWide]}>
-              <CandlestickMark />
-            </View>
+            <Pressable onPress={toggleMode} accessibilityRole="button" accessibilityLabel={graphMode === 'line' ? 'Show candlestick chart' : 'Show line chart'} style={[styles.candle, styles.candleWide, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}>
+              {graphMode === 'line' ? <CandlestickMark /> : <LineGraphIcon size={18} />}
+            </Pressable>
           </View>
         ) : (
-          <View style={styles.candle}>
-            <CandlestickMark />
-          </View>
+          <Pressable onPress={toggleMode} accessibilityRole="button" accessibilityLabel={graphMode === 'line' ? 'Show candlestick chart' : 'Show line chart'} style={[styles.candle, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}>
+            {graphMode === 'line' ? <CandlestickMark /> : <LineGraphIcon size={18} />}
+          </Pressable>
         )}
       </View>
     </View>
@@ -153,6 +247,8 @@ const createStyles = (f) => ({
   wideWrap: { width: '100%', flexGrow: 1, flexShrink: 1, minHeight: 0 },
   graphWide: { marginTop: 44, paddingHorizontal: 0 },
   chartBox: { maxWidth: 1100, width: '100%', alignSelf: 'center', height: 320, maxHeight: 380 },
+  candleStack: { paddingHorizontal: f(16, 24) },
+  candleStackWide: { paddingHorizontal: 0, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   controlsWide: { marginTop: 36, paddingHorizontal: 0 },
   chartActions: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
   watchlist: { height: 36, marginRight: 8, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 6 },

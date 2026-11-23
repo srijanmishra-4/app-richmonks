@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, Animated, Platform, StyleSheet } from 'react-native';
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ProfileNavHeader, { useProfileHeaderScroll } from '@/components/stock-profile/ProfileNavHeader';
@@ -119,6 +119,8 @@ export default function FuturesProfileScreen() {
   const tab = tabFromParam(rawTab);
   const [profile, setProfile] = useState(null);
   const [graph, setGraph] = useState(null);
+  const [graphFor, setGraphFor] = useState('');
+  const graphFocused = useRef(false);
   const [reveal, setReveal] = useState({ start: 4000, end: 4024 });
   const { scrollY, onScroll, scrollEventThrottle } = useProfileHeaderScroll();
   const onIdentityReveal = useCallback((next) => {
@@ -133,14 +135,19 @@ export default function FuturesProfileScreen() {
     () => socketRequest('GET_LINE_GRAPH', { symbol, option_type: 'XX', strike_pr: 0, expiry_state: expiry }),
     [symbol, expiry],
   );
+  const requestKey = `${symbol}|${expiry}`;
 
   useSocketEvent('REC_APP_STOCK_PROFILE', (res) => {
     const next = readProfile(res);
     if (next) setProfile(next);
   });
   useSocketEvent('REC_LINE_GRAPH', (res) => {
+    if (!graphFocused.current) return;
     const next = readGraph(res);
-    if (next) setGraph(next);
+    if (next) {
+      setGraphFor(requestKey);
+      setGraph(next);
+    }
   });
 
   useEffect(() => {
@@ -148,10 +155,14 @@ export default function FuturesProfileScreen() {
     fetchProfile().catch(() => { });
   }, [fetchProfile]);
 
-  useEffect(() => { 
-    setGraph(null);
+  // The futures screen stays mounted under the option screen, and both listen for
+  // REC_LINE_GRAPH. Ignore responses that arrive while covered, and ask again on
+  // return so the chart is rebuilt from this contract instead of the option's data.
+  useFocusEffect(useCallback(() => {
+    graphFocused.current = true;
     fetchGraph().catch(() => { });
-  }, [fetchGraph]);
+    return () => { graphFocused.current = false; };
+  }, [fetchGraph]));
 
   useEffect(() => {
     if (rawTab === tab) return;
@@ -220,7 +231,7 @@ export default function FuturesProfileScreen() {
           wap={profile?.wap}
           onIdentityReveal={onIdentityReveal}
         />
-        {profileTab(tab, profile, graph, symbol, expiry)}
+        {profileTab(tab, profile, graphFor === requestKey ? graph : null, symbol, expiry)}
       </Animated.ScrollView>
     </>
   );
@@ -230,17 +241,17 @@ export default function FuturesProfileScreen() {
 }
 
 function profileTab(tab, profile, graph, symbol, expiry) {
-  if (tab === 'stats') return <KeyStatsTab profile={profile} graph={graph} />;
+  if (tab === 'stats') return <KeyStatsTab profile={profile} graph={graph} symbol={symbol} expiry={expiry} />;
   if (tab === 'oi') return <OiOverviewTab overview={profile?.oi_overview} pcr={profile?.pcr} optionData={profile?.optionData} symbol={symbol} />;
   if (tab === 'options') return <OptionsDataTab optionData={profile?.optionData} symbol={symbol} expiry={expiry} />;
   if (tab === 'takeaways') return <RmTakeawaysTab summary={profile?.rm_summary} symbol={symbol} />;
   return null;
 }
 
-function KeyStatsTab({ profile, graph }) {
+function KeyStatsTab({ profile, graph, symbol, expiry }) {
   return (
     <>
-      <KeyStatsOverview profile={profile} graph={graph} />
+      <KeyStatsOverview profile={profile} graph={graph} symbol={symbol} expiry={expiry} />
       <StockStatisticsGrid profile={profile} />
       <MarketBiasCard bias={profile?.bias} comment={profile?.tradingDataComment} priceChange={profile?.market_bias?.price_change} futureOi={profile?.market_bias?.future_oi} score={profile?.score ?? profile?.market_bias?.score} />
       <PricePerformance data={profile?.price_performance} />

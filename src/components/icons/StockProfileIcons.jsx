@@ -27,3 +27,12 @@ export const SearchIcon = memo(function SearchIcon({ size = 24, color = '#0F172A
     </Svg>
   );
 });
+
+export const LineGraphIcon = memo(function LineGraphIcon({ size = 18 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 18 18" fill="none">
+      <Path d="M2 14L5.5 8.5L8 11L11.5 5L14.5 9L16 6" stroke="#10B981" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M2 14L5.5 8.5" stroke="#EF4444" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+});

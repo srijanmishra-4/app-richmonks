@@ -14,21 +14,35 @@ const PERIODS = [
   { key: '60D', label: '60D', high: 'high_60_days', low: 'low_60_days', distHigh: 'dist_high_60_day', distLow: 'dist_low_60_day', series: 'graphData60Days' },
 ];
 
-function KeyStatsOverview({ profile, graph }) {
+function KeyStatsOverview({ profile, graph, symbol, expiry }) {
   const styles = useFluidStyles(createStyles);
   const [period, setPeriod] = useState('1D');
   const meta = PERIODS.find((item) => item.key === period) ?? PERIODS[0];
 
+  const keyStats = profile ? { open: profile.open, high: profile.high, low: profile.low, close: profile.close, volume: profile.volume } : null;
+
   return (
     <View style={styles.section}>
-      <PriceRangeBarComponent
-        high={profile?.[meta.high]}
-        low={profile?.[meta.low]}
-        price={profile?.price}
-        distanceFromLow={profile?.[meta.distLow] ?? null}
-        distanceFromHigh={profile?.[meta.distHigh] ?? null}
+      <ProfileGraph
+        data={graph?.[meta.series]}
+        period={period}
+        periods={PERIODS}
+        onPeriodChange={setPeriod}
+        symbol={symbol}
+        optionType="XX"
+        strikePr={0}
+        expiryState={expiry || 'near'}
+        keyStats={keyStats}
+        header={(
+          <PriceRangeBarComponent
+            high={profile?.[meta.high]}
+            low={profile?.[meta.low]}
+            price={profile?.price}
+            distanceFromLow={profile?.[meta.distLow] ?? null}
+            distanceFromHigh={profile?.[meta.distHigh] ?? null}
+          />
+        )}
       />
-      <ProfileGraph data={graph?.[meta.series]} period={period} periods={PERIODS} onPeriodChange={setPeriod} />
     </View>
   );
 }

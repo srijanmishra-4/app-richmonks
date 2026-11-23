@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clamp, useScaledStyles } from '@/utils/responsive';
 import { CloseIcon } from '@/components/icons/NavIcons';
 import { armLineGraphOutsideDismiss } from '@/components/LineGraph';
+import { armCandlestickOutsideDismiss } from '@/components/CandlestickGraph';
 
 const PRIMARY = '#0071A9';
 const TEXT = '#0F172A';
@@ -108,7 +109,7 @@ function BottomSlideOn({ visible, onClose, onDismissed, logo, title, subtitle, m
   const scrimBg = scrimAnim.interpolate({ inputRange: [0, 1], outputRange: ['rgba(15, 23, 42, 0)', 'rgba(15, 23, 42, 0.18)'] });
 
   const layer = (
-    <View style={contained ? styles.containedRoot : styles.root} onTouchStartCapture={armLineGraphOutsideDismiss}>
+    <View style={contained ? styles.containedRoot : styles.root} onTouchStartCapture={() => { armLineGraphOutsideDismiss(); armCandlestickOutsideDismiss(); }}>
       <Animated.View style={[styles.backdrop, contained ? null : { width, height }, { backgroundColor: scrimBg }]} pointerEvents="box-none">
         <Pressable style={contained ? styles.fill : { width, height }} onPress={() => closeRef.current?.()} android_ripple={null} />
       </Animated.View>
