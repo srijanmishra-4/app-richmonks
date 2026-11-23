@@ -1,21 +1,25 @@
 import { memo, useId, useState } from 'react';
 import { View, Text } from 'react-native';
-import Svg, { Circle, Defs, Line, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useFluidStyles } from '@/utils/responsive';
 
-const DEEP_RED = [185, 28, 28];
-const FADED_GREEN = [165, 214, 167];
-const DEEP_GREEN = [22, 101, 52];
+const TRACK_STOPS = [
+  [0, [248, 113, 113]],
+  [0.28, [248, 180, 180]],
+  [0.5, [213, 222, 232]],
+  [0.72, [167, 232, 197]],
+  [1, [74, 222, 128]],
+];
 const EMPTY_TRACK = '#E2E8F0';
-const CAP_COLOR = '#334155';
+const LOW_COLOR = '#16A34A';
+const HIGH_COLOR = '#DC2626';
 
 const SVG_H = 28;
-const STROKE = 4;
-const OUTER_R = 7;
-const INNER_R = 4;
-const CAP_H = 12;
-const PAD = OUTER_R + 1;
+const STROKE = 6;
+const OUTER_R = 9;
+const INNER_R = 5;
+const PAD = OUTER_R + 2;
 
 function rgb(channels) {
   return `rgb(${channels[0]}, ${channels[1]}, ${channels[2]})`;
@@ -29,18 +33,24 @@ function mix(a, b, t) {
   ];
 }
 
+function hex(channels) {
+  return `#${channels.map((n) => n.toString(16).padStart(2, '0')).join('')}`;
+}
+
 function colorAt(ratio) {
   const t = Math.min(1, Math.max(0, ratio));
-  const channels = t <= 0.5
-    ? mix(DEEP_RED, FADED_GREEN, t / 0.5)
-    : mix(FADED_GREEN, DEEP_GREEN, (t - 0.5) / 0.5);
-  return rgb(channels);
+  let index = 1;
+  while (index < TRACK_STOPS.length - 1 && TRACK_STOPS[index][0] < t) index += 1;
+  const [start, from] = TRACK_STOPS[index - 1];
+  const [end, to] = TRACK_STOPS[index];
+  const span = end - start;
+  return rgb(mix(from, to, span === 0 ? 0 : (t - start) / span));
 }
 
 function parseNum(val) {
   if (typeof val === 'number') return Number.isFinite(val) ? val : null;
   if (val == null) return null;
-  const str = String(val).trim().replace(/[₹,\s]/g, '');
+  const str = String(val).trim().replace(/[₹,%\s]/g, '');
   if (!str || str === '-' || str === '+' || str === '.') return null;
   const n = Number(str);
   return Number.isFinite(n) ? n : null;
@@ -76,6 +86,15 @@ function distanceLabel(val) {
   return s;
 }
 
+function presentDistance(val) {
+  const label = distanceLabel(val);
+  if (!label) return null;
+  const raw = label.trim().replace(/%$/, '').trim();
+  if (!raw || raw === '+' || raw === '-' || raw === '−' || raw === '–') return null;
+  if (/^[+−–-]/.test(raw)) return `${raw}%`;
+  return `+ ${raw}%`;
+}
+
 function clamp01(n) {
   return Math.min(1, Math.max(0, n));
 }
@@ -99,6 +118,7 @@ function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, sp
   const [rowWidth, setRowWidth] = useState(0);
   const [trackBox, setTrackBox] = useState({ x: 0, width: 0 });
   const [priceWidth, setPriceWidth] = useState(0);
+  const [labelInsets, setLabelInsets] = useState({ left: 0, right: 0 });
   const model = buildRange({ high, low, price });
 
   const trackW = Math.max(0, trackBox.width - PAD * 2);
@@ -106,7 +126,16 @@ function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, sp
   const x1 = PAD + trackW;
   const cy = SVG_H / 2;
   const markerX = x0 + model.ratio * trackW;
-  const priceLeft = Math.min(Math.max(0, trackBox.x + markerX - priceWidth / 2), Math.max(0, rowWidth - priceWidth));
+  const markerAbs = trackBox.x + markerX;
+  const maxLeft = Math.max(0, rowWidth - priceWidth);
+  const insetLeft = labelInsets.left + 8;
+  const insetRight = labelInsets.right + 8;
+  const openLeft = Math.max(0, rowWidth - priceWidth - insetRight);
+  const priceLeft = priceWidth > 0 && openLeft > insetLeft
+    ? Math.min(Math.max(insetLeft, markerAbs - priceWidth / 2), openLeft)
+    : Math.min(Math.max(0, markerAbs - priceWidth / 2), maxLeft);
+  const caretCenter = priceWidth > 0 ? markerAbs - priceLeft : 0;
+  const caretLeft = Math.min(Math.max(8, caretCenter - 5), Math.max(8, priceWidth - 18));
   const gradId = `rangeGrad${uid}`;
   const lowText = formatRupee(model.lowNum);
   const highText = formatRupee(model.highNum);
@@ -114,15 +143,10 @@ function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, sp
   const summaryBase = model.empty
     ? `Low ${lowText}, High ${highText}`
     : `Price ${markerText}, Low ${lowText}, High ${highText}`;
-  const lowDistance = distanceLabel(distanceFromLow);
-  const highDistance = distanceLabel(distanceFromHigh);
+  const lowDistance = presentDistance(distanceFromLow);
+  const highDistance = presentDistance(distanceFromHigh);
   const summary = `${summaryBase}${lowDistance ? `, ${lowDistance} from low` : ''}${highDistance ? `, ${highDistance} from high` : ''}`;
-  const distanceRow = lowDistance || highDistance ? (
-    <View style={[styles.distanceRow, spaced ? styles.distanceSpaced : null]}>
-      {lowDistance ? <Text style={styles.distanceLow} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{lowDistance}</Text> : null}
-      {highDistance ? <Text style={styles.distanceHigh} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{highDistance}</Text> : null}
-    </View>
-  ) : null;
+  const ready = !model.empty && trackBox.width > 0 && rowWidth > 0;
 
   return (
     <View style={[styles.root, spaced ? styles.rootSpaced : null]} accessibilityRole="summary" accessibilityLabel={summary}>
@@ -133,19 +157,37 @@ function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, sp
           if (next > 0) setRowWidth((prev) => (prev === next ? prev : next));
         }}
       >
-        <Text style={styles.endLabel}>Low</Text>
-        {!model.empty && trackBox.width > 0 ? (
+        <Text
+          style={styles.endLabel}
+          onLayout={(e) => {
+            const next = e.nativeEvent.layout.width;
+            if (next > 0) setLabelInsets((prev) => (prev.left === next ? prev : { ...prev, left: next }));
+          }}
+        >
+          Low
+        </Text>
+        {ready ? (
           <View
-            style={[styles.markerLabel, { left: priceLeft, opacity: priceWidth > 0 ? 1 : 0 }]}
+            style={[styles.tooltip, { left: priceLeft, opacity: priceWidth > 0 ? 1 : 0 }]}
             onLayout={(e) => {
               const next = e.nativeEvent.layout.width;
               if (next > 0) setPriceWidth((prev) => (prev === next ? prev : next));
             }}
           >
             <Text style={styles.markerValue} numberOfLines={1}>{markerText}</Text>
+            <View style={[styles.caretEdge, { left: caretLeft - 1 }]} />
+            <View style={[styles.caret, { left: caretLeft }]} />
           </View>
         ) : null}
-        <Text style={[styles.endLabel, styles.endAlignRight]}>High</Text>
+        <Text
+          style={[styles.endLabel, styles.endAlignRight]}
+          onLayout={(e) => {
+            const next = e.nativeEvent.layout.width;
+            if (next > 0) setLabelInsets((prev) => (prev.right === next ? prev : { ...prev, right: next }));
+          }}
+        >
+          High
+        </Text>
       </View>
 
       <View style={styles.barRow}>
@@ -161,9 +203,9 @@ function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, sp
             <Svg width={trackBox.width} height={SVG_H}>
               <Defs>
                 <LinearGradient id={gradId} x1={x0} y1={cy} x2={x1} y2={cy} gradientUnits="userSpaceOnUse">
-                  <Stop offset="0" stopColor={rgb(DEEP_RED)} />
-                  <Stop offset="0.5" stopColor={rgb(FADED_GREEN)} />
-                  <Stop offset="1" stopColor={rgb(DEEP_GREEN)} />
+                  {TRACK_STOPS.map(([offset, channels]) => (
+                    <Stop key={offset} offset={offset} stopColor={hex(channels)} />
+                  ))}
                 </LinearGradient>
               </Defs>
 
@@ -176,12 +218,9 @@ function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, sp
                 fill={model.empty ? EMPTY_TRACK : `url(#${gradId})`}
               />
 
-              <Line x1={x0} y1={cy - CAP_H / 2} x2={x0} y2={cy + CAP_H / 2} stroke={CAP_COLOR} strokeWidth={1.5} strokeLinecap="round" />
-              <Line x1={x1} y1={cy - CAP_H / 2} x2={x1} y2={cy + CAP_H / 2} stroke={CAP_COLOR} strokeWidth={1.5} strokeLinecap="round" />
-
               {!model.empty ? (
                 <>
-                  <Circle cx={markerX} cy={cy} r={OUTER_R} fill="#FFFFFF" stroke="#E2E8F0" strokeWidth={1} />
+                  <Circle cx={markerX} cy={cy} r={OUTER_R} fill="#FFFFFF" stroke="#CBD5E1" strokeWidth={1.5} />
                   <Circle cx={markerX} cy={cy} r={INNER_R} fill={colorAt(model.ratio)} />
                 </>
               ) : null}
@@ -193,7 +232,20 @@ function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, sp
         <Text style={[styles.sideValue, styles.endAlignRight, spaced ? styles.sideValueSpaced : null]} numberOfLines={1}>{highText}</Text>
       </View>
 
-      {distanceRow}
+      {lowDistance || highDistance ? (
+        <View style={[styles.distanceBand, spaced ? styles.distanceSpaced : null]}>
+          {lowDistance ? (
+            <Text style={styles.distanceText} numberOfLines={1}>
+              Distance from low : <Text style={styles.distanceLow}>{lowDistance}</Text>
+            </Text>
+          ) : <View />}
+          {highDistance ? (
+            <Text style={[styles.distanceText, styles.distanceEnd]} numberOfLines={1}>
+              Distance from high : <Text style={styles.distanceHigh}>{highDistance}</Text>
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -214,15 +266,61 @@ const createStyles = (f) => ({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    minHeight: f(18, 20),
-    marginBottom: f(6, 8),
+    minHeight: f(28, 32),
+    paddingBottom: 6,
+    overflow: 'visible',
+    zIndex: 2,
   },
-  captionSpaced: { marginBottom: f(10, 12) },
-  markerLabel: {
+  captionSpaced: { marginBottom: f(2, 4) },
+  tooltip: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 6,
+    zIndex: 3,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
+  caretEdge: {
+    position: 'absolute',
+    bottom: -6,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#E2E8F0',
+  },
+  caret: {
+    position: 'absolute',
+    bottom: -5,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderTopWidth: 5,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#FFFFFF',
+  },
+  distanceBand: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: f(8, 10),
+  },
+  distanceSpaced: { marginTop: f(12, 14) },
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -241,30 +339,21 @@ const createStyles = (f) => ({
     minWidth: 0,
     marginHorizontal: f(8, 10),
   },
-  distanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: 2,
-    gap: 12,
-  },
-  distanceSpaced: { marginTop: 8 },
-  distanceLow: {
-    width: '46%',
-    fontSize: f(10, 11.5),
-    lineHeight: f(13, 15),
+  distanceText: {
+    flexShrink: 1,
+    fontSize: f(11, 12.5),
+    lineHeight: f(15, 17),
     fontFamily: 'Inter_400Regular',
-    color: '#DC2626',
-    textAlign: 'left',
+    color: '#64748B',
+  },
+  distanceEnd: { textAlign: 'right' },
+  distanceLow: {
+    fontFamily: 'Inter_600SemiBold',
+    color: LOW_COLOR,
   },
   distanceHigh: {
-    width: '46%',
-    marginLeft: 'auto',
-    fontSize: f(10, 11.5),
-    lineHeight: f(13, 15),
-    fontFamily: 'Inter_400Regular',
-    color: '#16A34A',
-    textAlign: 'right',
+    fontFamily: 'Inter_600SemiBold',
+    color: HIGH_COLOR,
   },
   markerValue: {
     fontSize: f(12, 14),
