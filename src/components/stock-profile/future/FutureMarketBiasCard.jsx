@@ -52,7 +52,17 @@ const GLYPHS = {
 
 function resolveBias(bias) {
   if (typeof bias !== 'string') return null;
-  return BIASES[bias.toLowerCase().replace(/[^a-z]/g, '')] ?? null;
+  const key = bias.toLowerCase().replace(/[^a-z]/g, '');
+  if (!key) return null;
+  if (BIASES[key]) return BIASES[key];
+  if (key.includes('sideway')) {
+    if (key.includes('bull')) return BIASES.sidewaysbullish;
+    if (key.includes('bear')) return BIASES.sidewaysbearish;
+    return BIASES.sideways;
+  }
+  if (key.includes('bull')) return BIASES.bullish;
+  if (key.includes('bear')) return BIASES.bearish;
+  return null;
 }
 
 function parsePercent(val) {

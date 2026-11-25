@@ -298,8 +298,8 @@ function KeyStatsTab({ profile, graph, symbol, expiry, showOverview }) {
   return (
     <>
       {showOverview ? <KeyStatsOverview profile={profile} graph={graph} symbol={symbol} expiry={expiry} /> : null}
+      <MarketBiasCard bias={profile?.market_bias?.bias} comment={profile?.tradingDataComment} priceChange={profile?.market_bias?.price_change} futureOi={profile?.market_bias?.future_oi} score={profile?.score ?? profile?.market_bias?.score} />
       <StockStatisticsGrid profile={profile} />
-      <MarketBiasCard bias={profile?.bias} comment={profile?.tradingDataComment} priceChange={profile?.market_bias?.price_change} futureOi={profile?.market_bias?.future_oi} score={profile?.score ?? profile?.market_bias?.score} />
       <PricePerformance data={profile?.price_performance} />
       <OIChanges data={profile?.oi_changes} />
     </>
@@ -312,7 +312,7 @@ function OiOverviewTab({ overview, pcr, optionData, symbol }) {
       <OptionOiValue pcr={pcr} optionData={optionData} />
       <FiveDayData oi_overview={overview} symbol={symbol} />
       <MomOiTable oi_overview={overview} symbol={symbol} />
-      <OIChangesTable oi_overview={overview} symbol={symbol} />
+      {/* <OIChangesTable oi_overview={overview} symbol={symbol} /> */}
     </>
   );
 }

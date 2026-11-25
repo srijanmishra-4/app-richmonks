@@ -15,10 +15,18 @@ const BORDER = '#E2E8F0';
 const DIVIDER = '#F1F5F9';
 
 const SIGNAL_THEME = {
-  S: { bg: '#ECFDF3', text: GREEN },
-  W: { bg: '#FEF2F2', text: RED },
-  N: { bg: '#EFF6FF', text: BLUE },
+  S: { label: 'Strong', bg: '#ECFDF3', text: GREEN, border: '#BBF7D0' },
+  W: { label: 'Weak', bg: '#FEF2F2', text: RED, border: '#FECACA' },
+  N: { label: 'Neutral', bg: '#EFF6FF', text: BLUE, border: '#BFDBFE' },
 };
+
+function signalTheme(value) {
+  const key = String(value ?? '').trim().toLowerCase();
+  if (key === 's' || key === 'strong') return SIGNAL_THEME.S;
+  if (key === 'w' || key === 'weak') return SIGNAL_THEME.W;
+  if (key === 'n' || key === 'neutral') return SIGNAL_THEME.N;
+  return null;
+}
 
 const MONEYNESS_THEME = {
   ITM: { border: '#BFDBFE', text: BLUE, bg: '#F5F9FF' },
@@ -147,8 +155,7 @@ function OptionsData({ optionData, symbol, expiry }) {
         ) : (
           records.map((item, index) => {
             const chgOi = formatChangeOi(item?.change_OI);
-            const sw = String(item?.sw ?? '').trim().toUpperCase();
-            const sig = SIGNAL_THEME[sw];
+            const sig = signalTheme(item?.sw);
             const tag = String(item?.tag ?? '').trim().toUpperCase();
             const money = MONEYNESS_THEME[tag];
             const isLast = index === records.length - 1;
@@ -182,8 +189,8 @@ function OptionsData({ optionData, symbol, expiry }) {
                 </View>
                 <View style={[styles.cell, styles.colSignal]}>
                   {sig ? (
-                    <View style={[styles.signalBadge, { backgroundColor: sig.bg }]}>
-                      <Text style={[styles.signalText, { color: sig.text }]}>{sw}</Text>
+                    <View style={[styles.tagPill, { borderColor: sig.border, backgroundColor: sig.bg }]}>
+                      <Text style={[styles.tagText, { color: sig.text }]} numberOfLines={1}>{sig.label}</Text>
                     </View>
                   ) : (
                     <Text style={styles.subText}>-</Text>
@@ -221,7 +228,7 @@ const createStyles = (f) => ({
   colTrigger: { flex: 1.2 },
   colCmp: { flex: 1.25 },
   colOi: { flex: 1.3 },
-  colSignal: { flex: 0.85 },
+  colSignal: { flex: 1.2 },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: f(8, 12), paddingVertical: f(10, 12) },
   rowWide: { paddingVertical: f(12, 14) },
   rowDivider: { borderBottomWidth: 1, borderBottomColor: DIVIDER },
@@ -233,8 +240,6 @@ const createStyles = (f) => ({
   subTextWide: { fontSize: f(11.5, 13), lineHeight: f(14.5, 16) },
   tagPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: f(5, 6), paddingVertical: 1, alignItems: 'center', justifyContent: 'center' },
   tagText: { fontSize: f(8, 9), lineHeight: f(11, 12), fontFamily: 'Inter_500Medium', letterSpacing: 0.3 },
-  signalBadge: { width: f(24, 26), height: f(24, 26), borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  signalText: { fontSize: f(11, 12), lineHeight: f(14, 15), fontFamily: 'Inter_600SemiBold' },
   emptyWrap: { paddingVertical: f(24, 32), alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: f(12, 13), fontFamily: 'Inter_400Regular', color: MUTED },
 });

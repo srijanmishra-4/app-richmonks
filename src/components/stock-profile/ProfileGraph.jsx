@@ -157,7 +157,7 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, opt
   const renderLineGraph = () => {
     if (fill) {
       return (
-        <View style={docked ? styles.chartBoxDocked : styles.chartBox} onLayout={onChartBoxLayout}>
+        <View style={styles.chartBox} onLayout={onChartBoxLayout}>
           <LineGraph flex largeTooltip data={points} height={190} style={Platform.OS === 'web' && chartWidth > 0 ? { width: chartWidth } : null} />
         </View>
       );
@@ -165,27 +165,22 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, opt
     return <LineGraph largeTooltip data={points} height={190} />;
   };
 
-  const candleHeight = lineStackHeight || (fill ? CANDLE_FALLBACK_HEIGHT_WIDE : CANDLE_FALLBACK_HEIGHT);
+  // The line stack (space above + chart) is the fixed section. The candlestick
+  // fills that same box, so it draws taller while the day selector stays put.
+  const stageHeight = lineStackHeight || (fill ? CANDLE_FALLBACK_HEIGHT_WIDE : CANDLE_FALLBACK_HEIGHT);
   // The line chart already needs an explicit pixel width here. On web the candle
   // plot's own onLayout stays at 0 inside this flex column, so the SVG never mounts.
   const candleSized = fill && chartWidth > 0 ? { width: chartWidth } : null;
 
   return (
     <View style={[fill ? styles.wideWrap : null, docked ? styles.dockedWrap : null]}>
-      {docked && graphMode !== 'candle' ? <View style={styles.dockHeader}>{header}</View> : null}
       {graphMode === 'candle' ? (
-        docked ? (
-          <View style={[styles.candleStack, styles.candleStackWide, styles.chartFlex, styles.chartFlexCandle]} onLayout={onChartBoxLayout}>
-            <CandlestickGraph flex data={candleSeries} keyStats={keyStats} style={candleSized} />
-          </View>
-        ) : (
-          <View style={[styles.candleStack, fill ? styles.candleStackWide : null, { height: candleHeight }]} onLayout={fill ? onChartBoxLayout : undefined}>
-            <CandlestickGraph data={candleSeries} height={candleHeight} keyStats={keyStats} style={candleSized} />
-          </View>
-        )
+        <View style={[styles.candleStack, fill ? styles.candleStackWide : null, { height: stageHeight }]} onLayout={fill ? onChartBoxLayout : undefined}>
+          <CandlestickGraph data={candleSeries} height={stageHeight} keyStats={keyStats} style={candleSized} />
+        </View>
       ) : (
-        <View style={docked ? styles.chartFlex : null} onLayout={docked ? undefined : onLineStackLayout}>
-          {docked ? null : header}
+        <View onLayout={onLineStackLayout}>
+          {header}
           <View style={[styles.graph, fill && !docked ? styles.graphWide : null, docked ? styles.graphDocked : null]}>
             {renderLineGraph()}
           </View>
@@ -273,13 +268,9 @@ const createStyles = (f) => ({
   },
   wideWrap: { width: '100%', flexGrow: 1, flexShrink: 1, minHeight: 0 },
   dockedWrap: { flex: 1, minHeight: 0 },
-  dockHeader: { flexShrink: 0 },
-  chartFlex: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, maxHeight: f(360, 440), width: '100%' },
-  chartFlexCandle: { maxHeight: f(470, 560) },
   graphWide: { marginTop: 44, paddingHorizontal: 0 },
-  graphDocked: { flex: 1, minHeight: 0, marginTop: f(16, 28), paddingHorizontal: 0 },
+  graphDocked: { marginTop: f(16, 28), paddingHorizontal: 0 },
   chartBox: { maxWidth: 1100, width: '100%', alignSelf: 'center', height: 320, maxHeight: 380 },
-  chartBoxDocked: { maxWidth: 1100, width: '100%', alignSelf: 'center', flex: 1, minHeight: 0 },
   candleStack: { paddingHorizontal: f(16, 24) },
   candleStackWide: { paddingHorizontal: 0, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   controlsWide: { marginTop: 36, paddingHorizontal: 0 },
