@@ -17,11 +17,11 @@ const RED = '#DC2626';
 const NEUTRAL = '#64748B';
 
 const OPTIONS_REPORTS = [
-  { id: 'abv_wap', label: 'Above 10% from WAP' },
+  // { id: 'abv_wap', label: 'Above 10% from WAP' },
   { id: 'crossing_yes_high', label: "Crossing Yesterday's High" },
   { id: 'crossing_yes_low', label: "Crossing 20% From Yesterday's Low" },
   { id: 'breaching_yes_high', label: "Breaching 20% From Yesterday's High" },
-  { id: 'abv_high_3_days', label: 'Above 3 Days High' },
+  // { id: 'abv_high_3_days', label: 'Above 3 Days High' },
 ];
 
 // abv_wap and blw_wap do not send key/value. Every other report does.
@@ -91,7 +91,8 @@ function TrendingOptions() {
   const showLogo = useShowSymbolLogo();
   const styles = useFluidStyles(createStyles);
   const [optionType, setOptionType] = useState('CE');
-  const [selectedReport, setSelectedReport] = useState('abv_wap');
+  // Default was 'abv_wap' (Above 10% from WAP). Restore that id if that report is uncommented.
+  const [selectedReport, setSelectedReport] = useState('crossing_yes_high');
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const optionRef = useRef(optionType);

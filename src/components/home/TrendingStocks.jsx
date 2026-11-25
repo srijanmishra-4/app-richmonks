@@ -18,16 +18,16 @@ const NEUTRAL = '#64748B';
 
 const POSITIVE_REPORTS = [
   { id: 'cr_2_day_low', label: 'Crossing 2% From Low' },
-  { id: 'abv_intraday_high', label: 'Above Intraday High' },
-  { id: 'abv_yesterday_high', label: "Above Yesterday's High" },
+  // { id: 'abv_intraday_high', label: 'Above Intraday High' },
+  // { id: 'abv_yesterday_high', label: "Above Yesterday's High" },
   { id: 'abv_prev_week_high', label: "Above Previous Week's High" },
   { id: 'abv_prev_month_high', label: "Above Previous Month's High" },
 ];
 
 const NEGATIVE_REPORTS = [
   { id: 'br_2_day_high', label: 'Breaking 2% From High' },
-  { id: 'blw_intraday_low', label: 'Below Intraday Low' },
-  { id: 'blw_yesterday_low', label: "Below Yesterday's Low" },
+  // { id: 'blw_intraday_low', label: 'Below Intraday Low' },
+  // { id: 'blw_yesterday_low', label: "Below Yesterday's Low" },
   { id: 'blw_prev_week_low', label: "Below Previous Week's Low" },
   { id: 'blw_prev_month_low', label: "Below Previous Month's Low" },
 ];
