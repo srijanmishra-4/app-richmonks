@@ -118,7 +118,7 @@ function StockHeroCard({
 }) {
   const styles = useFluidStyles(createStyles);
   const { isLaptop } = useBreakpoint();
-  const wide = Boolean(isOption) && isLaptop;
+  const wide = isLaptop;
   const open = String(status ?? '').toLowerCase().includes('open');
   const formattedExpiry = formatExpiryDate(expiryDate);
   const expiryLabel = isOption && formattedExpiry ? (String(expiry || '').startsWith('weekly') ? `${formattedExpiry} (W)` : formattedExpiry) : undefined;
@@ -167,7 +167,7 @@ function StockHeroCard({
               </View>
             </View>
           ) : (
-            <Text style={styles.symbol} numberOfLines={1} maxFontSizeMultiplier={1.1}>{symbol || '—'}</Text>
+            <Text style={[styles.symbol, wide ? styles.symbolWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{symbol || '—'}</Text>
           )}
         </View>
         <View style={[styles.priceCol, wide ? styles.priceColWide : null]}>
@@ -235,20 +235,20 @@ const createStyles = (f) => ({
   cardWide: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   statusRowWide: { gap: 12 },
   statusLeftWide: { gap: 8 },
-  statusWide: { fontSize: 13, lineHeight: 18 },
-  cdateWide: { fontSize: 13, lineHeight: 18 },
-  identityRowWide: { gap: 12, marginTop: 16 },
-  identityWide: { gap: 12, alignItems: 'center' },
-  symbolWide: { fontSize: 20, lineHeight: 26, fontWeight: '700', fontFamily: 'Inter_700Bold' },
-  logoSpace: { marginRight: 12 },
+  statusWide: { fontSize: f(13, 15), lineHeight: f(18, 20) },
+  cdateWide: { fontSize: f(13, 15), lineHeight: f(18, 20) },
+  identityRowWide: { gap: f(12, 16), marginTop: f(16, 22) },
+  identityWide: { gap: f(12, 16), alignItems: 'center' },
+  symbolWide: { fontSize: f(20, 24), lineHeight: f(26, 30), fontWeight: '700', fontFamily: 'Inter_700Bold' },
+  logoSpace: { marginRight: f(10, 14) },
   priceColWide: { marginTop: 0 },
-  priceWide: { fontSize: 20, lineHeight: 26, fontWeight: '700', fontFamily: 'Inter_700Bold' },
-  changeWide: { marginTop: 4, fontSize: 14, lineHeight: 18, fontWeight: '600' },
-  metaRowWide: { gap: 12, marginTop: 16 },
-  metaLeftWide: { gap: 12 },
-  metaLabelWide: { fontSize: 13, lineHeight: 18 },
-  metaSepWide: { height: 14 },
-  futureLinkWide: { gap: 4 },
-  futureTextWide: { fontSize: 14, lineHeight: 18 },
-  optionRowWide: { gap: 12, marginTop: 12 },
+  priceWide: { fontSize: f(20, 24), lineHeight: f(26, 30), fontWeight: '700', fontFamily: 'Inter_700Bold' },
+  changeWide: { marginTop: f(4, 6), fontSize: f(14, 16), lineHeight: f(18, 20), fontWeight: '600' },
+  metaRowWide: { gap: f(12, 16), marginTop: f(16, 22) },
+  metaLeftWide: { gap: f(12, 16) },
+  metaLabelWide: { fontSize: f(13, 15), lineHeight: f(18, 20) },
+  metaSepWide: { height: f(14, 16) },
+  futureLinkWide: { gap: f(4, 6) },
+  futureTextWide: { fontSize: f(14, 16), lineHeight: f(18, 20) },
+  optionRowWide: { gap: f(12, 16), marginTop: f(12, 16) },
 });

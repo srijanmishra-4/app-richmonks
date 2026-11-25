@@ -1,16 +1,22 @@
 import { StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ProfileHeader from '@/components/user-profile/ProfileHeader';
 import ComingSoon from '@/components/reports/ComingSoon';
+import { paramString } from '@/utils/reportParams';
 
 export default function ProfileComingSoonRoute() {
-  const onBack = () => { if (router.canGoBack()) router.back(); else router.replace('/home'); };
+  const params = useLocalSearchParams();
+  const title = paramString(params.title).trim() || 'Coming Soon';
+  const onBack = () => { if (router.canGoBack()) router.back(); else router.replace('/user-profile'); };
+  const message = title === 'Coming Soon'
+    ? undefined
+    : `${title} will open here as soon as it is ready.`;
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <ProfileHeader title="Coming Soon" onBack={onBack} id="coming-soon-back" />
-      <ComingSoon />
+      <ProfileHeader title={title} onBack={onBack} id="coming-soon-back" />
+      <ComingSoon message={message} />
     </SafeAreaView>
   );
 }

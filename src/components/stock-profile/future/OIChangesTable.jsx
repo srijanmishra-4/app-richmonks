@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useFluidStyles } from '@/utils/responsive';
 
 const GREEN = '#16A34A';
@@ -64,6 +65,7 @@ function pctMeta(val) {
 }
 
 function OIChangesTable({ oi_overview, symbol }) {
+  const { isLaptop } = useBreakpoint();
   const styles = useFluidStyles(createStyles);
   const rows = Array.isArray(oi_overview?.oi_changes) ? oi_overview.oi_changes : Array.isArray(oi_overview?.i_changes) ? oi_overview.i_changes : [];
   const stockSymbol = String(symbol ?? '').trim();
@@ -71,32 +73,30 @@ function OIChangesTable({ oi_overview, symbol }) {
   return (
     <View style={styles.wrap}>
       <View style={styles.headingWrap}>
-        <Text style={styles.title} maxFontSizeMultiplier={1.1}>OI Changes</Text>
+        <Text style={[styles.title, isLaptop ? styles.titleWide : null]} maxFontSizeMultiplier={1.1}>OI Changes</Text>
         <Text style={styles.subtitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>For {stockSymbol || '—'}</Text>
       </View>
       <View style={styles.headerRow}>
         <View style={[styles.headerCell, styles.headerPeriodCell]}>
-          <Text style={styles.headerTitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>Period</Text>
+          <Text style={[styles.headerTitle, isLaptop ? styles.headerTitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>Period</Text>
         </View>
         {COLUMNS.map((column) => (
           <View key={column.value} style={styles.headerGroup}>
             <View style={styles.headerSepPlaceholder} />
             <View style={[styles.headerCell, styles.headerOiCell]}>
-              <Text style={styles.headerTitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>{column.label}</Text>
-              <Text style={styles.headerSubtitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>(In Lacs)</Text>
+              <Text style={[styles.headerTitle, isLaptop ? styles.headerTitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{column.label}</Text>
+              <Text style={[styles.headerSubtitle, isLaptop ? styles.headerSubtitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>(In Lacs)</Text>
             </View>
           </View>
         ))}
       </View>
       <View style={styles.rowsList}>
-        {rows.map((row, index) => {
-          const isLatest = index === 0;
-          return (
+        {rows.map((row, index) => (
             <View key={`${row?.period ?? 'row'}-${index}`} style={styles.rowCard}>
-              <View style={[styles.accentBar, isLatest ? styles.accentBarLatest : styles.accentBarNeutral]} />
-              <View style={styles.rowInner}>
+              <View style={styles.accentBar} />
+              <View style={[styles.rowInner, isLaptop ? styles.rowInnerWide : null]}>
                 <View style={[styles.cell, styles.periodCell]}>
-                  <Text style={styles.periodLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{periodLabel(row?.period)}</Text>
+                  <Text style={[styles.periodLabel, isLaptop ? styles.periodLabelWide : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{periodLabel(row?.period)}</Text>
                 </View>
                 {COLUMNS.map((column) => {
                   const amount = lakhsMeta(row?.[column.value]);
@@ -105,16 +105,15 @@ function OIChangesTable({ oi_overview, symbol }) {
                     <View key={column.value} style={styles.metricGroup}>
                       <View style={styles.vSep} />
                       <View style={[styles.cell, styles.oiCell]}>
-                        <Text style={[styles.oiVal, { color: amount.color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{amount.text}</Text>
-                        <Text style={[styles.oiPct, { color: pct.color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{pct.text}</Text>
+                        <Text style={[styles.oiVal, isLaptop ? styles.oiValWide : null, { color: amount.color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{amount.text}</Text>
+                        <Text style={[styles.oiPct, isLaptop ? styles.oiPctWide : null, { color: pct.color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{pct.text}</Text>
                       </View>
                     </View>
                   );
                 })}
               </View>
             </View>
-          );
-        })}
+        ))}
       </View>
     </View>
   );
@@ -126,6 +125,7 @@ const createStyles = (f) => ({
   wrap: { marginHorizontal: f(16, 24), marginTop: f(22, 28), paddingTop: f(18, 22), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E2E8F0' },
   headingWrap: { marginBottom: f(6, 8) },
   title: { fontSize: f(16, 17), lineHeight: f(20, 22), fontFamily: 'Inter_600SemiBold', color: TEXT },
+  titleWide: { fontSize: f(17, 18), lineHeight: f(21, 23) },
   subtitle: { marginTop: f(1, 2), fontSize: f(11, 12), lineHeight: f(14, 16), fontFamily: 'Inter_500Medium', color: MUTED },
   headerRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: f(10, 12), paddingBottom: f(6, 8) },
   headerGroup: { flex: 1.2, flexDirection: 'row', alignItems: 'flex-end', minWidth: 0 },
@@ -134,19 +134,23 @@ const createStyles = (f) => ({
   headerOiCell: { flex: 1, alignItems: 'center' },
   headerSepPlaceholder: { width: StyleSheet.hairlineWidth },
   headerTitle: { fontSize: f(10, 11), lineHeight: f(13, 14), fontFamily: 'Inter_600SemiBold', color: '#475569' },
+  headerTitleWide: { fontSize: f(11, 12), lineHeight: f(14, 15) },
   headerSubtitle: { marginTop: 1, fontSize: f(9, 10), lineHeight: f(11, 12), fontFamily: 'Inter_400Regular', color: SUBTLE },
+  headerSubtitleWide: { fontSize: f(10, 11), lineHeight: f(12, 13) },
   rowsList: { gap: f(6, 7) },
   rowCard: { position: 'relative', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: f(8, 10), overflow: 'hidden' },
-  accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
-  accentBarLatest: { backgroundColor: GREEN },
-  accentBarNeutral: { backgroundColor: '#E2E8F0' },
+  accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, backgroundColor: '#E2E8F0' },
   rowInner: { flexDirection: 'row', alignItems: 'center', paddingVertical: f(8, 9), paddingHorizontal: f(10, 12) },
+  rowInnerWide: { paddingVertical: f(10, 11) },
   metricGroup: { flex: 1.2, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
   cell: { minWidth: 0, justifyContent: 'center' },
   periodCell: { flex: 1.05, alignItems: 'flex-start' },
   oiCell: { flex: 1, alignItems: 'center' },
   vSep: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: '#E2E8F0', marginVertical: f(2, 3) },
   periodLabel: { fontSize: f(11, 12), lineHeight: f(15, 16), fontFamily: 'Inter_600SemiBold', color: TEXT },
+  periodLabelWide: { fontSize: f(12, 13.5), lineHeight: f(16, 17.5) },
   oiVal: { fontSize: f(11, 12), lineHeight: f(14, 16), fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
+  oiValWide: { fontSize: f(12, 13.5), lineHeight: f(16, 17.5) },
   oiPct: { marginTop: 1, fontSize: f(10, 11), lineHeight: f(13, 14), fontFamily: 'Inter_500Medium', textAlign: 'center' },
+  oiPctWide: { fontSize: f(11, 12), lineHeight: f(14, 15) },
 });

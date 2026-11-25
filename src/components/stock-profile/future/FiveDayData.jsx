@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useFluidStyles } from '@/utils/responsive';
 
 const GREEN = '#16A34A';
@@ -86,6 +87,7 @@ function oiText(val) {
 }
 
 function FiveDayData({ oi_overview, data5days, symbol }) {
+  const { isLaptop } = useBreakpoint();
   const styles = useFluidStyles(createStyles);
   const rows = Array.isArray(oi_overview?.data5days) ? oi_overview.data5days : Array.isArray(data5days) ? data5days : [];
   const stockSymbol = String(symbol ?? '').trim();
@@ -93,61 +95,60 @@ function FiveDayData({ oi_overview, data5days, symbol }) {
   return (
     <View style={styles.wrap}>
       <View style={styles.headingWrap}>
-        <Text style={styles.title} maxFontSizeMultiplier={1.1}>5 Day Data</Text>
+        <Text style={[styles.title, isLaptop ? styles.titleWide : null]} maxFontSizeMultiplier={1.1}>5 Day Data</Text>
         <Text style={styles.subtitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>For {stockSymbol || '—'}</Text>
       </View>
       <View style={styles.headerRow}>
         <View style={[styles.headerCell, styles.headerDateCell]}>
-          <Text style={styles.headerTitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>Date</Text>
+          <Text style={[styles.headerTitle, isLaptop ? styles.headerTitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>Date</Text>
         </View>
         <View style={styles.headerSepPlaceholder} />
         <View style={[styles.headerCell, styles.headerPriceCell]}>
-          <Text style={styles.headerTitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>Price (₹)</Text>
+          <Text style={[styles.headerTitle, isLaptop ? styles.headerTitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>Price (₹)</Text>
         </View>
         <View style={styles.headerSepPlaceholder} />
         <View style={[styles.headerCell, styles.headerOiCell]}>
-          <Text style={styles.headerTitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>Fut. OI</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>(In Lacs)</Text>
+          <Text style={[styles.headerTitle, isLaptop ? styles.headerTitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>Fut. OI</Text>
+          <Text style={[styles.headerSubtitle, isLaptop ? styles.headerSubtitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>(In Lacs)</Text>
         </View>
         <View style={styles.headerSepPlaceholder} />
         <View style={[styles.headerCell, styles.headerOiCell]}>
-          <Text style={styles.headerTitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>Call OI</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>(In Lacs)</Text>
+          <Text style={[styles.headerTitle, isLaptop ? styles.headerTitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>Call OI</Text>
+          <Text style={[styles.headerSubtitle, isLaptop ? styles.headerSubtitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>(In Lacs)</Text>
         </View>
         <View style={styles.headerSepPlaceholder} />
         <View style={[styles.headerCell, styles.headerOiCell]}>
-          <Text style={styles.headerTitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>Put OI</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1} maxFontSizeMultiplier={1.1}>(In Lacs)</Text>
+          <Text style={[styles.headerTitle, isLaptop ? styles.headerTitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>Put OI</Text>
+          <Text style={[styles.headerSubtitle, isLaptop ? styles.headerSubtitleWide : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>(In Lacs)</Text>
         </View>
       </View>
       <View style={styles.rowsList}>
         {rows.map((row, index) => {
-          const isLatest = index === 0;
           const dateParts = parseDate(row?.cdate);
           const chg = pctMeta(row?.price_change);
           return (
             <View key={`${row?.cdate ?? 'row'}-${index}`} style={styles.rowCard}>
-              <View style={[styles.accentBar, isLatest ? styles.accentBarLatest : styles.accentBarNeutral]} />
-              <View style={styles.rowInner}>
+              <View style={styles.accentBar} />
+              <View style={[styles.rowInner, isLaptop ? styles.rowInnerWide : null]}>
                 <View style={[styles.cell, styles.dateCell]}>
-                  <Text style={styles.dateLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{dateParts.month ? `${dateParts.day} ${dateParts.month}` : dateParts.day}</Text>
+                  <Text style={[styles.dateLabel, isLaptop ? styles.dateLabelWide : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{dateParts.month ? `${dateParts.day} ${dateParts.month}` : dateParts.day}</Text>
                 </View>
                 <View style={styles.vSep} />
                 <View style={[styles.cell, styles.priceCell]}>
-                  <Text style={styles.priceVal} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{priceText(row?.price)}</Text>
-                  <Text style={[styles.priceChg, { color: chg.color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{chg.text}</Text>
+                  <Text style={[styles.priceVal, isLaptop ? styles.priceValWide : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{priceText(row?.price)}</Text>
+                  <Text style={[styles.priceChg, isLaptop ? styles.priceChgWide : null, { color: chg.color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{chg.text}</Text>
                 </View>
                 <View style={styles.vSep} />
                 <View style={[styles.cell, styles.oiCell]}>
-                  <Text style={styles.oiVal} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{oiText(row?.future_oi)}</Text>
+                  <Text style={[styles.oiVal, isLaptop ? styles.oiValWide : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{oiText(row?.future_oi)}</Text>
                 </View>
                 <View style={styles.vSep} />
                 <View style={[styles.cell, styles.oiCell]}>
-                  <Text style={styles.oiVal} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{oiText(row?.call_oi)}</Text>
+                  <Text style={[styles.oiVal, isLaptop ? styles.oiValWide : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{oiText(row?.call_oi)}</Text>
                 </View>
                 <View style={styles.vSep} />
                 <View style={[styles.cell, styles.oiCell]}>
-                  <Text style={styles.oiVal} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{oiText(row?.put_oi)}</Text>
+                  <Text style={[styles.oiVal, isLaptop ? styles.oiValWide : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{oiText(row?.put_oi)}</Text>
                 </View>
               </View>
             </View>
@@ -164,6 +165,7 @@ const createStyles = (f) => ({
   wrap: { marginHorizontal: f(16, 24), marginTop: f(22, 28), paddingTop: f(18, 22), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E2E8F0' },
   headingWrap: { marginBottom: f(6, 8) },
   title: { fontSize: f(16, 17), lineHeight: f(20, 22), fontFamily: 'Inter_600SemiBold', color: TEXT },
+  titleWide: { fontSize: f(17, 18), lineHeight: f(21, 23) },
   subtitle: { marginTop: f(1, 2), fontSize: f(11, 12), lineHeight: f(14, 16), fontFamily: 'Inter_500Medium', color: MUTED },
   headerRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: f(10, 12), paddingBottom: f(6, 8) },
   headerCell: { minWidth: 0 },
@@ -172,20 +174,25 @@ const createStyles = (f) => ({
   headerOiCell: { flex: 1.22, alignItems: 'center' },
   headerSepPlaceholder: { width: StyleSheet.hairlineWidth },
   headerTitle: { fontSize: f(10, 11), lineHeight: f(13, 14), fontFamily: 'Inter_600SemiBold', color: '#475569' },
+  headerTitleWide: { fontSize: f(11, 12), lineHeight: f(14, 15) },
   headerSubtitle: { marginTop: 1, fontSize: f(9, 10), lineHeight: f(11, 12), fontFamily: 'Inter_400Regular', color: SUBTLE },
+  headerSubtitleWide: { fontSize: f(10, 11), lineHeight: f(12, 13) },
   rowsList: { gap: f(6, 7) },
   rowCard: { position: 'relative', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: f(8, 10), overflow: 'hidden' },
-  accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
-  accentBarLatest: { backgroundColor: GREEN },
-  accentBarNeutral: { backgroundColor: '#E2E8F0' },
+  accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, backgroundColor: '#E2E8F0' },
   rowInner: { flexDirection: 'row', alignItems: 'center', paddingVertical: f(8, 9), paddingHorizontal: f(10, 12) },
+  rowInnerWide: { paddingVertical: f(10, 11) },
   cell: { minWidth: 0, justifyContent: 'center' },
   dateCell: { flex: 0.82, alignItems: 'flex-start' },
   priceCell: { flex: 1.28, alignItems: 'center' },
   oiCell: { flex: 1.22, alignItems: 'center' },
   vSep: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: '#E2E8F0', marginVertical: f(2, 3) },
   dateLabel: { fontSize: f(11, 12), lineHeight: f(15, 16), fontFamily: 'Inter_600SemiBold', color: TEXT },
+  dateLabelWide: { fontSize: f(12, 13.5), lineHeight: f(16, 17.5) },
   priceVal: { fontSize: f(11, 12), lineHeight: f(14, 16), fontFamily: 'Inter_600SemiBold', color: TEXT, textAlign: 'center' },
+  priceValWide: { fontSize: f(12, 13.5), lineHeight: f(16, 17.5) },
   priceChg: { marginTop: 1, fontSize: f(10, 11), lineHeight: f(13, 14), fontFamily: 'Inter_500Medium', textAlign: 'center' },
+  priceChgWide: { fontSize: f(11, 12), lineHeight: f(14, 15) },
   oiVal: { fontSize: f(11, 12), lineHeight: f(14, 16), fontFamily: 'Inter_500Medium', color: TEXT, textAlign: 'center' },
+  oiValWide: { fontSize: f(12, 13.5), lineHeight: f(16, 17.5) },
 });

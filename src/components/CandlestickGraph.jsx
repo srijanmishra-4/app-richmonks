@@ -3,14 +3,11 @@ import { View, Text, StyleSheet, PanResponder, Platform } from 'react-native';
 import Svg, { Rect, Line, G } from 'react-native-svg';
 
 import { dismissAllLineGraphTooltips } from '@/components/LineGraph';
+import { useFluid, useFluidStyles } from '@/utils/responsive';
 
 const GREEN = '#10B981';
 const RED = '#EF4444';
 const NEUTRAL = '#94A3B8';
-const OHLCV_MARGIN_TOP = 8;
-const OHLCV_ROW_HEIGHT = 26;
-const OHLCV_MARGIN_BOTTOM = 6;
-const OHLCV_HEADER_HEIGHT = OHLCV_MARGIN_TOP + OHLCV_ROW_HEIGHT + OHLCV_MARGIN_BOTTOM;
 
 const dismissListeners = new Set();
 export function dismissAllCandlestickTooltips() {
@@ -121,9 +118,21 @@ function findNearestCandleIndex(touchX, candles) {
   return closestIdx;
 }
 
-export default function CandlestickGraph({ data = [], height = 230, style, onCandleSelect, keyStats }) {
-  const chartHeight = Math.max(80, height - OHLCV_HEADER_HEIGHT);
-  const [layout, setLayout] = useState({ width: 0, height: chartHeight });
+function numericWidth(style) {
+  if (!style || Array.isArray(style)) return 0;
+  return typeof style.width === 'number' && style.width > 0 ? style.width : 0;
+}
+
+export default function CandlestickGraph({ data = [], height = 230, style, onCandleSelect, keyStats, flex = false }) {
+  const f = useFluid();
+  const ohlcvStyles = useFluidStyles(createOhlcvStyles);
+  const ohlcvMarginTop = f(16, 22);
+  const ohlcvRowHeight = f(26, 32);
+  const ohlcvMarginBottom = f(6, 8);
+  const ohlcvHeaderHeight = ohlcvMarginTop + ohlcvRowHeight + ohlcvMarginBottom;
+  const chartHeight = Math.max(80, height - ohlcvHeaderHeight);
+  const styleWidth = numericWidth(style);
+  const [layout, setLayout] = useState({ width: 0, height: 0 });
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [tooltipSize, setTooltipSize] = useState({ width: 164, height: 54 });
   const selectedIndexRef = useRef(-1);
@@ -157,10 +166,39 @@ export default function CandlestickGraph({ data = [], height = 230, style, onCan
 
   useEffect(() => { clearSelection(); }, [data, clearSelection]);
 
+  const applyLayout = useCallback((w, h) => {
+    if (w <= 0 && h <= 0) return;
+    setLayout((prev) => {
+      const width = w > 0 ? w : prev.width;
+      const height = h > 0 ? h : prev.height;
+      if (Math.abs(width - prev.width) < 0.5 && Math.abs(height - prev.height) < 0.5) return prev;
+      return { width, height };
+    });
+  }, []);
+
   const onLayout = useCallback((e) => {
     const { width: w, height: h } = e.nativeEvent.layout;
-    if (w > 0) setLayout({ width: w, height: h || chartHeight });
-  }, [chartHeight]);
+    applyLayout(w, h > 0 ? h : (flex ? 0 : chartHeight));
+  }, [applyLayout, flex, chartHeight]);
+
+  // Wide web flex columns report a 0 width from onLayout until the plot has a
+  // definite pixel size. Read the DOM box as well so the candles can mount.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return undefined;
+    const node = containerRef.current;
+    if (!node || typeof node.getBoundingClientRect !== 'function') return undefined;
+    const apply = () => {
+      const rect = node.getBoundingClientRect();
+      applyLayout(rect.width, rect.height > 0 ? rect.height : (flex ? 0 : chartHeight));
+    };
+    const frame = requestAnimationFrame(apply);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(apply);
+    observer?.observe(node);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [applyLayout, flex, styleWidth, chartHeight]);
 
   const onTooltipLayout = useCallback((e) => {
     const { width: tw, height: th } = e.nativeEvent.layout;
@@ -173,14 +211,16 @@ export default function CandlestickGraph({ data = [], height = 230, style, onCan
   const padBottom = 2;
   const volumeHeight = 34;
   const volumeGap = 12;
-  const axisBottomY = layout.height - padBottom;
+  const plotWidth = layout.width > 0 ? layout.width : styleWidth;
+  const plotHeight = layout.height > 0 ? layout.height : chartHeight;
+  const axisBottomY = plotHeight - padBottom;
   const volumeBottomY = axisBottomY - 1;
   const volumeTopY = volumeBottomY - volumeHeight;
   const plotFloorY = volumeTopY - volumeGap;
   const plotCeilY = padTop;
 
   const candles = useMemo(() => {
-    if (!Array.isArray(data) || data.length === 0 || layout.width <= 0) return [];
+    if (!Array.isArray(data) || data.length === 0 || plotWidth <= 0 || plotHeight <= 0) return [];
     const parsed = data.map((d, index) => {
       const open = safeNum(d?.open);
       const high = safeNum(d?.high);
@@ -205,7 +245,7 @@ export default function CandlestickGraph({ data = [], height = 230, style, onCan
     const priceRange = priceMax === priceMin ? 1 : priceMax - priceMin;
     const usableH = Math.max(1, plotFloorY - plotCeilY);
     const n = parsed.length;
-    const totalWidth = layout.width - padLeft - padRight;
+    const totalWidth = plotWidth - padLeft - padRight;
     const candleSlotW = Math.max(1, totalWidth / n);
     const candleBodyW = candleSlotW >= 4 ? Math.min(candleSlotW * 0.74, 18) : Math.max(1, candleSlotW * 0.8);
     const wickW = candleBodyW >= 8 ? 1.25 : 1;
@@ -228,7 +268,7 @@ export default function CandlestickGraph({ data = [], height = 230, style, onCan
       const volH = volToH(item.volume);
       return { ...item, cx, bodyTop, bodyBottom: bodyTop + bodyH, wickTop, wickBottom, candleBodyW, wickW, volH, isBullish, isBearish, isNeutral, color };
     });
-  }, [data, layout.width, layout.height, plotFloorY, plotCeilY, volumeHeight, padLeft, padRight]);
+  }, [data, plotWidth, plotHeight, plotFloorY, plotCeilY, volumeHeight, padLeft, padRight]);
 
   const candlesRef = useRef(candles);
   candlesRef.current = candles;
@@ -337,11 +377,11 @@ export default function CandlestickGraph({ data = [], height = 230, style, onCan
 
   // Tooltip position
   let tooltipPos = null;
-  if (selectedCandle && layout.width > 0) {
+  if (selectedCandle && plotWidth > 0) {
     const tw = tooltipSize.width || 164;
     const th = tooltipSize.height || 54;
     const targetX = selectedCandle.cx - tw / 2;
-    const clampedLeft = Math.max(4, Math.min(layout.width - tw - 4, targetX));
+    const clampedLeft = Math.max(4, Math.min(plotWidth - tw - 4, targetX));
     const caretLeft = Math.max(10, Math.min(tw - 20, selectedCandle.cx - clampedLeft - 5));
     const offset = 10;
     const spaceAbove = selectedCandle.wickTop - th - offset;
@@ -349,19 +389,21 @@ export default function CandlestickGraph({ data = [], height = 230, style, onCan
     let isBelow = false;
     let top = spaceAbove;
     if (spaceAbove >= 4) { top = spaceAbove; isBelow = false; }
-    else if (spaceBelow + th <= layout.height - 4) { top = spaceBelow; isBelow = true; }
+    else if (spaceBelow + th <= plotHeight - 4) { top = spaceBelow; isBelow = true; }
     else { top = Math.max(4, spaceAbove); isBelow = false; }
     tooltipPos = { left: clampedLeft, top, isBelow, caretLeft };
   }
 
+  const plotStyle = flex ? [styles.flexBox, { minHeight: 0 }] : { height: chartHeight };
+
   return (
-    <View style={[styles.wrapper, style]}>
+    <View style={[styles.wrapper, flex ? styles.flexBox : null, style]}>
       {/* OHLCV Header */}
-      <View style={styles.ohlcvRow}>
+      <View style={[styles.ohlcvRow, { marginTop: ohlcvMarginTop, height: ohlcvRowHeight, marginBottom: ohlcvMarginBottom }]}>
         {ohlcvItems.map((item) => (
-          <Text key={item.label} style={styles.ohlcvItem} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={1.1}>
-            <Text style={styles.ohlcvLabel}>{item.label}: </Text>
-            <Text style={[styles.ohlcvValue, item.color ? { color: item.color } : null]}>{item.value}</Text>
+          <Text key={item.label} style={ohlcvStyles.ohlcvItem} numberOfLines={1} maxFontSizeMultiplier={1.1}>
+            <Text style={ohlcvStyles.ohlcvLabel}>{item.label}: </Text>
+            <Text style={[ohlcvStyles.ohlcvValue, item.color ? { color: item.color } : null]}>{item.value}</Text>
           </Text>
         ))}
       </View>
@@ -369,7 +411,7 @@ export default function CandlestickGraph({ data = [], height = 230, style, onCan
       {/* Graph Area */}
       <View
         ref={containerRef}
-        style={[styles.container, { height: chartHeight }]}
+        style={[styles.container, plotStyle, styleWidth > 0 ? { width: styleWidth } : null]}
         onLayout={onLayout}
         {...panResponder.panHandlers}
         onTouchStartCapture={onGraphTouchStartCapture}
@@ -380,12 +422,12 @@ export default function CandlestickGraph({ data = [], height = 230, style, onCan
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
       >
-        {layout.width > 0 && candles.length > 0 && (
-          <Svg width={layout.width} height={layout.height} style={StyleSheet.absoluteFill}>
+        {plotWidth > 0 && plotHeight > 0 && candles.length > 0 && (
+          <Svg width={plotWidth} height={plotHeight} style={StyleSheet.absoluteFill}>
             {gridLines.map((y, i) => (
-              <Line key={`g-${i}`} x1={0} y1={y} x2={layout.width} y2={y} stroke="#EEF2F6" strokeWidth={1} strokeDasharray="3 4" />
+              <Line key={`g-${i}`} x1={0} y1={y} x2={plotWidth} y2={y} stroke="#EEF2F6" strokeWidth={1} strokeDasharray="3 4" />
             ))}
-            <Line x1={0} y1={axisBottomY} x2={layout.width} y2={axisBottomY} stroke="#E2E8F0" strokeWidth={1} />
+            <Line x1={0} y1={axisBottomY} x2={plotWidth} y2={axisBottomY} stroke="#E2E8F0" strokeWidth={1} />
 
             {/* Selected crosshair */}
             {selectedCandle && (
@@ -413,12 +455,16 @@ export default function CandlestickGraph({ data = [], height = 230, style, onCan
   );
 }
 
+const createOhlcvStyles = (f) => ({
+  ohlcvItem: { flexShrink: 1, fontSize: f(13, 14.5), lineHeight: f(18, 22) },
+  ohlcvLabel: { fontSize: f(13, 14.5), lineHeight: f(18, 22), fontFamily: 'Inter_500Medium', color: '#94A3B8' },
+  ohlcvValue: { fontSize: f(13, 14.5), lineHeight: f(18, 22), fontFamily: 'Inter_600SemiBold', color: '#1E293B', fontVariant: ['tabular-nums'] },
+});
+
 const styles = StyleSheet.create({
   wrapper: { width: '100%' },
-  ohlcvRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, height: OHLCV_ROW_HEIGHT, marginTop: OHLCV_MARGIN_TOP, marginBottom: OHLCV_MARGIN_BOTTOM, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EEF2F6' },
-  ohlcvItem: { flexShrink: 1, fontSize: 11.5, lineHeight: 16 },
-  ohlcvLabel: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#94A3B8' },
-  ohlcvValue: { fontSize: 11.5, fontFamily: 'Inter_600SemiBold', color: '#1E293B', fontVariant: ['tabular-nums'] },
+  flexBox: { flex: 1, minHeight: 0, width: '100%' },
+  ohlcvRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EEF2F6' },
   container: { width: '100%', position: 'relative', overflow: 'hidden' },
   tooltipCard: {
     position: 'absolute',

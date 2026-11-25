@@ -1,6 +1,7 @@
 import { memo, useCallback, useState } from 'react';
 import { View, Text, Pressable, Platform } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useFluidStyles } from '@/utils/responsive';
 import { openOptionProfile } from '@/utils/stockProfile';
 
@@ -80,6 +81,7 @@ function formatChangeOi(val) {
 }
 
 function OptionsData({ optionData, symbol, expiry }) {
+  const { isLaptop } = useBreakpoint();
   const styles = useFluidStyles(createStyles);
   const [tab, setTab] = useState('calls');
 
@@ -110,33 +112,33 @@ function OptionsData({ optionData, symbol, expiry }) {
       <View style={styles.table}>
         <View style={styles.headerRow}>
           <View style={[styles.headerCell, styles.colStrike]}>
-            <Text style={styles.headerText}>Strike</Text>
+            <Text style={[styles.headerText, isLaptop ? styles.headerTextWide : null]}>Strike</Text>
             <SortIcon />
           </View>
           <View style={[styles.headerCell, styles.colTrigger]}>
-            <Text style={styles.headerText}>TP</Text>
+            <Text style={[styles.headerText, isLaptop ? styles.headerTextWide : null]}>TP</Text>
             <SortIcon />
           </View>
           <View style={[styles.headerCell, styles.colCmp]}>
             <View style={styles.headerStack}>
               <View style={styles.headerMain}>
-                <Text style={styles.headerText}>Price</Text>
+                <Text style={[styles.headerText, isLaptop ? styles.headerTextWide : null]}>Price</Text>
                 <SortIcon />
               </View>
-              <Text style={styles.headerSubText}>Wap</Text>
+              <Text style={[styles.headerSubText, isLaptop ? styles.headerSubTextWide : null]}>Wap</Text>
             </View>
           </View>
           <View style={[styles.headerCell, styles.colOi]}>
             <View style={styles.headerStack}>
               <View style={styles.headerMain}>
-                <Text style={styles.headerText}>OI</Text>
+                <Text style={[styles.headerText, isLaptop ? styles.headerTextWide : null]}>OI</Text>
                 <SortIcon />
               </View>
-              <Text style={styles.headerSubText}>ΔOI</Text>
+              <Text style={[styles.headerSubText, isLaptop ? styles.headerSubTextWide : null]}>ΔOI</Text>
             </View>
           </View>
           <View style={[styles.headerCell, styles.colSignal]}>
-            <Text style={styles.headerText}>Signal</Text>
+            <Text style={[styles.headerText, isLaptop ? styles.headerTextWide : null]}>Signal</Text>
           </View>
         </View>
 
@@ -157,10 +159,10 @@ function OptionsData({ optionData, symbol, expiry }) {
                 onPress={() => openStrike(item)}
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${strikeLabel} ${optionType} option profile`}
-                style={[styles.row, isLast ? null : styles.rowDivider, Platform.OS === 'web' ? styles.pointer : null]}
+                style={[styles.row, isLaptop ? styles.rowWide : null, isLast ? null : styles.rowDivider, Platform.OS === 'web' ? styles.pointer : null]}
               >
                 <View style={[styles.cell, styles.colStrike, styles.strikeCell]}>
-                  <Text style={styles.primaryText} numberOfLines={1}>{strikeLabel}</Text>
+                  <Text style={[styles.primaryText, isLaptop ? styles.primaryTextWide : null]} numberOfLines={1}>{strikeLabel}</Text>
                   {money ? (
                     <View style={[styles.tagPill, { borderColor: money.border, backgroundColor: money.bg }]}>
                       <Text style={[styles.tagText, { color: money.text }]}>{tag}</Text>
@@ -168,15 +170,15 @@ function OptionsData({ optionData, symbol, expiry }) {
                   ) : null}
                 </View>
                 <View style={[styles.cell, styles.colTrigger]}>
-                  <Text style={styles.primaryText} numberOfLines={1}>{formatRupee(item?.trigger_point)}</Text>
+                  <Text style={[styles.primaryText, isLaptop ? styles.primaryTextWide : null]} numberOfLines={1}>{formatRupee(item?.trigger_point)}</Text>
                 </View>
                 <View style={[styles.cell, styles.colCmp]}>
-                  <Text style={styles.primaryText} numberOfLines={1}>{formatRupee(item?.current_price)}</Text>
-                  <Text style={styles.subText} numberOfLines={1}>{formatRupee(item?.wap)}</Text>
+                  <Text style={[styles.primaryText, isLaptop ? styles.primaryTextWide : null]} numberOfLines={1}>{formatRupee(item?.current_price)}</Text>
+                  <Text style={[styles.subText, isLaptop ? styles.subTextWide : null]} numberOfLines={1}>{formatRupee(item?.wap)}</Text>
                 </View>
                 <View style={[styles.cell, styles.colOi]}>
-                  <Text style={styles.primaryText} numberOfLines={1}>{formatOi(item?.OI)}</Text>
-                  <Text style={[styles.subText, { color: chgOi.color }]} numberOfLines={1}>{chgOi.text}</Text>
+                  <Text style={[styles.primaryText, isLaptop ? styles.primaryTextWide : null]} numberOfLines={1}>{formatOi(item?.OI)}</Text>
+                  <Text style={[styles.subText, isLaptop ? styles.subTextWide : null, { color: chgOi.color }]} numberOfLines={1}>{chgOi.text}</Text>
                 </View>
                 <View style={[styles.cell, styles.colSignal]}>
                   {sig ? (
@@ -212,18 +214,23 @@ const createStyles = (f) => ({
   headerStack: { alignItems: 'center', justifyContent: 'center' },
   headerMain: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   headerText: { fontSize: f(10, 11), lineHeight: f(13, 14), fontFamily: 'Inter_500Medium', color: MUTED, letterSpacing: 0.2 },
+  headerTextWide: { fontSize: f(11, 12), lineHeight: f(14, 15) },
   headerSubText: { fontSize: f(9, 10), lineHeight: f(12, 13), fontFamily: 'Inter_400Regular', color: SUBTLE },
+  headerSubTextWide: { fontSize: f(10, 11), lineHeight: f(13, 14) },
   colStrike: { flex: 1.6 },
   colTrigger: { flex: 1.2 },
   colCmp: { flex: 1.25 },
   colOi: { flex: 1.3 },
   colSignal: { flex: 0.85 },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: f(8, 12), paddingVertical: f(10, 12) },
+  rowWide: { paddingVertical: f(12, 14) },
   rowDivider: { borderBottomWidth: 1, borderBottomColor: DIVIDER },
   cell: { minWidth: 0, alignItems: 'center', justifyContent: 'center' },
   strikeCell: { flexDirection: 'row', gap: f(8, 10) },
   primaryText: { fontSize: f(12, 13), lineHeight: f(16, 17), fontFamily: 'Inter_600SemiBold', color: TEXT, textAlign: 'center' },
+  primaryTextWide: { fontSize: f(13.5, 15), lineHeight: f(17.5, 19) },
   subText: { marginTop: 2, fontSize: f(10, 11), lineHeight: f(13, 14), fontFamily: 'Inter_400Regular', color: SUBTLE, textAlign: 'center' },
+  subTextWide: { fontSize: f(11.5, 13), lineHeight: f(14.5, 16) },
   tagPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: f(5, 6), paddingVertical: 1, alignItems: 'center', justifyContent: 'center' },
   tagText: { fontSize: f(8, 9), lineHeight: f(11, 12), fontFamily: 'Inter_500Medium', letterSpacing: 0.3 },
   signalBadge: { width: f(24, 26), height: f(24, 26), borderRadius: 999, alignItems: 'center', justifyContent: 'center' },

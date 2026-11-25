@@ -112,7 +112,7 @@ function buildRange({ high, low, price }) {
   return { empty: false, lowNum, highNum, priceNum, ratio };
 }
 
-function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, spaced }) {
+function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, spaced, flush }) {
   const styles = useFluidStyles(createStyles);
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const [rowWidth, setRowWidth] = useState(0);
@@ -149,7 +149,7 @@ function PriceRangeBar({ high, low, price, distanceFromLow, distanceFromHigh, sp
   const ready = !model.empty && trackBox.width > 0 && rowWidth > 0;
 
   return (
-    <View style={[styles.root, spaced ? styles.rootSpaced : null]} accessibilityRole="summary" accessibilityLabel={summary}>
+    <View style={[styles.root, spaced ? styles.rootSpaced : null, flush ? styles.rootFlush : null]} accessibilityRole="summary" accessibilityLabel={summary}>
       <View
         style={[styles.caption, spaced ? styles.captionSpaced : null]}
         onLayout={(e) => {
@@ -261,6 +261,7 @@ const createStyles = (f) => ({
     paddingHorizontal: f(16, 24),
   },
   rootSpaced: { marginTop: f(16, 20) },
+  rootFlush: { paddingHorizontal: 0 },
   caption: {
     position: 'relative',
     flexDirection: 'row',

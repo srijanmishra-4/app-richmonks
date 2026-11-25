@@ -56,7 +56,12 @@ function goHome() {
 }
 
 function onMenu(key) {
-  if (key === 'home') goHome();
+  if (key === 'home') {
+    goHome();
+    return;
+  }
+  const item = MENUS.find((menu) => menu.key === key);
+  router.push({ pathname: '/user-profile/coming-soon', params: { title: item?.label || 'Coming Soon' } });
 }
 
 export default function ProfileScreen() {

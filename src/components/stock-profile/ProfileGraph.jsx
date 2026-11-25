@@ -7,6 +7,7 @@ import LineGraph from '@/components/LineGraph';
 import CandlestickGraph from '@/components/CandlestickGraph';
 import { LineGraphIcon } from '@/components/icons/StockProfileIcons';
 import WatchlistButton from '@/components/stock-profile/WatchlistButton';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSocketEvent } from '@/hooks/useSocket';
 import { socketRequest } from '@/utils/socket';
 import { useFluidStyles } from '@/utils/responsive';
@@ -31,6 +32,16 @@ const CANDLE_PERIODS = [
   { key: '30D', label: '30D', series: 'candleGraph30Days' },
   { key: '60D', label: '60D', series: 'candleGraph60Days' },
 ];
+
+const OPTION_CANDLE_PERIODS = [
+  { key: '1D', label: '1D', series: 'candleGraph1Day' },
+  { key: '5D', label: '5D', series: 'candleGraph5Days' },
+  { key: '30D', label: '30D', series: 'candleGraph30Days' },
+];
+
+function dayLabel(key) {
+  return `${String(key).replace(/D$/, '')} Day`;
+}
 
 function graphPoints(series) {
   if (!Array.isArray(series)) return [];
@@ -62,6 +73,7 @@ function readCandleResponse(res) {
 
 function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, optionType, strikePr, expiryState, keyStats, header, watchlistAdded, watchlistDisabled, onWatchlist }) {
   const styles = useFluidStyles(createStyles);
+  const { isLaptop } = useBreakpoint();
   const [localPeriod, setLocalPeriod] = useState('1D');
   const [chartWidth, setChartWidth] = useState(0);
   const [lineStackHeight, setLineStackHeight] = useState(0);
@@ -71,8 +83,16 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, opt
   const candleFocused = useRef(false);
   const candleKey = useRef('');
 
-  const lineItems = periods?.length ? periods : LINE_PERIODS;
-  const items = graphMode === 'candle' ? CANDLE_PERIODS : lineItems;
+  const docked = Boolean(fill && header);
+  const isOption = optionType === 'CE' || optionType === 'PE';
+  const periodLabel = (key) => (isLaptop ? dayLabel(key) : key);
+  const candlePeriods = (isOption ? OPTION_CANDLE_PERIODS : CANDLE_PERIODS).map((item) => ({
+    ...item,
+    label: periodLabel(item.key),
+  }));
+  const lineSource = periods?.length ? periods : LINE_PERIODS;
+  const lineItems = lineSource.map((item) => ({ ...item, label: periodLabel(item.key) }));
+  const items = graphMode === 'candle' ? candlePeriods : lineItems;
   const compact = items.length > 3;
   const selected = graphMode === 'candle' ? candlePeriod : (period || localPeriod);
   const points = useMemo(() => graphPoints(data), [data]);
@@ -105,16 +125,15 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, opt
     if (parsed) setCandleData(parsed);
   }, graphMode === 'candle');
 
-  const candleMeta = CANDLE_PERIODS.find((item) => item.key === candlePeriod) ?? CANDLE_PERIODS[0];
+  const candleMeta = candlePeriods.find((item) => item.key === candlePeriod) ?? candlePeriods[0];
   const candleSeries = useMemo(() => {
     const arr = candleData?.[candleMeta.series];
     return Array.isArray(arr) ? arr : [];
   }, [candleData, candleMeta.series]);
 
   const onChartBoxLayout = (event) => {
-    if (Platform.OS !== 'web') return;
     const next = event.nativeEvent.layout.width;
-    if (next > 0) setChartWidth((prev) => (prev === next ? prev : next));
+    if (next > 0) setChartWidth((prev) => (Math.abs(prev - next) < 0.5 ? prev : next));
   };
 
   const choose = (key) => {
@@ -138,7 +157,7 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, opt
   const renderLineGraph = () => {
     if (fill) {
       return (
-        <View style={styles.chartBox} onLayout={onChartBoxLayout}>
+        <View style={docked ? styles.chartBoxDocked : styles.chartBox} onLayout={onChartBoxLayout}>
           <LineGraph flex largeTooltip data={points} height={190} style={Platform.OS === 'web' && chartWidth > 0 ? { width: chartWidth } : null} />
         </View>
       );
@@ -147,22 +166,32 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, opt
   };
 
   const candleHeight = lineStackHeight || (fill ? CANDLE_FALLBACK_HEIGHT_WIDE : CANDLE_FALLBACK_HEIGHT);
+  // The line chart already needs an explicit pixel width here. On web the candle
+  // plot's own onLayout stays at 0 inside this flex column, so the SVG never mounts.
+  const candleSized = fill && chartWidth > 0 ? { width: chartWidth } : null;
 
   return (
-    <View style={fill ? styles.wideWrap : null}>
+    <View style={[fill ? styles.wideWrap : null, docked ? styles.dockedWrap : null]}>
+      {docked && graphMode !== 'candle' ? <View style={styles.dockHeader}>{header}</View> : null}
       {graphMode === 'candle' ? (
-        <View style={[styles.candleStack, fill ? styles.candleStackWide : null, { height: candleHeight }]}>
-          <CandlestickGraph data={candleSeries} height={candleHeight} keyStats={keyStats} />
-        </View>
+        docked ? (
+          <View style={[styles.candleStack, styles.candleStackWide, styles.chartFlex, styles.chartFlexCandle]} onLayout={onChartBoxLayout}>
+            <CandlestickGraph flex data={candleSeries} keyStats={keyStats} style={candleSized} />
+          </View>
+        ) : (
+          <View style={[styles.candleStack, fill ? styles.candleStackWide : null, { height: candleHeight }]} onLayout={fill ? onChartBoxLayout : undefined}>
+            <CandlestickGraph data={candleSeries} height={candleHeight} keyStats={keyStats} style={candleSized} />
+          </View>
+        )
       ) : (
-        <View onLayout={onLineStackLayout}>
-          {header}
-          <View style={[styles.graph, fill ? styles.graphWide : null]}>
+        <View style={docked ? styles.chartFlex : null} onLayout={docked ? undefined : onLineStackLayout}>
+          {docked ? null : header}
+          <View style={[styles.graph, fill && !docked ? styles.graphWide : null, docked ? styles.graphDocked : null]}>
             {renderLineGraph()}
           </View>
         </View>
       )}
-      <View style={[styles.controls, fill ? styles.controlsWide : null]}>
+      <View style={[styles.controls, fill && !docked ? styles.controlsWide : null, docked ? styles.controlsDocked : null]}>
         <View style={[styles.pills, compact ? styles.pillsCompact : null]}>
           {items.map((item) => {
             const active = item.key === selected;
@@ -170,12 +199,12 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, opt
               <Pressable
                 key={item.key}
                 onPress={() => choose(item.key)}
-                style={[fill ? styles.pillWide : styles.pill, compact ? styles.pillCompact : null, fill && compact ? styles.pillCompactWide : null, active ? styles.pillActive : styles.pillIdle, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
+                style={[fill ? styles.pillWide : styles.pill, compact ? styles.pillCompact : null, fill && compact ? styles.pillCompactWide : null, docked ? styles.pillDocked : null, active ? styles.pillActive : styles.pillIdle, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={item.label}
               >
-                <Text style={[styles.pillText, fill ? styles.pillTextWide : null, compact ? styles.pillTextCompact : null, active ? styles.pillTextActive : styles.pillTextIdle]} numberOfLines={1} maxFontSizeMultiplier={1.1}>
+                <Text style={[styles.pillText, fill ? styles.pillTextWide : null, compact ? styles.pillTextCompact : null, docked ? styles.pillTextDocked : null, active ? styles.pillTextActive : styles.pillTextIdle]} numberOfLines={1} maxFontSizeMultiplier={1.1}>
                   {item.label}
                 </Text>
               </Pressable>
@@ -184,8 +213,8 @@ function ProfileGraph({ data, period, onPeriodChange, periods, fill, symbol, opt
         </View>
         {fill ? (
           <View style={styles.chartActions}>
-            <WatchlistButton added={watchlistAdded} disabled={watchlistDisabled} onPress={onWatchlist} iconSize={16} label="Watchlist" labelStyle={styles.watchlistText} style={styles.watchlist} />
-            <Pressable onPress={toggleMode} accessibilityRole="button" accessibilityLabel={graphMode === 'line' ? 'Show candlestick chart' : 'Show line chart'} style={[styles.candle, styles.candleWide, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}>
+            <WatchlistButton added={watchlistAdded} disabled={watchlistDisabled} onPress={onWatchlist} iconSize={16} label="Watchlist" labelStyle={docked ? styles.watchlistTextDocked : styles.watchlistText} style={docked ? styles.watchlistDocked : styles.watchlist} />
+            <Pressable onPress={toggleMode} accessibilityRole="button" accessibilityLabel={graphMode === 'line' ? 'Show candlestick chart' : 'Show line chart'} style={[styles.candle, docked ? styles.candleDocked : styles.candleWide, Platform.OS === 'web' ? { cursor: 'pointer' } : null]}>
               {graphMode === 'line' ? <CandlestickMark /> : <LineGraphIcon size={18} />}
             </Pressable>
           </View>
@@ -243,11 +272,23 @@ const createStyles = (f) => ({
     flexShrink: 0,
   },
   wideWrap: { width: '100%', flexGrow: 1, flexShrink: 1, minHeight: 0 },
+  dockedWrap: { flex: 1, minHeight: 0 },
+  dockHeader: { flexShrink: 0 },
+  chartFlex: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, maxHeight: f(360, 440), width: '100%' },
+  chartFlexCandle: { maxHeight: f(470, 560) },
   graphWide: { marginTop: 44, paddingHorizontal: 0 },
+  graphDocked: { flex: 1, minHeight: 0, marginTop: f(16, 28), paddingHorizontal: 0 },
   chartBox: { maxWidth: 1100, width: '100%', alignSelf: 'center', height: 320, maxHeight: 380 },
+  chartBoxDocked: { maxWidth: 1100, width: '100%', alignSelf: 'center', flex: 1, minHeight: 0 },
   candleStack: { paddingHorizontal: f(16, 24) },
   candleStackWide: { paddingHorizontal: 0, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   controlsWide: { marginTop: 36, paddingHorizontal: 0 },
+  controlsDocked: { marginTop: f(14, 24), paddingHorizontal: 0, flexShrink: 0 },
+  pillDocked: { height: f(32, 38), paddingHorizontal: f(6, 10), paddingVertical: 0 },
+  pillTextDocked: { fontSize: f(12, 14), lineHeight: f(16, 18) },
+  watchlistDocked: { height: f(34, 40), marginRight: f(8, 10), paddingVertical: f(7, 9), paddingHorizontal: f(12, 16), borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 6 },
+  watchlistTextDocked: { fontSize: f(12.5, 14), lineHeight: f(16, 18), fontFamily: 'Inter_500Medium', color: '#0F172A' },
+  candleDocked: { width: f(34, 40), height: f(34, 40) },
   chartActions: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
   watchlist: { height: 36, marginRight: 8, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 6 },
   watchlistText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter_500Medium', color: '#0F172A' },

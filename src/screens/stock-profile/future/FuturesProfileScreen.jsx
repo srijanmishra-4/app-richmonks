@@ -3,6 +3,7 @@ import { View, Text, Pressable, ScrollView, Animated, Platform, StyleSheet } fro
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BackChevronIcon } from '@/components/icons/StockProfileIcons';
 import ProfileNavHeader, { useProfileHeaderScroll } from '@/components/stock-profile/ProfileNavHeader';
 import StockHeroCard from '@/components/stock-profile/StockHeroCard';
 import KeyStatsOverview from '@/components/stock-profile/future/FutureKeyStatsOverview';
@@ -196,8 +197,71 @@ export default function FuturesProfileScreen() {
     navigation.setParams({ tab: key });
   }, [navigation, tab]);
 
-  const body = (
-    <>
+  const graphData = graphFor === requestKey ? graph : null;
+  const watchlistProps = {
+    watchlistAdded: watchlist.added,
+    watchlistDisabled: !watchlist.ready || watchlist.busy,
+    onWatchlist: watchlist.toggle,
+  };
+
+  const hero = (
+    <StockHeroCard
+      status={profile?.market_status}
+      cdate={profile?.cdate}
+      expiry={expiry}
+      onExpiryChange={onExpiryChange}
+      symbol={symbol}
+      price={profile?.price}
+      price_change={profile?.price_change}
+      price_change_value={profile?.price_change_value}
+      lot_size={profile?.lot_size}
+      margin={profile?.margin}
+      wap={profile?.wap}
+      onIdentityReveal={onIdentityReveal}
+    />
+  );
+
+  const tabBar = (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabs}>
+      {TABS.map((item) => {
+        const selected = tab === item.key;
+        return (
+          <Pressable key={item.key} onPress={() => onTabChange(item.key)} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={item.label} style={[styles.tab, isLaptop ? styles.tabWide : null, Platform.OS === 'web' ? styles.pointer : null]}>
+            <Text style={[styles.tabLabel, isLaptop ? styles.tabLabelWide : null, selected ? styles.tabLabelActive : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{item.label}</Text>
+            <View style={[selected ? styles.tabIndicator : styles.tabIndicatorSpacer, isLaptop ? styles.tabIndicatorWide : null]} />
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+
+  if (isLaptop) {
+    return (
+      <View style={styles.fill}>
+        <View style={styles.split}>
+          <View style={styles.left}>
+            <Pressable onPress={onBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={[styles.webBack, Platform.OS === 'web' ? styles.pointer : null]}>
+              <BackChevronIcon size={20} />
+            </Pressable>
+            {hero}
+            <View style={styles.graphFill}>
+              <KeyStatsOverview profile={profile} graph={graphData} symbol={symbol} expiry={expiry} fill {...watchlistProps} />
+            </View>
+          </View>
+          <View style={styles.right}>
+            {tabBar}
+            <ScrollView key={tab} style={styles.rightScroll} contentContainerStyle={styles.rightContent} keyboardShouldPersistTaps="handled">
+              {profileTab(tab, profile, graphData, symbol, expiry, false)}
+            </ScrollView>
+          </View>
+        </View>
+        <Snackbar message={snackbar.message} visible={snackbar.visible} onDismiss={snackbar.hide} />
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.fill} edges={['top']}>
       <ProfileNavHeader
         onBack={onBack}
         onSearch={onSearch}
@@ -212,54 +276,28 @@ export default function FuturesProfileScreen() {
         watchlistDisabled={!watchlist.ready || watchlist.busy}
         onWatchlist={watchlist.toggle}
       />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabs}>
-        {TABS.map((item) => {
-          const selected = tab === item.key;
-          return (
-            <Pressable key={item.key} onPress={() => onTabChange(item.key)} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={item.label} style={[styles.tab, Platform.OS === 'web' ? styles.pointer : null]}>
-              <Text style={[styles.tabLabel, selected ? styles.tabLabelActive : null]} numberOfLines={1} maxFontSizeMultiplier={1.1}>{item.label}</Text>
-              <View style={selected ? styles.tabIndicator : styles.tabIndicatorSpacer} />
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {tabBar}
       <Animated.ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" onScroll={onScroll} scrollEventThrottle={scrollEventThrottle}>
-        <StockHeroCard
-          status={profile?.market_status}
-          cdate={profile?.cdate}
-          expiry={expiry}
-          onExpiryChange={onExpiryChange}
-          symbol={symbol}
-          price={profile?.price}
-          price_change={profile?.price_change}
-          price_change_value={profile?.price_change_value}
-          lot_size={profile?.lot_size}
-          margin={profile?.margin}
-          wap={profile?.wap}
-          onIdentityReveal={onIdentityReveal}
-        />
-        {profileTab(tab, profile, graphFor === requestKey ? graph : null, symbol, expiry)}
+        {hero}
+        {profileTab(tab, profile, graphData, symbol, expiry, true)}
       </Animated.ScrollView>
       <Snackbar message={snackbar.message} visible={snackbar.visible} onDismiss={snackbar.hide} />
-    </>
+    </SafeAreaView>
   );
-
-  if (isLaptop) return <View style={styles.fill}>{body}</View>;
-  return <SafeAreaView style={styles.fill} edges={['top']}>{body}</SafeAreaView>;
 }
 
-function profileTab(tab, profile, graph, symbol, expiry) {
-  if (tab === 'stats') return <KeyStatsTab profile={profile} graph={graph} symbol={symbol} expiry={expiry} />;
+function profileTab(tab, profile, graph, symbol, expiry, showOverview) {
+  if (tab === 'stats') return <KeyStatsTab profile={profile} graph={graph} symbol={symbol} expiry={expiry} showOverview={showOverview} />;
   if (tab === 'oi') return <OiOverviewTab overview={profile?.oi_overview} pcr={profile?.pcr} optionData={profile?.optionData} symbol={symbol} />;
   if (tab === 'options') return <OptionsDataTab optionData={profile?.optionData} symbol={symbol} expiry={expiry} />;
   if (tab === 'takeaways') return <RmTakeawaysTab summary={profile?.rm_summary} symbol={symbol} />;
   return null;
 }
 
-function KeyStatsTab({ profile, graph, symbol, expiry }) {
+function KeyStatsTab({ profile, graph, symbol, expiry, showOverview }) {
   return (
     <>
-      <KeyStatsOverview profile={profile} graph={graph} symbol={symbol} expiry={expiry} />
+      {showOverview ? <KeyStatsOverview profile={profile} graph={graph} symbol={symbol} expiry={expiry} /> : null}
       <StockStatisticsGrid profile={profile} />
       <MarketBiasCard bias={profile?.bias} comment={profile?.tradingDataComment} priceChange={profile?.market_bias?.price_change} futureOi={profile?.market_bias?.future_oi} score={profile?.score ?? profile?.market_bias?.score} />
       <PricePerformance data={profile?.price_performance} />
@@ -305,4 +343,14 @@ const createStyles = (f) => ({
   tabIndicatorSpacer: { height: 2, marginTop: f(14, 16) },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: f(24, 32) },
+  split: { flex: 1, flexDirection: 'row', minHeight: 0 },
+  left: { flex: 1.35, minWidth: 0, minHeight: 0, paddingHorizontal: f(20, 32), paddingTop: f(16, 24), paddingBottom: f(18, 28) },
+  webBack: { width: f(34, 40), height: f(34, 40), borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start', marginBottom: f(12, 16) },
+  graphFill: { flexGrow: 1, flexShrink: 1, minHeight: 0, marginTop: f(18, 28) },
+  right: { flex: 1, minWidth: 0, minHeight: 0, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#E2E8F0' },
+  rightScroll: { flex: 1, minHeight: 0 },
+  rightContent: { paddingTop: f(12, 18), paddingBottom: f(28, 40) },
+  tabWide: { paddingTop: f(12, 16), paddingHorizontal: f(8, 14) },
+  tabLabelWide: { fontSize: f(13, 15.5), lineHeight: f(18, 21) },
+  tabIndicatorWide: { marginTop: f(12, 14) },
 });
