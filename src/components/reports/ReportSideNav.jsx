@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { View, Text, Pressable, ScrollView, Platform } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { REPORT_ITEMS } from '@/components/home/PremiumReports';
+import { VISIBLE_REPORT_ITEMS } from '@/components/home/PremiumReports';
 import { useFluidStyles } from '@/utils/responsive';
 
 function ReportSideNav() {
@@ -12,7 +12,7 @@ function ReportSideNav() {
     <View style={styles.root}>
       <Text style={styles.heading}>Reports</Text>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {REPORT_ITEMS.map(({ label, Icon, href }) => {
+        {VISIBLE_REPORT_ITEMS.map(({ label, Icon, href }) => {
           const active = pathname === href;
           return (
             <Pressable

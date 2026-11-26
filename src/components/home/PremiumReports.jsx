@@ -3,15 +3,17 @@ import { View, Text, Pressable, Platform, StyleSheet, useWindowDimensions } from
 import { router } from 'expo-router';
 
 import {
-  FutureReportIcon, OiChangesReportIcon, MarketInternalsReportIcon,
+  Top20ReportIcon, Bottom20ReportIcon, OiChangesReportIcon, MarketInternalsReportIcon,
   HeatMapReportIcon, StockRankReportIcon, ShiftingGearsReportIcon,
   IndicesOptionReportIcon, MostActiveOptionsReportIcon, CallPutValueReportIcon,
+  MostActiveCallReportIcon, MostActivePutReportIcon, MasterReportIcon,
 } from '@/components/icons/HomeReportIcons';
 
-// ─── Report Rows (exact reference order) ───────────────────────────────────────
+// ─── Report Rows ───────────────────────────────────────────────────────────────
 
 export const REPORT_ITEMS = [
-  { label: 'Future', Icon: FutureReportIcon, href: '/home/reports/future' },
+  { label: 'Top 20', Icon: Top20ReportIcon, href: '/home/reports/top-20' },
+  { label: 'Bottom 20', Icon: Bottom20ReportIcon, href: '/home/reports/bottom-20' },
   { label: 'OI Changes', Icon: OiChangesReportIcon, href: '/home/reports/oi-changes' },
   { label: 'Market Internals', Icon: MarketInternalsReportIcon, href: '/home/reports/market-internals' },
   { label: 'Heat Map', Icon: HeatMapReportIcon, href: '/home/reports/heat-map' },
@@ -20,9 +22,23 @@ export const REPORT_ITEMS = [
   { label: 'Indices Option', Icon: IndicesOptionReportIcon, href: '/home/reports/indices-option' },
   { label: 'Most Active Options', Icon: MostActiveOptionsReportIcon, href: '/home/reports/most-active-options' },
   { label: 'Call/Put value', Icon: CallPutValueReportIcon, href: '/home/reports/call-put-value' },
+  { label: 'Most Active Call', Icon: MostActiveCallReportIcon, href: '/home/reports/most-active-call' },
+  { label: 'Most Active Put', Icon: MostActivePutReportIcon, href: '/home/reports/most-active-put' },
+  { label: 'Master Report', Icon: MasterReportIcon, href: '/home/reports/master-report' },
 ];
 
-const ROWS = [REPORT_ITEMS.slice(0, 3), REPORT_ITEMS.slice(3, 6), REPORT_ITEMS.slice(6, 9)];
+// Reports left out of this list keep their routes but are hidden from the reports grid and side nav.
+const VISIBLE_REPORT_ORDER = [
+  'Master Report', 'Heat Map', 'OI Changes',
+  'Top 20', 'Bottom 20', 'Shifting Gears',
+  'Most Active Call', 'Most Active Put', 'Indices Option',
+];
+
+export const VISIBLE_REPORT_ITEMS = VISIBLE_REPORT_ORDER.map((label) => REPORT_ITEMS.find((item) => item.label === label));
+
+const ROWS = Array.from({ length: Math.ceil(VISIBLE_REPORT_ITEMS.length / 3) }, (_, index) => (
+  VISIBLE_REPORT_ITEMS.slice(index * 3, index * 3 + 3)
+));
 
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
@@ -40,7 +56,7 @@ function PremiumReports() {
       {ROWS.map((row, ri) => (
         <View key={ri} style={[styles.row, isDesktop && styles.desktopRow, compact && styles.rowCompact, ri > 0 && styles.rowDivider]}>
           {row.map(({ label, Icon, href }, ci) => {
-            const itemStyle = [styles.item, ci === 1 && styles.itemCenter, href && Platform.OS === 'web' ? styles.pointer : null];
+            const itemStyle = [styles.item, row.length === 3 && ci === 1 && styles.itemCenter, href && Platform.OS === 'web' ? styles.pointer : null];
             const body = (
               <>
                 <Icon size={iconSize} />
@@ -54,6 +70,9 @@ function PremiumReports() {
               </Pressable>
             );
           })}
+          {row.length < 3 && Array.from({ length: 3 - row.length }, (_, spacer) => (
+            <View key={`spacer-${spacer}`} style={styles.item} />
+          ))}
         </View>
       ))}
     </View>
