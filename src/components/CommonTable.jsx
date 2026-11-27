@@ -80,7 +80,7 @@ function TableSkeletonRow({ pulse, columns, skeletonStyles }) {
   );
 }
 
-function CommonTable({ data, columns, HeaderComponent, RowComponent, loading = false, skeletonRowCount = 10, keyExtractor = defaultKeyExtractor, initialSort = null, minWidth, emptyText = 'No data to show', style, rowStyle }) {
+function CommonTable({ data, columns, HeaderComponent, RowComponent, loading = false, skeletonRowCount = 10, keyExtractor = defaultKeyExtractor, initialSort = null, minWidth, emptyText = 'No data to show', style, rowStyle, getRowStyle }) {
   const styles = useFluidStyles(createStyles);
   const skeletonStyles = useFluidStyles(createSkeletonStyles);
   const [sort, setSort] = useState(initialSort);
@@ -103,9 +103,9 @@ function CommonTable({ data, columns, HeaderComponent, RowComponent, loading = f
         <TableSkeletonRow pulse={pulse} columns={columns} skeletonStyles={skeletonStyles} />
       </View>
     ) : (
-      <View style={[styles.row, rowStyle]}><RowComponent data={item} index={index} /></View>
+      <View style={[styles.row, rowStyle, getRowStyle?.(item, index)]}><RowComponent data={item} index={index} /></View>
     )
-  ), [RowComponent, showSkeleton, pulse, columns, rowStyle, styles, skeletonStyles]);
+  ), [RowComponent, showSkeleton, pulse, columns, rowStyle, getRowStyle, styles, skeletonStyles]);
 
   const table = (
     <View style={[styles.table, minWidth ? { minWidth } : null]}>

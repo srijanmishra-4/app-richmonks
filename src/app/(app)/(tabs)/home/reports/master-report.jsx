@@ -1,5 +1,5 @@
-import InstrumentComingSoonScreen from '@/screens/home/InstrumentComingSoonScreen';
+import MasterReportScreen from '@/screens/reports/MasterReportScreen';
 
 export default function MasterReportRoute() {
-  return <InstrumentComingSoonScreen title="Master Report" />;
+  return <MasterReportScreen />;
 }
