@@ -43,6 +43,14 @@ export default function HomeStackLayout() {
             }}
           />
           <Stack.Screen
+            name="fno-stats-report"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen
             name="bull-vs-bear"
             options={{
               presentation: 'transparentModal',

@@ -110,6 +110,8 @@ function FnoProfitMeter() {
   const HeaderIcon = isNegative ? TradeDownIcon : TradeUpIcon;
   const headerIconColor = isPositive ? GREEN : isNegative ? RED : NEUTRAL;
   const headerIconBg = isPositive ? '#DCFCE7' : isNegative ? '#FEE2E2' : '#F1F5F9';
+  const openStatsReport = (report) => router.push({ pathname: '/home/fno-stats-report', params: { report } });
+  const statPressStyle = Platform.OS === 'web' ? { cursor: 'pointer' } : null;
 
   return (
     <View style={[styles.container, isDesktop && styles.desktopContainer]}>
@@ -133,47 +135,43 @@ function FnoProfitMeter() {
 
       {/* Statistics Card */}
       <View style={styles.statsCard}>
-        {/* Gainers */}
-        <View style={styles.statItem}>
+        <Pressable onPress={() => openStatsReport('gainers')} style={[styles.statItem, statPressStyle]} accessibilityRole="button" accessibilityLabel="Gainers">
           <View style={[styles.statIconBg, { backgroundColor: '#DCFCE7' }]}>
             <ArrowUpIcon size={16} color={GREEN} />
           </View>
           <Text style={styles.statLabel} numberOfLines={1}>Gainers</Text>
           <Text style={[styles.statValue, { color: GREEN }]} numberOfLines={1}>{advance}</Text>
-        </View>
+        </Pressable>
 
         <View style={styles.statDivider} />
 
-        {/* Losers */}
-        <View style={styles.statItem}>
+        <Pressable onPress={() => openStatsReport('losers')} style={[styles.statItem, statPressStyle]} accessibilityRole="button" accessibilityLabel="Losers">
           <View style={[styles.statIconBg, { backgroundColor: '#FEE2E2' }]}>
             <ArrowDownIcon size={16} color={RED} />
           </View>
           <Text style={styles.statLabel} numberOfLines={1}>Losers</Text>
           <Text style={[styles.statValue, { color: RED }]} numberOfLines={1}>{declined}</Text>
-        </View>
+        </Pressable>
 
         <View style={styles.statDivider} />
 
-        {/* Above WAP */}
-        <View style={styles.statItem}>
+        <Pressable onPress={() => openStatsReport('abv_wap')} style={[styles.statItem, statPressStyle]} accessibilityRole="button" accessibilityLabel="Above WAP">
           <View style={[styles.statIconBg, { backgroundColor: abvWapNum != null && abvWapNum >= 50 ? '#DCFCE7' : '#FEE2E2' }]}>
             <ChartColumnIcon size={14} color={abvWapColor} />
           </View>
           <Text style={styles.statLabel} numberOfLines={1}>Above WAP</Text>
           <Text style={[styles.statValue, { color: abvWapColor }]} numberOfLines={1}>{abvWapDisplay}</Text>
-        </View>
+        </Pressable>
 
         <View style={styles.statDivider} />
 
-        {/* Below WAP */}
-        <View style={styles.statItem}>
+        <Pressable onPress={() => openStatsReport('blw_wap')} style={[styles.statItem, statPressStyle]} accessibilityRole="button" accessibilityLabel="Below WAP">
           <View style={[styles.statIconBg, { backgroundColor: blwWapNum != null && blwWapNum >= 50 ? '#DCFCE7' : '#FEE2E2' }]}>
             <ChartColumnDecreasingIcon size={14} color={blwWapColor} />
           </View>
           <Text style={styles.statLabel} numberOfLines={1}>Below WAP</Text>
           <Text style={[styles.statValue, { color: blwWapColor }]} numberOfLines={1}>{blwWapDisplay}</Text>
-        </View>
+        </Pressable>
       </View>
 
       {/* View Report Button */}

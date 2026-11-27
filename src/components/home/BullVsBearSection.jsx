@@ -109,7 +109,7 @@ function TitleWidthMeasurer({ titles, fontSize, onMeasured }) {
   );
 }
 
-function StatCard({ type = 'green', isUpTrend, title, value, titleFontSize, titleFontMax, spacing }) {
+function StatCard({ type = 'green', isUpTrend, title, value, titleFontSize, titleFontMax, spacing, onPress }) {
   const styles = useFluidStyles(createStyles);
   const isGreen = type === 'green';
   const color = isGreen ? GREEN : RED;
@@ -119,11 +119,15 @@ function StatCard({ type = 'green', isUpTrend, title, value, titleFontSize, titl
   const titleLineHeight = Math.ceil(titleFontSize * 1.35);
 
   return (
-    <View
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
       style={[
         styles.card,
         isGreen ? styles.cardGreen : styles.cardRed,
         { paddingHorizontal: spacing.padH },
+        Platform.OS === 'web' ? { cursor: 'pointer' } : null,
       ]}
     >
       <View style={[styles.cardTopRow, { gap: spacing.rowGap, minHeight: Math.ceil(titleFontMax * 1.35) }]}>
@@ -144,7 +148,7 @@ function StatCard({ type = 'green', isUpTrend, title, value, titleFontSize, titl
         <ArrowIcon size={18} color={color} />
         <Text style={[styles.cardCount, { color }]}>{countText}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -237,6 +241,7 @@ function BullVsBearSection() {
               titleFontSize={headerFontSize}
               titleFontMax={headerFontMax}
               spacing={spacing}
+              onPress={() => router.push({ pathname: '/home/fno-stats-report', params: { report: 'abv_yes_high' } })}
             />
           </View>
           <View style={styles.gridCell}>
@@ -248,6 +253,7 @@ function BullVsBearSection() {
               titleFontSize={headerFontSize}
               titleFontMax={headerFontMax}
               spacing={spacing}
+              onPress={() => router.push({ pathname: '/home/fno-stats-report', params: { report: 'abv_intra_high' } })}
             />
           </View>
         </View>
@@ -261,6 +267,7 @@ function BullVsBearSection() {
               titleFontSize={headerFontSize}
               titleFontMax={headerFontMax}
               spacing={spacing}
+              onPress={() => router.push({ pathname: '/home/fno-stats-report', params: { report: 'blw_yes_low' } })}
             />
           </View>
           <View style={styles.gridCell}>
@@ -272,6 +279,7 @@ function BullVsBearSection() {
               titleFontSize={headerFontSize}
               titleFontMax={headerFontMax}
               spacing={spacing}
+              onPress={() => router.push({ pathname: '/home/fno-stats-report', params: { report: 'blw_intra_low' } })}
             />
           </View>
         </View>
