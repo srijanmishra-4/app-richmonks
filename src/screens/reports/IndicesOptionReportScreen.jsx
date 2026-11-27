@@ -90,7 +90,7 @@ function IndicesOptionReportScreen() {
           const data = res?.result ?? res ?? null;
           setResult(data);
           setError(false);
-          const payload = data?.data;
+          const payload = data?.data?.option_chain;
           if (!Array.isArray(payload) || payload.length === 0) setLoading(false);
           return data;
         })
@@ -115,7 +115,7 @@ function IndicesOptionReportScreen() {
 
   useRegisterRefresh(useCallback(() => fetchReport({ silent: true }), [fetchReport]));
 
-  const rawRows = result?.data;
+  const rawRows = result?.data?.option_chain;
   const rows = useMemo(() => {
     if (!Array.isArray(rawRows)) return [];
     return [...rawRows].sort((a, b) => (Number(a?.strike) || 0) - (Number(b?.strike) || 0));
