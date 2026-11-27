@@ -1,5 +1,5 @@
-import InstrumentComingSoonScreen from '@/screens/home/InstrumentComingSoonScreen';
+import MostActiveSideReportScreen from '@/screens/reports/MostActiveSideReportScreen';
 
 export default function MostActiveCallReportRoute() {
-  return <InstrumentComingSoonScreen title="Most Active Call" />;
+  return <MostActiveSideReportScreen title="Most Active Call" optionType="call" />;
 }

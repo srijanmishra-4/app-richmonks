@@ -1,5 +1,5 @@
-import InstrumentComingSoonScreen from '@/screens/home/InstrumentComingSoonScreen';
+import MostActiveSideReportScreen from '@/screens/reports/MostActiveSideReportScreen';
 
 export default function MostActivePutReportRoute() {
-  return <InstrumentComingSoonScreen title="Most Active Put" />;
+  return <MostActiveSideReportScreen title="Most Active Put" optionType="put" />;
 }
